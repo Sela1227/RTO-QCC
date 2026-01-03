@@ -1,0 +1,943 @@
+"""療程詳情頁"""
+import flet as ft
+from datetime import date
+from app.config.theme import SELATheme
+from app.config.constants import PAUSE_REASONS, TERMINATE_REASONS, SKIP_REASONS
+from app.services.treatment_service import TreatmentService
+from app.services.weight_service import WeightService
+from app.services.intervention_service import InterventionService
+from app.components.weight_chart import WeightChartComponent
+
+
+class TreatmentView:
+    """療程詳情頁"""
+    
+    def __init__(self, page: ft.Page, main_view, treatment_id: int):
+        self.page = page
+        self.main_view = main_view
+        self.treatment_id = treatment_id
+        self.treatment_service = TreatmentService()
+        self.weight_service = WeightService()
+        self.intervention_service = InterventionService()
+        self.treatment = None
+    
+    def build(self) -> ft.Control:
+        """建立療程詳情 UI"""
+        self.treatment = self.treatment_service.get_with_details(self.treatment_id)
+        
+        if not self.treatment:
+            return ft.Container(
+                expand=True,
+                content=ft.Text("療程不存在"),
+            )
+        
+        # 取得體重歷史
+        weight_records = self.weight_service.get_history(self.treatment_id)
+        
+        # 計算追蹤狀態
+        days_since = 0
+        if self.treatment.last_weight:
+            last_date = self.treatment.last_weight.measure_date
+            if isinstance(last_date, str):
+                last_date = date.fromisoformat(last_date.split('T')[0])
+            elif hasattr(last_date, 'date'):
+                last_date = last_date.date()
+            days_since = (date.today() - last_date).days
+        
+        # 狀態標籤
+        status_color = {
+            "active": SELATheme.SUCCESS,
+            "paused": SELATheme.WARNING,
+            "terminated": SELATheme.DANGER,
+            "completed": SELATheme.TEXT_HINT,
+        }.get(self.treatment.status, SELATheme.TEXT_HINT)
+        
+        # 警示橫幅
+        alert_banner = None
+        if self.treatment.status == "active":
+            if days_since > 7:
+                alert_banner = self._build_alert_banner(
+                    f"🔴 此病人已 {days_since} 天未量測體重",
+                    SELATheme.DANGER,
+                )
+            elif self.treatment.pending_interventions:
+                pending_types = [i.type_label for i in self.treatment.pending_interventions]
+                alert_banner = self._build_intervention_banner(pending_types)
+        
+        # 體重資訊卡
+        weight_card = self._build_weight_card()
+        
+        # 體重趨勢圖（matplotlib）
+        chart_component = WeightChartComponent(self.treatment.baseline_weight, weight_records)
+        chart_card = chart_component.build()
+        
+        # 體重記錄列表
+        records_list = self._build_records_list(weight_records[:10])
+        
+        return ft.Container(
+            expand=True,
+            bgcolor=SELATheme.BG,
+            content=ft.Column([
+                # 標題列
+                ft.Container(
+                    bgcolor=SELATheme.SURFACE,
+                    padding=ft.padding.symmetric(horizontal=8, vertical=8),
+                    content=ft.Row([
+                        ft.IconButton(
+                            icon=ft.Icons.ARROW_BACK,
+                            on_click=lambda e: self.main_view.navigate_to(1),
+                        ),
+                        ft.Container(expand=True),
+                    ]),
+                ),
+                # 內容區
+                ft.Container(
+                    expand=True,
+                    padding=SELATheme.SPACE_MD,
+                    content=ft.Column([
+                        # 病人資訊
+                        ft.Row([
+                            ft.Text(
+                                self.treatment.patient.medical_id_display if self.treatment.patient else "",
+                                size=16,
+                                weight=ft.FontWeight.BOLD,
+                                font_family=SELATheme.FONT_FAMILY,
+                            ),
+                            ft.Text(
+                                self.treatment.patient.name if self.treatment.patient else "",
+                                size=16,
+                                font_family=SELATheme.FONT_FAMILY,
+                            ),
+                            ft.Text(
+                                self.treatment.patient.gender_label if self.treatment.patient else "",
+                                size=14,
+                                color=SELATheme.TEXT_SECONDARY,
+                            ),
+                            ft.Text(
+                                self.treatment.patient.age_display if self.treatment.patient else "",
+                                size=14,
+                                color=SELATheme.TEXT_SECONDARY,
+                            ),
+                            ft.Container(expand=True),
+                            # 無法測量標記
+                            ft.Container(
+                                bgcolor=SELATheme.TEXT_HINT,
+                                border_radius=4,
+                                padding=ft.padding.symmetric(horizontal=6, vertical=3),
+                                visible=self.treatment.unable_to_measure,
+                                on_click=self._show_unable_dialog,
+                                ink=True,
+                                content=ft.Text("⚠️ 無法測量", size=10, color=ft.Colors.WHITE),
+                            ) if self.treatment.unable_to_measure else ft.Container(),
+                            ft.Container(width=4) if self.treatment.unable_to_measure else ft.Container(),
+                            ft.Container(
+                                bgcolor=status_color,
+                                border_radius=4,
+                                padding=ft.padding.symmetric(horizontal=8, vertical=4),
+                                content=ft.Text(
+                                    self.treatment.status_label,
+                                    size=12,
+                                    color=ft.Colors.WHITE,
+                                ),
+                            ),
+                        ]),
+                        ft.Container(height=8),
+                        # 警示橫幅
+                        alert_banner if alert_banner else ft.Container(),
+                        ft.Container(height=8) if alert_banner else ft.Container(),
+                        # 體重卡片
+                        weight_card,
+                        ft.Container(height=12),
+                        # 趨勢圖
+                        chart_card,
+                        ft.Container(height=12),
+                        # 記錄列表標題
+                        ft.Text(
+                            "體重記錄",
+                            size=14,
+                            weight=ft.FontWeight.BOLD,
+                            font_family=SELATheme.FONT_FAMILY,
+                        ),
+                        ft.Container(height=8),
+                        # 記錄列表
+                        records_list,
+                    ], scroll=ft.ScrollMode.AUTO, expand=True),
+                ),
+                # 底部按鈕區
+                self._build_bottom_buttons() if self.treatment.status == "active" else self._build_paused_buttons(),
+            ], spacing=0, expand=True),
+        )
+    
+    def _build_bottom_buttons(self) -> ft.Control:
+        """建立底部按鈕區（進行中療程）"""
+        return ft.Container(
+            bgcolor=SELATheme.SURFACE,
+            padding=ft.padding.symmetric(horizontal=8, vertical=10),
+            content=ft.Row([
+                ft.ElevatedButton(
+                    "新增體重",
+                    height=40,
+                    bgcolor=SELATheme.PRIMARY,
+                    color=ft.Colors.WHITE,
+                    expand=True,
+                    on_click=lambda e: self.main_view.show_weight_form(self.treatment_id),
+                ),
+                ft.Container(width=6),
+                ft.ElevatedButton(
+                    "介入",
+                    height=40,
+                    bgcolor=SELATheme.WARNING,
+                    color=ft.Colors.WHITE,
+                    expand=True,
+                    on_click=self._show_manual_intervention_dialog,
+                ),
+                ft.Container(width=6),
+                ft.OutlinedButton(
+                    "暫停",
+                    height=40,
+                    expand=True,
+                    style=ft.ButtonStyle(color=SELATheme.TEXT_SECONDARY),
+                    on_click=self._on_pause,
+                ),
+                ft.Container(width=6),
+                ft.OutlinedButton(
+                    "終止",
+                    height=40,
+                    expand=True,
+                    style=ft.ButtonStyle(color=SELATheme.DANGER),
+                    on_click=self._on_terminate,
+                ),
+                ft.Container(width=6),
+                ft.OutlinedButton(
+                    "結案",
+                    height=40,
+                    expand=True,
+                    style=ft.ButtonStyle(color=SELATheme.SUCCESS),
+                    on_click=self._show_complete_with_confirm,
+                ),
+            ]),
+        )
+    
+    def _build_paused_buttons(self) -> ft.Control:
+        """建立底部按鈕區（暫停中/其他狀態）"""
+        if self.treatment.status == "paused":
+            return ft.Container(
+                bgcolor=SELATheme.SURFACE,
+                padding=SELATheme.SPACE_MD,
+                content=ft.Row([
+                    ft.ElevatedButton(
+                        "恢復療程",
+                        height=44,
+                        bgcolor=SELATheme.SUCCESS,
+                        color=ft.Colors.WHITE,
+                        icon=ft.Icons.PLAY_ARROW,
+                        on_click=self._on_resume,
+                    ),
+                    ft.Container(width=12),
+                    ft.OutlinedButton(
+                        "終止療程",
+                        height=44,
+                        style=ft.ButtonStyle(
+                            color=SELATheme.DANGER,
+                            side=ft.BorderSide(1, SELATheme.DANGER),
+                        ),
+                        on_click=self._on_terminate,
+                    ),
+                ], alignment=ft.MainAxisAlignment.CENTER),
+            )
+        return ft.Container()
+    
+    def _show_manual_intervention_dialog(self, e):
+        """顯示手動介入選擇對話框"""
+        def on_sdm(e):
+            dialog.open = False
+            self.page.update()
+            from app.services.intervention_service import InterventionService
+            intervention_service = InterventionService()
+            intervention_service.create_manual(self.treatment_id, "sdm")
+            self.main_view.show_snack("已建立 SDM")
+            self.main_view.show_intervention_detail(self.treatment_id, "sdm")
+        
+        def on_nutrition(e):
+            dialog.open = False
+            self.page.update()
+            from app.services.intervention_service import InterventionService
+            intervention_service = InterventionService()
+            intervention_service.create_manual(self.treatment_id, "nutrition")
+            self.main_view.show_snack("已建立營養師轉介")
+            self.main_view.show_intervention_detail(self.treatment_id, "nutrition")
+        
+        def on_cancel(e):
+            dialog.open = False
+            self.page.update()
+        
+        dialog = ft.AlertDialog(
+            title=ft.Text("手動建立介入", font_family=SELATheme.FONT_FAMILY),
+            content=ft.Column([
+                ft.Container(
+                    bgcolor="#FFF3E0",
+                    border_radius=SELATheme.RADIUS_SM,
+                    padding=SELATheme.SPACE_MD,
+                    ink=True,
+                    on_click=on_sdm,
+                    content=ft.Row([
+                        ft.Text("💬", size=20),
+                        ft.Text("SDM 諮詢", size=14),
+                    ], spacing=12),
+                ),
+                ft.Container(height=8),
+                ft.Container(
+                    bgcolor="#FFEBEE",
+                    border_radius=SELATheme.RADIUS_SM,
+                    padding=SELATheme.SPACE_MD,
+                    ink=True,
+                    on_click=on_nutrition,
+                    content=ft.Row([
+                        ft.Text("🍎", size=20),
+                        ft.Text("營養師轉介", size=14),
+                    ], spacing=12),
+                ),
+            ], tight=True, spacing=0),
+            actions=[
+                ft.TextButton("取消", on_click=on_cancel),
+            ],
+        )
+        
+        self.page.overlay.append(dialog)
+        dialog.open = True
+        self.page.update()
+    
+    def _build_weight_card(self) -> ft.Control:
+        """建立體重資訊卡"""
+        baseline = self.treatment.baseline_weight
+        current = self.treatment.current_weight or baseline
+        change_rate = self.treatment.current_change_rate or 0
+        
+        # 變化率顏色（負數=下降，正數=上升）
+        rate_color = SELATheme.SUCCESS
+        if change_rate <= -5:  # 下降 5% 以上
+            rate_color = SELATheme.DANGER
+        elif change_rate <= -3:  # 下降 3% 以上
+            rate_color = SELATheme.WARNING
+        
+        # 變化率顯示
+        rate_text = "基準"
+        if change_rate != 0:
+            rate_text = f"{change_rate:+.1f}%"
+        
+        return ft.Container(
+            bgcolor=SELATheme.SURFACE,
+            border_radius=SELATheme.RADIUS_MD,
+            padding=SELATheme.SPACE_MD,
+            content=ft.Column([
+                ft.Row([
+                    ft.Text(
+                        self.treatment.cancer_type_label,
+                        size=14,
+                        weight=ft.FontWeight.BOLD,
+                        font_family=SELATheme.FONT_FAMILY,
+                    ),
+                    ft.Container(expand=True),
+                    ft.Text(
+                        f"{self.treatment.treatment_start} 開始" if self.treatment.treatment_start else "",
+                        size=12,
+                        color=SELATheme.TEXT_SECONDARY,
+                    ),
+                ]),
+                ft.Container(height=16),
+                ft.Row([
+                    ft.Column([
+                        ft.Text(f"{baseline:.1f}", size=24, weight=ft.FontWeight.BOLD),
+                        ft.Text("基準", size=12, color=SELATheme.TEXT_SECONDARY),
+                    ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+                    ft.Text("→", size=20, color=SELATheme.TEXT_HINT),
+                    ft.Column([
+                        ft.Text(f"{current:.1f}", size=24, weight=ft.FontWeight.BOLD),
+                        ft.Text("目前", size=12, color=SELATheme.TEXT_SECONDARY),
+                    ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+                    ft.Container(expand=True),
+                    ft.Column([
+                        ft.Text(rate_text, size=24, weight=ft.FontWeight.BOLD, color=rate_color),
+                        ft.Text("變化", size=12, color=SELATheme.TEXT_SECONDARY),
+                    ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+                ], alignment=ft.MainAxisAlignment.SPACE_AROUND),
+            ]),
+        )
+    
+    def _build_records_list(self, records) -> ft.Control:
+        """建立體重記錄列表"""
+        if not records:
+            return ft.Container(
+                padding=SELATheme.SPACE_MD,
+                content=ft.Text("尚無體重記錄", color=SELATheme.TEXT_HINT),
+            )
+        
+        items = []
+        for r in records:
+            # 日期
+            measure_date = r.measure_date
+            if isinstance(measure_date, str):
+                measure_date = date.fromisoformat(measure_date.split('T')[0])
+            elif hasattr(measure_date, 'date'):
+                measure_date = measure_date.date()
+            date_str = measure_date.strftime("%m/%d")
+            
+            # 警示標籤
+            alert_badge = None
+            if r.alert_level == "sdm":
+                alert_badge = ft.Container(
+                    bgcolor=SELATheme.WARNING,
+                    border_radius=4,
+                    padding=ft.padding.symmetric(horizontal=4, vertical=2),
+                    content=ft.Text("SDM", size=10, color=ft.Colors.WHITE),
+                )
+            elif r.alert_level == "nutrition":
+                alert_badge = ft.Container(
+                    bgcolor=SELATheme.DANGER,
+                    border_radius=4,
+                    padding=ft.padding.symmetric(horizontal=4, vertical=2),
+                    content=ft.Text("營養", size=10, color=ft.Colors.WHITE),
+                )
+            
+            items.append(
+                ft.Container(
+                    bgcolor=SELATheme.SURFACE,
+                    border_radius=SELATheme.RADIUS_SM,
+                    padding=ft.padding.symmetric(horizontal=12, vertical=8),
+                    margin=ft.margin.only(bottom=4),
+                    ink=True,
+                    on_click=lambda e, rec=r: self._show_weight_edit_dialog(rec),
+                    content=ft.Row([
+                        ft.Text(date_str, size=13, width=50),
+                        ft.Text(f"{r.weight:.1f} kg", size=13, weight=ft.FontWeight.BOLD),
+                        ft.Text(
+                            r.change_rate_display,
+                            size=12,
+                            color=SELATheme.TEXT_SECONDARY,
+                        ),
+                        ft.Container(expand=True),
+                        alert_badge if alert_badge else ft.Container(),
+                        ft.Icon(ft.Icons.EDIT, size=14, color=SELATheme.TEXT_HINT),
+                    ]),
+                )
+            )
+        
+        return ft.Column(items, spacing=0)
+    
+    def _build_alert_banner(self, text: str, color: str) -> ft.Control:
+        """建立警示橫幅"""
+        return ft.Container(
+            bgcolor=color,
+            border_radius=SELATheme.RADIUS_SM,
+            padding=ft.padding.symmetric(horizontal=12, vertical=8),
+            content=ft.Row([
+                ft.Text(text, size=13, color=ft.Colors.WHITE),
+                ft.Container(expand=True),
+                ft.TextButton(
+                    "立即量測",
+                    style=ft.ButtonStyle(color=ft.Colors.WHITE),
+                    on_click=lambda e: self.main_view.show_weight_form(self.treatment_id),
+                ),
+            ]),
+        )
+    
+    def _build_intervention_banner(self, types: list) -> ft.Control:
+        """建立介入提醒橫幅"""
+        return ft.Container(
+            bgcolor=SELATheme.WARNING,
+            border_radius=SELATheme.RADIUS_SM,
+            padding=ft.padding.symmetric(horizontal=12, vertical=8),
+            content=ft.Row([
+                ft.Text(f"🟠 需執行：{', '.join(types)}", size=13, color=ft.Colors.WHITE),
+                ft.Container(expand=True),
+                ft.TextButton(
+                    "執行",
+                    style=ft.ButtonStyle(color=ft.Colors.WHITE),
+                    on_click=self._on_complete_intervention,
+                ),
+                ft.TextButton(
+                    "略過",
+                    style=ft.ButtonStyle(color=ft.Colors.WHITE),
+                    on_click=self._on_skip_intervention,
+                ),
+            ]),
+        )
+    
+    def _build_menu_items(self) -> list:
+        """建立更多選單"""
+        items = []
+        
+        if self.treatment.status == "active":
+            items.extend([
+                ft.PopupMenuItem(
+                    text="暫停療程",
+                    icon=ft.Icons.PAUSE,
+                    on_click=self._on_pause,
+                ),
+                ft.PopupMenuItem(
+                    text="終止療程",
+                    icon=ft.Icons.CANCEL,
+                    on_click=self._on_terminate,
+                ),
+                ft.PopupMenuItem(
+                    text="療程結案",
+                    icon=ft.Icons.CHECK_CIRCLE,
+                    on_click=self._on_complete,
+                ),
+            ])
+        elif self.treatment.status == "paused":
+            items.append(
+                ft.PopupMenuItem(
+                    text="恢復療程",
+                    icon=ft.Icons.PLAY_ARROW,
+                    on_click=self._on_resume,
+                ),
+            )
+        
+        return items
+    
+    def _on_complete_intervention(self, e):
+        """完成介入 - 進入介入詳情頁"""
+        if not self.treatment.pending_interventions:
+            return
+        
+        # 判斷類型
+        has_nutrition = any(i.type == "nutrition" for i in self.treatment.pending_interventions)
+        intervention_type = "nutrition" if has_nutrition else "sdm"
+        
+        # 導航到介入詳情頁
+        self.main_view.show_intervention_detail(self.treatment_id, intervention_type)
+    
+    def _show_complete_intervention_dialog(self):
+        """顯示完成介入對話框"""
+        interventions = self.treatment.pending_interventions
+        
+        # 判斷類型取得對應原因選項
+        from app.config.constants import SDM_REASONS, NUTRITION_REASONS
+        
+        has_nutrition = any(i.type == "nutrition" for i in interventions)
+        
+        if has_nutrition:
+            reason_options = NUTRITION_REASONS
+            title = "完成營養師轉介"
+        else:
+            reason_options = SDM_REASONS
+            title = "完成 SDM"
+        
+        reason_dropdown = ft.Dropdown(
+            label="介入原因",
+            options=[
+                ft.dropdown.Option(key=r["code"], text=r["label"])
+                for r in reason_options
+            ],
+            width=260,
+        )
+        
+        def on_confirm(e):
+            reason = reason_dropdown.value or ""
+            for intervention in interventions:
+                self.intervention_service.mark_completed(intervention.id, reason=reason)
+            dialog.open = False
+            self.main_view.show_snack("已完成介入")
+            self.main_view.show_treatment(self.treatment_id)
+            self.page.update()
+        
+        def on_cancel(e):
+            dialog.open = False
+            self.page.update()
+        
+        dialog = ft.AlertDialog(
+            title=ft.Text(title, font_family=SELATheme.FONT_FAMILY),
+            content=reason_dropdown,
+            actions=[
+                ft.TextButton("取消", on_click=on_cancel),
+                ft.ElevatedButton("完成", on_click=on_confirm, bgcolor=SELATheme.SUCCESS, color=ft.Colors.WHITE),
+            ],
+        )
+        
+        self.page.overlay.append(dialog)
+        dialog.open = True
+        self.page.update()
+    
+    def _on_skip_intervention(self, e):
+        """略過介入"""
+        self._show_skip_dialog()
+    
+    def _show_skip_dialog(self):
+        """顯示略過原因對話框"""
+        reason_dropdown = ft.Dropdown(
+            label="略過原因",
+            options=[
+                ft.dropdown.Option(key=r["code"], text=r["label"])
+                for r in SKIP_REASONS
+            ],
+            width=240,
+        )
+        
+        # 病人拒絕快速選項
+        def on_patient_refused(e):
+            reason_dropdown.value = "PATIENT_REFUSED"
+            self.page.update()
+        
+        def on_confirm(e):
+            if not reason_dropdown.value:
+                return
+            
+            if self.treatment.pending_interventions:
+                for intervention in self.treatment.pending_interventions:
+                    self.intervention_service.mark_skipped(intervention.id, reason_dropdown.value)
+                dialog.open = False
+                self.main_view.show_snack("已略過")
+                self.main_view.show_treatment(self.treatment_id)
+                self.page.update()
+        
+        def on_cancel(e):
+            dialog.open = False
+            self.page.update()
+        
+        dialog = ft.AlertDialog(
+            title=ft.Text("略過介入", font_family=SELATheme.FONT_FAMILY),
+            content=ft.Column([
+                ft.Container(
+                    bgcolor="#FFF3E0",
+                    border_radius=SELATheme.RADIUS_SM,
+                    padding=ft.padding.symmetric(horizontal=10, vertical=6),
+                    ink=True,
+                    on_click=on_patient_refused,
+                    content=ft.Row([
+                        ft.Icon(ft.Icons.PERSON_OFF, size=16, color=SELATheme.WARNING),
+                        ft.Text("病人拒絕", size=12),
+                    ], spacing=6),
+                ),
+                ft.Container(height=8),
+                reason_dropdown,
+            ], tight=True),
+            actions=[
+                ft.TextButton("取消", on_click=on_cancel),
+                ft.ElevatedButton("略過", on_click=on_confirm),
+            ],
+        )
+        
+        self.page.overlay.append(dialog)
+        dialog.open = True
+        self.page.update()
+    
+    def _on_pause(self, e):
+        """暫停療程"""
+        self._show_status_dialog("暫停療程", PAUSE_REASONS, "paused")
+    
+    def _on_terminate(self, e):
+        """終止療程"""
+        self._show_status_dialog("終止療程", TERMINATE_REASONS, "terminated")
+    
+    def _on_complete(self, e):
+        """結案療程（從選單）"""
+        self._show_complete_with_confirm(e)
+    
+    def _show_complete_with_confirm(self, e):
+        """顯示結束療程對話框（需輸入 4 碼確認碼）"""
+        import random
+        
+        # 產生 4 碼隨機數字
+        confirm_code = str(random.randint(1000, 9999))
+        
+        # 結束日期（預設今天）
+        end_date = date.today()
+        
+        confirm_field = ft.TextField(
+            label=f"請輸入 {confirm_code} 確認",
+            hint_text="輸入確認碼",
+            width=200,
+            text_align=ft.TextAlign.CENTER,
+            keyboard_type=ft.KeyboardType.NUMBER,
+        )
+        
+        error_text = ft.Text("", color=SELATheme.DANGER, size=12, visible=False)
+        
+        def on_confirm(e):
+            if confirm_field.value.strip() != confirm_code:
+                error_text.value = "確認碼不符"
+                error_text.visible = True
+                self.page.update()
+                return
+            
+            from app.repositories.treatment_repository import TreatmentRepository
+            repo = TreatmentRepository()
+            repo.update_status(self.treatment_id, "completed", "TREATMENT_END")
+            repo.update_end_date(self.treatment_id, end_date)
+            dialog.open = False
+            self.main_view.show_snack("療程已結案")
+            self.main_view.navigate_to(1)
+            self.page.update()
+        
+        def on_cancel(e):
+            dialog.open = False
+            self.page.update()
+        
+        dialog = ft.AlertDialog(
+            title=ft.Text("結束療程", font_family=SELATheme.FONT_FAMILY),
+            content=ft.Column([
+                ft.Text(f"確定要結束「{self.treatment.treatment_name}」嗎？", size=13),
+                ft.Text("結案後將不再追蹤此療程", size=12, color=SELATheme.TEXT_HINT),
+                ft.Container(height=8),
+                confirm_field,
+                error_text,
+            ], tight=True, horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+            actions=[
+                ft.TextButton("取消", on_click=on_cancel),
+                ft.ElevatedButton("確定結案", on_click=on_confirm, bgcolor=SELATheme.SUCCESS, color=ft.Colors.WHITE),
+            ],
+        )
+        
+        self.page.overlay.append(dialog)
+        dialog.open = True
+        self.page.update()
+    
+    def _on_resume(self, e):
+        """恢復療程"""
+        from app.repositories.treatment_repository import TreatmentRepository
+        repo = TreatmentRepository()
+        repo.update_status(self.treatment_id, "active")
+        self.main_view.show_snack("療程已恢復")
+        self.main_view.show_treatment(self.treatment_id)
+    
+    def _show_status_dialog(self, title: str, reasons: list, new_status: str):
+        """顯示狀態變更對話框"""
+        reason_dropdown = ft.Dropdown(
+            label="原因",
+            options=[
+                ft.dropdown.Option(key=r["code"], text=r["label"])
+                for r in reasons
+            ],
+            width=260,
+        )
+        
+        def on_confirm(e):
+            if reason_dropdown.value:
+                from app.repositories.treatment_repository import TreatmentRepository
+                repo = TreatmentRepository()
+                repo.update_status(self.treatment_id, new_status, reason_dropdown.value)
+                dialog.open = False
+                self.main_view.show_snack(f"療程已{title[:2]}")
+                self.main_view.navigate_to(1)
+                self.page.update()
+        
+        def on_cancel(e):
+            dialog.open = False
+            self.page.update()
+        
+        dialog = ft.AlertDialog(
+            title=ft.Text(title, font_family=SELATheme.FONT_FAMILY),
+            content=reason_dropdown,
+            actions=[
+                ft.TextButton("取消", on_click=on_cancel),
+                ft.ElevatedButton("確定", on_click=on_confirm),
+            ],
+        )
+        
+        self.page.overlay.append(dialog)
+        dialog.open = True
+        self.page.update()
+    
+    def _show_unable_dialog(self, e):
+        """顯示無法測量設定對話框"""
+        from app.config.constants import UNABLE_REASONS
+        from app.services.treatment_service import TreatmentService
+        
+        is_unable = self.treatment.unable_to_measure
+        
+        reason_dropdown = ft.Dropdown(
+            label="原因",
+            options=[
+                ft.dropdown.Option(key=r["code"], text=r["label"])
+                for r in UNABLE_REASONS
+            ],
+            value=self.treatment.unable_reason or "",
+            width=200,
+            visible=not is_unable,  # 如果已標記，隱藏（要取消標記）
+        )
+        
+        def on_toggle(e):
+            treatment_service = TreatmentService()
+            if is_unable:
+                # 取消標記
+                treatment_service.update_unable_status(self.treatment_id, False)
+                self.main_view.show_snack("已取消無法測量標記")
+            else:
+                # 設定標記
+                if not reason_dropdown.value:
+                    return
+                treatment_service.update_unable_status(self.treatment_id, True, reason_dropdown.value)
+                self.main_view.show_snack("已標記為無法測量")
+            
+            dialog.open = False
+            self.main_view.show_treatment(self.treatment_id)
+            self.page.update()
+        
+        def on_cancel(e):
+            dialog.open = False
+            self.page.update()
+        
+        if is_unable:
+            content = ft.Text(f"目前原因：{self.treatment.unable_reason_label}\n\n要取消此標記嗎？", size=13)
+            btn_text = "取消標記"
+        else:
+            content = ft.Column([
+                ft.Text("標記後將不計入逾期監控", size=12, color=SELATheme.TEXT_HINT),
+                ft.Container(height=8),
+                reason_dropdown,
+            ], tight=True)
+            btn_text = "確定標記"
+        
+        dialog = ft.AlertDialog(
+            title=ft.Text("無法測量體重", font_family=SELATheme.FONT_FAMILY),
+            content=content,
+            actions=[
+                ft.TextButton("取消", on_click=on_cancel),
+                ft.ElevatedButton(btn_text, on_click=on_toggle),
+            ],
+        )
+        
+        self.page.overlay.append(dialog)
+        dialog.open = True
+        self.page.update()
+    
+    def _show_weight_edit_dialog(self, record):
+        """顯示體重編輯對話框"""
+        from app.services.weight_service import WeightService
+        weight_service = WeightService()
+        
+        # 解析日期
+        measure_date = record.measure_date
+        if isinstance(measure_date, str):
+            measure_date = date.fromisoformat(measure_date.split('T')[0])
+        elif hasattr(measure_date, 'date'):
+            measure_date = measure_date.date()
+        
+        selected_date = [measure_date]  # 用列表以便在內部函數中修改
+        
+        # 體重輸入
+        weight_field = ft.TextField(
+            value=str(record.weight),
+            label="體重 (kg)",
+            width=120,
+            text_align=ft.TextAlign.CENTER,
+            keyboard_type=ft.KeyboardType.NUMBER,
+        )
+        
+        # 日期顯示
+        date_text = ft.Text(measure_date.strftime("%Y-%m-%d"), size=14)
+        
+        error_text = ft.Text("", color=SELATheme.DANGER, size=12, visible=False)
+        
+        def show_date_picker(e):
+            def on_date_change(e):
+                if dp.value:
+                    picked = dp.value
+                    if hasattr(picked, 'date'):
+                        picked = picked.date()
+                    selected_date[0] = picked
+                    date_text.value = picked.strftime("%Y-%m-%d")
+                    self.page.update()
+            
+            dp = ft.DatePicker(
+                first_date=self.treatment.treatment_start if self.treatment.treatment_start else date(2015, 1, 1),
+                last_date=date.today(),
+                value=selected_date[0],
+                on_change=on_date_change,
+            )
+            self.page.open(dp)
+        
+        def on_save(e):
+            try:
+                weight = float(weight_field.value.strip())
+                if weight <= 0 or weight > 300:
+                    error_text.value = "體重數值不合理"
+                    error_text.visible = True
+                    self.page.update()
+                    return
+                
+                weight_service.update(
+                    record_id=record.id,
+                    weight=weight,
+                    measure_date=selected_date[0],
+                    treatment_id=self.treatment_id,
+                    baseline_weight=self.treatment.baseline_weight,
+                    cancer_type=self.treatment.cancer_type,
+                )
+                
+                dialog.open = False
+                self.main_view.show_snack("已更新體重記錄")
+                self._refresh()
+            except ValueError as ex:
+                error_text.value = str(ex)
+                error_text.visible = True
+                self.page.update()
+        
+        def on_delete(e):
+            # 顯示刪除確認
+            def confirm_delete(e):
+                weight_service.delete(record.id)
+                confirm_dialog.open = False
+                dialog.open = False
+                self.main_view.show_snack("已刪除體重記錄")
+                self._refresh()
+            
+            def cancel_delete(e):
+                confirm_dialog.open = False
+                self.page.update()
+            
+            confirm_dialog = ft.AlertDialog(
+                title=ft.Row([
+                    ft.Icon(ft.Icons.WARNING, color=SELATheme.DANGER),
+                    ft.Text("確認刪除", font_family=SELATheme.FONT_FAMILY),
+                ]),
+                content=ft.Text(f"確定要刪除 {measure_date.strftime('%m/%d')} 的體重記錄嗎？"),
+                actions=[
+                    ft.TextButton("取消", on_click=cancel_delete),
+                    ft.ElevatedButton("刪除", on_click=confirm_delete, 
+                                     bgcolor=SELATheme.DANGER, color=ft.Colors.WHITE),
+                ],
+            )
+            self.page.overlay.append(confirm_dialog)
+            confirm_dialog.open = True
+            self.page.update()
+        
+        def on_cancel(e):
+            dialog.open = False
+            self.page.update()
+        
+        # 判斷是否為基準記錄（第一筆）
+        is_baseline = record.change_rate is None or record.change_rate == 0
+        
+        dialog = ft.AlertDialog(
+            title=ft.Text("編輯體重記錄", font_family=SELATheme.FONT_FAMILY),
+            content=ft.Column([
+                ft.Row([
+                    ft.Text("日期：", size=13),
+                    date_text,
+                    ft.IconButton(icon=ft.Icons.CALENDAR_TODAY, on_click=show_date_picker),
+                ]),
+                ft.Container(height=8),
+                weight_field,
+                ft.Container(height=8),
+                ft.Text(f"變化率將自動重新計算", size=11, color=SELATheme.TEXT_HINT),
+                error_text,
+            ], tight=True, width=250),
+            actions=[
+                ft.TextButton("刪除", on_click=on_delete, 
+                             style=ft.ButtonStyle(color=SELATheme.DANGER)) if not is_baseline else ft.Container(),
+                ft.Container(expand=True),
+                ft.TextButton("取消", on_click=on_cancel),
+                ft.ElevatedButton("儲存", on_click=on_save,
+                                 bgcolor=SELATheme.PRIMARY, color=ft.Colors.WHITE),
+            ],
+        )
+        
+        self.page.overlay.append(dialog)
+        dialog.open = True
+        self.page.update()
+    
+    def _refresh(self):
+        """刷新頁面"""
+        self.main_view.show_treatment(self.treatment_id)
