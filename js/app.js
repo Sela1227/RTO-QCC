@@ -1,6 +1,6 @@
 /**
  * 彰濱放腫體重監控預防系統 - 主程式
- * v3.3 Web 版
+ * v3.5 Web 版
  */
 
 const App = {
@@ -174,6 +174,62 @@ const App = {
         document.getElementById('stat-paused').textContent = pausedTreatments.length;
         document.getElementById('stat-pending').textContent = pendingInterventions.length;
         document.getElementById('stat-overdue').textContent = overdueCount;
+        
+        // 檢查備份提醒
+        await this.checkBackupReminder();
+    },
+    
+    /**
+     * 檢查備份提醒
+     */
+    async checkBackupReminder() {
+        const reminder = document.getElementById('backup-reminder');
+        if (!reminder) return;
+        
+        const lastBackup = await Settings.get('last_backup_time');
+        const now = new Date();
+        
+        if (!lastBackup) {
+            // 從未備份過
+            reminder.style.display = 'flex';
+            document.getElementById('backup-reminder-msg').textContent = '尚未建立備份';
+            return;
+        }
+        
+        const lastBackupDate = new Date(lastBackup);
+        const daysSinceBackup = Math.floor((now - lastBackupDate) / (1000 * 60 * 60 * 24));
+        
+        if (daysSinceBackup >= 7) {
+            reminder.style.display = 'flex';
+            document.getElementById('backup-reminder-msg').textContent = 
+                `上次備份：${daysSinceBackup} 天前`;
+        } else {
+            reminder.style.display = 'none';
+        }
+    },
+    
+    /**
+     * 執行資料備份
+     */
+    async doBackup() {
+        try {
+            const data = await exportAllData();
+            const filename = `weight_backup_${today()}.json`;
+            downloadJSON(data, filename);
+            
+            // 記錄備份時間
+            await Settings.set('last_backup_time', new Date().toISOString());
+            
+            showToast('備份已下載');
+            
+            // 隱藏提醒
+            const reminder = document.getElementById('backup-reminder');
+            if (reminder) {
+                reminder.style.display = 'none';
+            }
+        } catch (e) {
+            showToast('備份失敗: ' + e.message, 'error');
+        }
     },
     
     /**
@@ -195,14 +251,11 @@ const App = {
             return;
         }
         
-        const results = await Patient.search(keyword);
-        this.patientSearchKeyword = keyword;
-        
         // 顯示清除按鈕
         document.getElementById('btn-patient-search-clear').style.display = 'inline-flex';
         
-        // 渲染搜尋結果
-        await this.renderPatientSearchResults(results, keyword);
+        // 使用筛选功能
+        await renderPatientList({ keyword });
     },
     
     /**
@@ -211,84 +264,18 @@ const App = {
     async clearPatientSearch() {
         document.getElementById('patient-search-input').value = '';
         document.getElementById('btn-patient-search-clear').style.display = 'none';
-        this.patientSearchKeyword = null;
         await renderPatientList();
     },
     
     /**
-     * 渲染病人搜尋結果
+     * 篩選病人
      */
-    async renderPatientSearchResults(results, keyword) {
-        const container = document.getElementById('patient-list');
-        
-        if (results.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state" style="padding: 60px;">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                        <circle cx="11" cy="11" r="8"></circle>
-                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                    </svg>
-                    <p>找不到符合「${keyword}」的病人</p>
-                    <button class="btn btn-primary" onclick="Patient.showForm()">新增病人</button>
-                </div>
-            `;
-            return;
+    async filterPatients() {
+        const keyword = document.getElementById('patient-search-input').value.trim();
+        if (keyword) {
+            document.getElementById('btn-patient-search-clear').style.display = 'inline-flex';
         }
-        
-        let html = `
-            <div style="margin-bottom: 12px; color: var(--text-secondary);">
-                找到 ${results.length} 筆符合「${keyword}」的結果
-            </div>
-            <table class="patient-table">
-                <thead>
-                    <tr>
-                        <th>病歷號</th>
-                        <th>姓名</th>
-                        <th>性別</th>
-                        <th>年齡</th>
-                        <th>療程數</th>
-                        <th>目前狀態</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody>
-        `;
-        
-        for (const p of results) {
-            const treatments = await Treatment.getByPatient(p.id);
-            const activeTreatment = treatments.find(t => t.status === 'active');
-            const ongoingTreatment = treatments.find(t => t.status === 'active' || t.status === 'paused');
-            const age = calculateAge(p.birth_date);
-            
-            let statusHtml = '<span class="tag tag-gray">無療程</span>';
-            if (activeTreatment) {
-                statusHtml = '<span class="tag tag-blue">治療中</span>';
-            } else if (ongoingTreatment) {
-                statusHtml = '<span class="tag tag-amber">暫停中</span>';
-            } else if (treatments.length > 0) {
-                statusHtml = '<span class="tag tag-green">已結案</span>';
-            }
-            
-            html += `
-                <tr>
-                    <td><strong>${p.medical_id}</strong></td>
-                    <td>${p.name}</td>
-                    <td>${formatGender(p.gender)}</td>
-                    <td>${age ? age + '歲' : '-'}</td>
-                    <td>${treatments.length}</td>
-                    <td>${statusHtml}</td>
-                    <td>
-                        <button class="btn btn-outline" style="padding: 4px 8px; font-size: 12px;" 
-                                onclick="showPatientDetail(${p.id})">
-                            查看
-                        </button>
-                    </td>
-                </tr>
-            `;
-        }
-        
-        html += '</tbody></table>';
-        container.innerHTML = html;
+        await renderPatientList({ keyword });
     },
     
     /**

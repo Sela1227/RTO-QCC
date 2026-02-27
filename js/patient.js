@@ -386,25 +386,92 @@ const Patient = {
 /**
  * 渲染病人列表頁面
  */
-async function renderPatientList() {
+async function renderPatientList(filters = {}) {
     const container = document.getElementById('patient-list');
-    const patients = await Patient.getAll();
+    let patients = await Patient.getAll();
     
-    if (patients.length === 0) {
+    // 初始化癌別篩選下拉選單
+    const cancerSelect = document.getElementById('patient-filter-cancer');
+    if (cancerSelect && cancerSelect.options.length <= 1) {
+        const cancerTypes = await Settings.get('cancer_types', []);
+        cancerTypes.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.code;
+            opt.textContent = c.label;
+            cancerSelect.appendChild(opt);
+        });
+    }
+    
+    // 取得篩選條件
+    const statusFilter = filters.status || document.getElementById('patient-filter-status')?.value || 'all';
+    const cancerFilter = filters.cancer || document.getElementById('patient-filter-cancer')?.value || 'all';
+    const keyword = filters.keyword || '';
+    
+    // 載入每個病人的療程資料
+    const patientsWithTreatments = [];
+    for (const p of patients) {
+        const treatments = await Treatment.getByPatient(p.id);
+        const activeTreatment = treatments.find(t => t.status === 'active');
+        const pausedTreatment = treatments.find(t => t.status === 'paused');
+        const cancerTypes = treatments.map(t => t.cancer_type);
+        
+        patientsWithTreatments.push({
+            ...p,
+            treatments,
+            activeTreatment,
+            pausedTreatment,
+            cancerTypes,
+            hasActive: !!activeTreatment,
+            hasPaused: !!pausedTreatment
+        });
+    }
+    
+    // 套用篩選
+    let filtered = patientsWithTreatments;
+    
+    // 狀態篩選
+    if (statusFilter === 'has_active') {
+        filtered = filtered.filter(p => p.hasActive);
+    } else if (statusFilter === 'has_paused') {
+        filtered = filtered.filter(p => p.hasPaused);
+    } else if (statusFilter === 'no_active') {
+        filtered = filtered.filter(p => !p.hasActive && !p.hasPaused);
+    }
+    
+    // 癌別篩選
+    if (cancerFilter !== 'all') {
+        filtered = filtered.filter(p => p.cancerTypes.includes(cancerFilter));
+    }
+    
+    // 關鍵字搜尋
+    if (keyword) {
+        const kw = keyword.toLowerCase();
+        const kwPadded = padMedicalId(keyword);
+        filtered = filtered.filter(p => 
+            p.medical_id.includes(kw) ||
+            p.medical_id.includes(kwPadded) ||
+            p.name.toLowerCase().includes(kw)
+        );
+    }
+    
+    if (filtered.length === 0) {
         container.innerHTML = `
             <div class="empty-state" style="padding: 60px;">
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                     <circle cx="12" cy="7" r="4"></circle>
                 </svg>
-                <p>尚無病人資料</p>
-                <button class="btn btn-primary" onclick="Patient.showForm()">新增第一位病人</button>
+                <p>${patients.length > 0 ? '沒有符合條件的病人' : '尚無病人資料'}</p>
+                ${patients.length === 0 ? '<button class="btn btn-primary" onclick="Patient.showForm()">新增第一位病人</button>' : ''}
             </div>
         `;
         return;
     }
     
     let html = `
+        <div style="margin-bottom: 8px; color: var(--text-secondary); font-size: 13px;">
+            共 ${filtered.length} 位病人
+        </div>
         <table class="patient-table">
             <thead>
                 <tr>
@@ -420,18 +487,15 @@ async function renderPatientList() {
             <tbody>
     `;
     
-    for (const p of patients) {
-        const treatments = await Treatment.getByPatient(p.id);
-        const activeTreatment = treatments.find(t => t.status === 'active');
-        const ongoingTreatment = treatments.find(t => t.status === 'active' || t.status === 'paused');
+    for (const p of filtered) {
         const age = calculateAge(p.birth_date);
         
         let statusHtml = '<span class="tag tag-gray">無療程</span>';
-        if (activeTreatment) {
+        if (p.hasActive) {
             statusHtml = '<span class="tag tag-blue">治療中</span>';
-        } else if (ongoingTreatment) {
+        } else if (p.hasPaused) {
             statusHtml = '<span class="tag tag-amber">暫停中</span>';
-        } else if (treatments.length > 0) {
+        } else if (p.treatments.length > 0) {
             statusHtml = '<span class="tag tag-green">已結案</span>';
         }
         
@@ -441,7 +505,7 @@ async function renderPatientList() {
                 <td>${p.name}</td>
                 <td>${formatGender(p.gender)}</td>
                 <td>${age ? age + '歲' : '-'}</td>
-                <td>${treatments.length}</td>
+                <td>${p.treatments.length}</td>
                 <td>${statusHtml}</td>
                 <td>
                     <button class="btn btn-outline" style="padding: 4px 8px; font-size: 12px;" 

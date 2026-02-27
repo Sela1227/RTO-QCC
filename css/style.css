@@ -117,9 +117,11 @@ body {
     gap: var(--space-sm);
 }
 
-.logo-icon {
-    font-size: 20px;
-    color: var(--primary);
+.logo-img {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    object-fit: contain;
 }
 
 .logo-text {
@@ -200,8 +202,13 @@ body {
 .nav-logo {
     width: 48px;
     height: 48px;
+    max-width: 48px;
+    max-height: 48px;
+    min-width: 48px;
+    min-height: 48px;
     border-radius: 8px;
     object-fit: contain;
+    display: block;
 }
 
 .version {
@@ -358,6 +365,40 @@ body {
 
 .search-result {
     margin-top: var(--space-md);
+}
+
+/* === 備份提醒 === */
+.backup-reminder {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: 12px 16px;
+    background: rgba(228, 185, 90, 0.1);
+    border: 1px solid rgba(228, 185, 90, 0.3);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-lg);
+    max-width: 640px;
+}
+
+.backup-reminder-icon {
+    color: var(--warning);
+    flex-shrink: 0;
+}
+
+.backup-reminder-text {
+    flex: 1;
+    font-size: var(--font-size-sm);
+}
+
+.backup-reminder-text strong {
+    display: block;
+    color: var(--warning);
+    margin-bottom: 2px;
+}
+
+.backup-reminder-text span {
+    color: var(--text-secondary);
+    font-size: var(--font-size-xs);
 }
 
 /* === 快速操作 === */
@@ -1073,8 +1114,13 @@ body {
         padding: 0 12px;
     }
     
+    .logo-img {
+        width: 24px;
+        height: 24px;
+    }
+    
     .logo-text {
-        font-size: 14px;
+        font-size: 13px;
     }
     
     /* 側邊欄改為底部導航 */
@@ -1134,8 +1180,18 @@ body {
     }
     
     /* 儀表板 */
+    .page-header {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    
     .page-header h1 {
         font-size: 18px;
+    }
+    
+    .page-header .btn {
+        font-size: 12px;
+        padding: 6px 12px;
     }
     
     .stats-grid,
@@ -1243,12 +1299,55 @@ body {
         padding: 8px 6px;
     }
     
+    /* 病人表格 - 可滾動 */
+    .patient-list {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .patient-table {
+        min-width: 600px;
+        font-size: 12px;
+    }
+    
+    .patient-table th,
+    .patient-table td {
+        padding: 10px 8px;
+        white-space: nowrap;
+    }
+    
+    /* 篩選區塊 */
+    .filter-section {
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+    
+    .filter-section .form-group {
+        min-width: 100% !important;
+    }
+    
+    .filter-section .search-box {
+        min-width: 100% !important;
+    }
+    
     /* 搜尋 */
     .search-box {
         padding: 8px 12px;
+        flex-wrap: wrap;
     }
     
     .search-box input {
         font-size: 14px;
+        min-width: 120px;
+    }
+    
+    /* 備份提醒 */
+    .backup-reminder {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    .backup-reminder-text {
+        flex: 1 1 100%;
     }
 }
