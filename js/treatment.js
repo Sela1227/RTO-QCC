@@ -53,6 +53,36 @@ const Treatment = {
     },
     
     /**
+     * 取得單一療程的詳細資料（含體重記錄）
+     */
+    async getWithDetails(treatmentId) {
+        const t = await this.getById(treatmentId);
+        if (!t) return null;
+        
+        const cancerTypes = await Settings.get('cancer_types', []);
+        
+        // 病人資料
+        const patient = await Patient.getById(t.patient_id);
+        t.patient = patient;
+        
+        // 癌別標籤
+        const ct = cancerTypes.find(c => c.code === t.cancer_type);
+        t.cancer_type_label = ct ? ct.label : t.cancer_type;
+        
+        // 體重記錄
+        const weights = await Weight.getByTreatment(t.id);
+        t.weight_records = weights;
+        t.latest_weight = weights[0] || null;
+        
+        // 計算變化率
+        if (t.latest_weight && t.baseline_weight) {
+            t.change_rate = calculateWeightChangeRate(t.latest_weight.weight, t.baseline_weight);
+        }
+        
+        return t;
+    },
+    
+    /**
      * 擴充療程資料（加入病人資訊、最新體重等）
      */
     async enrichTreatments(treatments) {

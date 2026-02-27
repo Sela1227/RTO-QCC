@@ -1,6 +1,6 @@
 /**
  * 彰濱放腫體重監控預防系統 - 主程式
- * v3.5 Web 版
+ * v4.1 Web 版
  */
 
 const App = {
@@ -457,8 +457,12 @@ const App = {
         if (treatment.baseline_weight && treatment.weight_records?.length >= 1) {
             chartHtml = `
                 <div class="detail-section">
-                    <div class="detail-section-title">體重趨勢</div>
-                    <div style="height: 120px; background: var(--bg); border-radius: 6px; padding: 6px;">
+                    <div class="detail-section-title" style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>體重趨勢</span>
+                        <span style="font-size: 11px; color: var(--text-hint); font-weight: normal;">點擊放大</span>
+                    </div>
+                    <div style="height: 120px; background: var(--bg); border-radius: 6px; padding: 6px; cursor: pointer;"
+                         onclick="App.showChartEnlarged(${treatment.id})" title="點擊放大">
                         <canvas id="weight-trend-chart"></canvas>
                     </div>
                 </div>
@@ -701,8 +705,188 @@ const App = {
                 }
             }
         });
+    },
+    
+    /**
+     * 顯示放大的體重趨勢圖
+     */
+    async showChartEnlarged(treatmentId) {
+        const treatment = await Treatment.getWithDetails(treatmentId);
+        if (!treatment) return;
+        
+        const patient = await Patient.getById(treatment.patient_id);
+        
+        const html = `
+            <div style="margin-bottom: 16px;">
+                <strong>${patient.medical_id}</strong> ${patient.name}
+            </div>
+            <div style="height: 350px; background: var(--bg); border-radius: 8px; padding: 12px;">
+                <canvas id="enlarged-trend-chart"></canvas>
+            </div>
+        `;
+        
+        openModal('體重趨勢圖', html, [
+            { text: '關閉', class: 'btn-outline' }
+        ]);
+        
+        // 等待 modal 渲染完成
+        setTimeout(() => {
+            this.renderEnlargedChart(treatment);
+        }, 100);
+    },
+    
+    /**
+     * 渲染放大版體重趨勢圖
+     */
+    renderEnlargedChart(treatment) {
+        const ctx = document.getElementById('enlarged-trend-chart');
+        if (!ctx) return;
+        
+        // 過濾掉無法測量的記錄，只取有效體重
+        const validRecords = treatment.weight_records
+            .filter(r => !r.unable_to_measure && r.weight)
+            .slice(0, 30)  // 放大版顯示更多資料
+            .reverse();
+        
+        const baseline = treatment.baseline_weight;
+        
+        // 標籤與體重資料
+        const labels = [];
+        const weights = [];
+        
+        // 判斷起始點
+        let baselineDate = treatment.treatment_start;
+        let baselineIsFromRecord = false;
+        
+        if (baseline && validRecords.length > 0) {
+            const firstRecord = validRecords[0];
+            if (Math.abs(firstRecord.weight - baseline) < 0.01) {
+                baselineDate = firstRecord.measure_date;
+                baselineIsFromRecord = true;
+            }
+        }
+        
+        // 第一個點：基準值
+        if (baseline) {
+            labels.push(formatDate(baselineDate, 'MM/DD'));
+            weights.push(baseline);
+        }
+        
+        // 後續體重記錄
+        const recordsToPlot = baselineIsFromRecord ? validRecords.slice(1) : validRecords;
+        recordsToPlot.forEach(r => {
+            labels.push(formatDate(r.measure_date, 'MM/DD'));
+            weights.push(r.weight);
+        });
+        
+        // 計算警示線
+        const threshold3 = baseline ? baseline * 0.97 : null;
+        const threshold5 = baseline ? baseline * 0.95 : null;
+        
+        const datasets = [
+            {
+                label: '體重 (kg)',
+                data: weights,
+                borderColor: '#5B8FB9',
+                backgroundColor: 'rgba(91, 143, 185, 0.15)',
+                fill: true,
+                tension: 0.3,
+                pointRadius: 5,
+                pointBackgroundColor: '#5B8FB9',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                order: 1
+            }
+        ];
+        
+        if (threshold3) {
+            datasets.push({
+                label: `-3% SDM (${threshold3.toFixed(1)} kg)`,
+                data: labels.map(() => threshold3),
+                borderColor: '#E4B95A',
+                borderDash: [8, 4],
+                borderWidth: 2,
+                pointRadius: 0,
+                fill: false,
+                order: 2
+            });
+        }
+        
+        if (threshold5) {
+            datasets.push({
+                label: `-5% 營養師 (${threshold5.toFixed(1)} kg)`,
+                data: labels.map(() => threshold5),
+                borderColor: '#D97B7B',
+                borderDash: [8, 4],
+                borderWidth: 2,
+                pointRadius: 0,
+                fill: false,
+                order: 3
+            });
+        }
+        
+        new Chart(ctx, {
+            type: 'line',
+            data: { labels, datasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: { 
+                            boxWidth: 16,
+                            font: { size: 12 },
+                            padding: 12
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0,0,0,0.8)',
+                        titleFont: { size: 13 },
+                        bodyFont: { size: 12 },
+                        padding: 10,
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.dataset.label || '';
+                                const value = context.parsed.y;
+                                if (label.includes('體重')) {
+                                    // 計算與基準的變化
+                                    if (baseline) {
+                                        const change = ((value - baseline) / baseline * 100);
+                                        return `體重: ${value.toFixed(1)} kg (${change >= 0 ? '+' : ''}${change.toFixed(1)}%)`;
+                                    }
+                                    return `體重: ${value.toFixed(1)} kg`;
+                                }
+                                return `${label}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: { 
+                            font: { size: 11 },
+                            maxRotation: 45
+                        }
+                    },
+                    y: {
+                        beginAtZero: false,
+                        grid: { color: '#E8ECF1' },
+                        ticks: { 
+                            font: { size: 11 },
+                            callback: function(value) {
+                                return value.toFixed(1) + ' kg';
+                            }
+                        }
+                    }
+                }
+            }
+        });
     }
 };
 
 // 啟動應用程式
-document.addEventListener('DOMContentLoaded', () => App.init());
+// 由登入驗證成功後調用 App.init()
+// document.addEventListener('DOMContentLoaded', () => App.init());

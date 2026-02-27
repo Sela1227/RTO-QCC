@@ -206,10 +206,128 @@ const Report = {
         
         // 介入統計
         const executedInterventions = filteredInterventions.filter(i => i.status === 'executed').length;
+        const skippedInterventions = filteredInterventions.filter(i => i.status === 'skipped').length;
+        const pendingInterventionsCount = filteredInterventions.filter(i => i.status === 'pending').length;
         const totalInterventions = filteredInterventions.length;
         const interventionRate = totalInterventions > 0 
             ? Math.round(executedInterventions / totalInterventions * 100) 
             : 0;
+        
+        // 介入類型統計（只統計已執行的）
+        const interventionByType = {
+            'SDM': 0,
+            '營養師': 0,
+            '鼻胃管': 0,
+            '胃造廔': 0,
+            '其他': 0
+        };
+        
+        const typeLabels = {
+            'sdm': 'SDM',
+            'nutrition': '營養師',
+            'ng_tube': '鼻胃管',
+            'gastrostomy': '胃造廔'
+        };
+        
+        filteredInterventions.filter(i => i.status === 'executed').forEach(i => {
+            const label = typeLabels[i.type] || '其他';
+            interventionByType[label] = (interventionByType[label] || 0) + 1;
+        });
+        
+        // 移除數量為0的類型
+        Object.keys(interventionByType).forEach(key => {
+            if (interventionByType[key] === 0) delete interventionByType[key];
+        });
+        
+        // === 新增統計 ===
+        
+        // 建立病人 ID 映射
+        const patientMap = {};
+        allPatients.forEach(p => patientMap[p.id] = p);
+        
+        // 年齡分布
+        const ageDistribution = {
+            '< 40 歲': 0,
+            '40-49 歲': 0,
+            '50-59 歲': 0,
+            '60-69 歲': 0,
+            '70-79 歲': 0,
+            '≥ 80 歲': 0
+        };
+        
+        // 性別分布
+        const genderDistribution = { '男': 0, '女': 0 };
+        
+        // 體重相關統計
+        let totalBaselineWeight = 0;
+        let baselineWeightCount = 0;
+        let totalChangeRate = 0;
+        let changeRateCount = 0;
+        let minChangeRate = 0;
+        let maxChangeRate = 0;
+        
+        // 療程時長統計（已結案的）
+        let totalDuration = 0;
+        let durationCount = 0;
+        
+        filteredTreatments.forEach(t => {
+            const patient = patientMap[t.patient_id];
+            if (!patient) return;
+            
+            // 年齡分布
+            if (patient.birth_date) {
+                const age = calculateAge(patient.birth_date);
+                if (age < 40) ageDistribution['< 40 歲']++;
+                else if (age < 50) ageDistribution['40-49 歲']++;
+                else if (age < 60) ageDistribution['50-59 歲']++;
+                else if (age < 70) ageDistribution['60-69 歲']++;
+                else if (age < 80) ageDistribution['70-79 歲']++;
+                else ageDistribution['≥ 80 歲']++;
+            }
+            
+            // 性別分布
+            if (patient.gender === 'M') genderDistribution['男']++;
+            else if (patient.gender === 'F') genderDistribution['女']++;
+            
+            // 基準體重
+            if (t.baseline_weight) {
+                totalBaselineWeight += t.baseline_weight;
+                baselineWeightCount++;
+            }
+            
+            // 體重變化率
+            const weights = filteredWeightRecords
+                .filter(w => w.treatment_id === t.id && !w.unable_to_measure && w.weight)
+                .sort((a, b) => new Date(b.measure_date) - new Date(a.measure_date));
+            
+            if (weights.length > 0 && t.baseline_weight) {
+                const rate = calculateWeightChangeRate(weights[0].weight, t.baseline_weight);
+                totalChangeRate += rate;
+                changeRateCount++;
+                if (rate < minChangeRate) minChangeRate = rate;
+                if (rate > maxChangeRate) maxChangeRate = rate;
+            }
+            
+            // 療程時長（已結案）
+            if ((t.status === 'completed' || t.status === 'terminated') && t.treatment_start && t.treatment_end) {
+                const start = new Date(t.treatment_start);
+                const end = new Date(t.treatment_end);
+                const days = Math.round((end - start) / (1000 * 60 * 60 * 24));
+                if (days > 0) {
+                    totalDuration += days;
+                    durationCount++;
+                }
+            }
+        });
+        
+        // 移除空的年齡分布
+        Object.keys(ageDistribution).forEach(key => {
+            if (ageDistribution[key] === 0) delete ageDistribution[key];
+        });
+        
+        const avgBaselineWeight = baselineWeightCount > 0 ? (totalBaselineWeight / baselineWeightCount).toFixed(1) : '-';
+        const avgChangeRate = changeRateCount > 0 ? (totalChangeRate / changeRateCount).toFixed(1) : '-';
+        const avgDuration = durationCount > 0 ? Math.round(totalDuration / durationCount) : '-';
         
         // 時間區間顯示
         let periodLabel = '';
@@ -236,7 +354,19 @@ const Report = {
             weightDistribution,
             interventionRate,
             executedInterventions,
-            totalInterventions
+            skippedInterventions,
+            pendingInterventionsCount,
+            totalInterventions,
+            interventionByType,
+            // 新增統計
+            ageDistribution,
+            genderDistribution,
+            avgBaselineWeight,
+            avgChangeRate,
+            minChangeRate: changeRateCount > 0 ? minChangeRate.toFixed(1) : '-',
+            maxChangeRate: changeRateCount > 0 ? maxChangeRate.toFixed(1) : '-',
+            avgDuration,
+            patientCount: new Set(filteredTreatments.map(t => t.patient_id)).size
         };
     },
     
@@ -265,6 +395,10 @@ const Report = {
                 <div class="report-card">
                     <div class="report-card-title">療程統計</div>
                     <div class="detail-row">
+                        <span>病人數</span>
+                        <strong>${stats.patientCount}</strong>
+                    </div>
+                    <div class="detail-row">
                         <span>療程總數</span>
                         <strong>${stats.totalTreatments}</strong>
                     </div>
@@ -284,6 +418,13 @@ const Report = {
                         <span>已終止</span>
                         <strong>${stats.terminatedCount}</strong>
                     </div>
+                    ${stats.avgDuration !== '-' ? `
+                        <hr style="margin: 8px 0; border: none; border-top: 1px solid var(--border);">
+                        <div class="detail-row">
+                            <span>平均療程</span>
+                            <strong>${stats.avgDuration} 天</strong>
+                        </div>
+                    ` : ''}
                 </div>
                 
                 <div class="report-card">
@@ -303,12 +444,16 @@ const Report = {
                 <div class="report-card">
                     <div class="report-card-title">介入統計</div>
                     <div class="detail-row">
-                        <span>待介入</span>
+                        <span>待處理</span>
                         <strong style="color: var(--warning);">${stats.pendingCount}</strong>
                     </div>
                     <div class="detail-row">
                         <span>已執行</span>
                         <strong style="color: var(--success);">${stats.executedInterventions}</strong>
+                    </div>
+                    <div class="detail-row">
+                        <span>不執行</span>
+                        <strong style="color: var(--text-hint);">${stats.skippedInterventions}</strong>
                     </div>
                     <div class="detail-row">
                         <span>介入總數</span>
@@ -318,9 +463,65 @@ const Report = {
                         <span>執行率</span>
                         <strong>${stats.interventionRate}%</strong>
                     </div>
+                    <hr style="margin: 8px 0; border: none; border-top: 1px solid var(--border);">
+                    <div class="report-card-title" style="font-size: 12px; margin-bottom: 4px;">已執行介入類型</div>
+                    ${Object.entries(stats.interventionByType).map(([type, count]) => `
+                        <div class="detail-row" style="font-size: 13px;">
+                            <span>${type}</span>
+                            <strong>${count}</strong>
+                        </div>
+                    `).join('') || '<div style="color: var(--text-hint); font-size: 12px;">無資料</div>'}
+                </div>
+                
+                <div class="report-card">
+                    <div class="report-card-title">體重統計</div>
+                    <div class="detail-row">
+                        <span>平均基準體重</span>
+                        <strong>${stats.avgBaselineWeight} kg</strong>
+                    </div>
+                    <div class="detail-row">
+                        <span>平均變化率</span>
+                        <strong class="${parseFloat(stats.avgChangeRate) < -3 ? 'text-danger' : ''}">${stats.avgChangeRate}%</strong>
+                    </div>
+                    <div class="detail-row">
+                        <span>最大下降</span>
+                        <strong class="text-danger">${stats.minChangeRate}%</strong>
+                    </div>
+                    <div class="detail-row">
+                        <span>最大上升</span>
+                        <strong style="color: var(--success);">${stats.maxChangeRate}%</strong>
+                    </div>
+                    <hr style="margin: 8px 0; border: none; border-top: 1px solid var(--border);">
                     <div class="detail-row">
                         <span>體重記錄數</span>
                         <strong>${stats.weightRecordCount}</strong>
+                    </div>
+                    <div class="detail-row">
+                        <span>平均每療程</span>
+                        <strong>${stats.totalTreatments > 0 ? (stats.weightRecordCount / stats.totalTreatments).toFixed(1) : 0} 筆</strong>
+                    </div>
+                </div>
+                
+                <div class="report-card">
+                    <div class="report-card-title">年齡分布</div>
+                    ${Object.entries(stats.ageDistribution).length > 0 ? 
+                        Object.entries(stats.ageDistribution).map(([age, count]) => `
+                            <div class="detail-row" style="font-size: 13px;">
+                                <span>${age}</span>
+                                <strong>${count}</strong>
+                            </div>
+                        `).join('') : 
+                        '<div style="color: var(--text-hint); font-size: 12px;">無資料</div>'
+                    }
+                    <hr style="margin: 8px 0; border: none; border-top: 1px solid var(--border);">
+                    <div class="report-card-title" style="font-size: 12px; margin-bottom: 4px;">性別分布</div>
+                    <div class="detail-row" style="font-size: 13px;">
+                        <span>男</span>
+                        <strong>${stats.genderDistribution['男']}</strong>
+                    </div>
+                    <div class="detail-row" style="font-size: 13px;">
+                        <span>女</span>
+                        <strong>${stats.genderDistribution['女']}</strong>
                     </div>
                 </div>
             </div>
