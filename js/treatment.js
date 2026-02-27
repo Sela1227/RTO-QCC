@@ -144,15 +144,29 @@ const Treatment = {
     async confirmPause(treatmentId) {
         const treatment = await this.getById(treatmentId);
         const patient = await Patient.getById(treatment.patient_id);
+        const pauseReasons = await Settings.get('pause_reasons', []);
+        
+        // 建立原因選項
+        const reasonOptions = pauseReasons.map(r => 
+            `<option value="${r.label}">${r.label}</option>`
+        ).join('');
         
         const html = `
             <div style="margin-bottom: 16px;">
                 <strong>${patient.medical_id}</strong> ${patient.name}
             </div>
-            ${createFormGroup('暫停原因（選填）', `
-                <input type="text" class="form-input" id="pause_reason" 
-                       placeholder="例如：住院、外出、身體狀況不佳">
+            ${createFormGroup('暫停原因', `
+                <select class="form-select" id="pause_reason_select" onchange="Treatment.onPauseReasonChange()">
+                    <option value="">請選擇原因</option>
+                    ${reasonOptions}
+                </select>
             `)}
+            <div id="pause_reason_custom_group" style="display: none;">
+                ${createFormGroup('自訂原因', `
+                    <input type="text" class="form-input" id="pause_reason_custom" 
+                           placeholder="請輸入暫停原因">
+                `)}
+            </div>
             <p style="color: var(--text-hint); font-size: 12px;">
                 暫停後病人會從「治療中」移到「暫停中」清單
             </p>
@@ -165,7 +179,15 @@ const Treatment = {
                 class: 'btn-warning',
                 closeOnClick: false,
                 onClick: async () => {
-                    const reason = document.getElementById('pause_reason').value.trim();
+                    const selectVal = document.getElementById('pause_reason_select').value;
+                    const customVal = document.getElementById('pause_reason_custom').value.trim();
+                    
+                    // 判斷使用哪個原因
+                    let reason = selectVal;
+                    if (selectVal.includes('其他') || selectVal.includes('手填')) {
+                        reason = customVal || selectVal;
+                    }
+                    
                     try {
                         await Treatment.pause(treatmentId, reason);
                         closeModal();
@@ -177,6 +199,22 @@ const Treatment = {
                 }
             }
         ]);
+    },
+    
+    /**
+     * 暫停原因選擇變更
+     */
+    onPauseReasonChange() {
+        const select = document.getElementById('pause_reason_select');
+        const customGroup = document.getElementById('pause_reason_custom_group');
+        
+        // 如果選擇包含「其他」或「手填」，顯示自訂輸入框
+        if (select.value.includes('其他') || select.value.includes('手填')) {
+            customGroup.style.display = 'block';
+            document.getElementById('pause_reason_custom').focus();
+        } else {
+            customGroup.style.display = 'none';
+        }
     },
     
     /**

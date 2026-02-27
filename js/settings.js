@@ -10,12 +10,14 @@ const SettingsUI = {
         const cancerTypes = await Settings.get('cancer_types', []);
         const staffList = await Settings.get('staff_list', []);
         const alertRules = await Settings.get('alert_rules', []);
+        const pauseReasons = await Settings.get('pause_reasons', []);
         
         const html = `
-            <div class="settings-tabs" style="display: flex; gap: 8px; margin-bottom: 16px;">
+            <div class="settings-tabs" style="display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;">
                 <button class="tab active" data-settings-tab="cancer">癌別</button>
                 <button class="tab" data-settings-tab="staff">人員</button>
                 <button class="tab" data-settings-tab="alert">警示</button>
+                <button class="tab" data-settings-tab="pause">暫停原因</button>
                 <button class="tab" data-settings-tab="data">資料</button>
             </div>
             
@@ -90,6 +92,29 @@ const SettingsUI = {
                     </div>
                     <button class="btn btn-outline btn-sm" style="margin-top: 12px;" onclick="SettingsUI.addAlertRule()">
                         + 新增癌別規則
+                    </button>
+                </div>
+                
+                <!-- 暫停原因設定 -->
+                <div class="settings-panel" id="settings-pause" style="display: none;">
+                    <p style="color: var(--text-secondary); font-size: 12px; margin-bottom: 12px;">
+                        暫停療程時可快速選擇的原因
+                    </p>
+                    <div class="settings-list" id="pause-list">
+                        ${pauseReasons.map((r, i) => `
+                            <div class="settings-item" data-index="${i}">
+                                <span class="settings-item-text">${r.label}</span>
+                                <span class="settings-item-actions">
+                                    <button class="btn-mini" onclick="SettingsUI.movePauseReason(${i}, -1)" title="上移">▲</button>
+                                    <button class="btn-mini" onclick="SettingsUI.movePauseReason(${i}, 1)" title="下移">▼</button>
+                                    <button class="btn-mini" onclick="SettingsUI.editPauseReason(${i})" title="編輯">✎</button>
+                                    <button class="btn-mini btn-mini-danger" onclick="SettingsUI.deletePauseReason(${i})" title="刪除">✕</button>
+                                </span>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <button class="btn btn-outline btn-sm" style="margin-top: 12px;" onclick="SettingsUI.addPauseReason()">
+                        + 新增
                     </button>
                 </div>
                 
@@ -409,5 +434,70 @@ const SettingsUI = {
         showToast('所有資料已清除');
         closeModal();
         App.refresh();
+    },
+    
+    // === 暫停原因管理 ===
+    
+    async addPauseReason() {
+        const name = prompt('請輸入暫停原因：');
+        if (!name) return;
+        
+        const pauseReasons = await Settings.get('pause_reasons', []);
+        const code = 'custom_' + Date.now();
+        pauseReasons.push({ code, label: name });
+        await Settings.set('pause_reasons', pauseReasons);
+        
+        showToast('暫停原因已新增');
+        this.show();
+        // 切換到暫停原因頁籤
+        setTimeout(() => {
+            document.querySelector('[data-settings-tab="pause"]')?.click();
+        }, 100);
+    },
+    
+    async editPauseReason(index) {
+        const pauseReasons = await Settings.get('pause_reasons', []);
+        const current = pauseReasons[index];
+        
+        const name = prompt('請輸入新名稱：', current.label);
+        if (!name) return;
+        
+        pauseReasons[index].label = name;
+        await Settings.set('pause_reasons', pauseReasons);
+        
+        showToast('暫停原因已更新');
+        this.show();
+        setTimeout(() => {
+            document.querySelector('[data-settings-tab="pause"]')?.click();
+        }, 100);
+    },
+    
+    async deletePauseReason(index) {
+        if (!confirm('確定刪除此暫停原因？')) return;
+        
+        const pauseReasons = await Settings.get('pause_reasons', []);
+        pauseReasons.splice(index, 1);
+        await Settings.set('pause_reasons', pauseReasons);
+        
+        showToast('暫停原因已刪除');
+        this.show();
+        setTimeout(() => {
+            document.querySelector('[data-settings-tab="pause"]')?.click();
+        }, 100);
+    },
+    
+    async movePauseReason(index, direction) {
+        const pauseReasons = await Settings.get('pause_reasons', []);
+        const newIndex = index + direction;
+        
+        if (newIndex < 0 || newIndex >= pauseReasons.length) return;
+        
+        [pauseReasons[index], pauseReasons[newIndex]] = [pauseReasons[newIndex], pauseReasons[index]];
+        await Settings.set('pause_reasons', pauseReasons);
+        
+        this.show();
+        setTimeout(() => {
+            document.querySelector('[data-settings-tab="pause"]')?.click();
+        }, 100);
     }
 };

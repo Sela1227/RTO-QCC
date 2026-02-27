@@ -1,12 +1,13 @@
 /**
  * 彰濱放腫體重監控預防系統 - 主程式
- * v3.0 Web 版
+ * v3.3 Web 版
  */
 
 const App = {
     currentPage: 'home',
     currentTrackingTab: 'active',
     selectedTreatmentId: null,
+    trackingFilter: null,
     weightChart: null,  // 體重趨勢圖實例
     patientSearchKeyword: null,  // 病人搜尋關鍵字
     
@@ -66,7 +67,33 @@ const App = {
             card.onclick = () => {
                 const filter = card.dataset.filter;
                 this.navigate('tracking');
-                // TODO: 根據 filter 篩選
+                
+                // 根據 filter 切換頁籤或篩選
+                setTimeout(() => {
+                    if (filter === 'active') {
+                        // 切換到治療中頁籤
+                        document.querySelectorAll('#page-tracking .tab').forEach(t => {
+                            t.classList.toggle('active', t.dataset.tab === 'active');
+                        });
+                        this.currentTrackingTab = 'active';
+                        this.renderTracking();
+                    } else if (filter === 'paused') {
+                        // 切換到暫停中頁籤
+                        document.querySelectorAll('#page-tracking .tab').forEach(t => {
+                            t.classList.toggle('active', t.dataset.tab === 'paused');
+                        });
+                        this.currentTrackingTab = 'paused';
+                        this.renderTracking();
+                    } else if (filter === 'pending' || filter === 'overdue') {
+                        // 需處理或待輸體重，保持在治療中頁籤但標記篩選狀態
+                        document.querySelectorAll('#page-tracking .tab').forEach(t => {
+                            t.classList.toggle('active', t.dataset.tab === 'active');
+                        });
+                        this.currentTrackingTab = 'active';
+                        this.trackingFilter = filter;
+                        this.renderTracking();
+                    }
+                }, 100);
             };
         });
         
@@ -279,8 +306,32 @@ const App = {
             treatments = await Treatment.getPaused();
         }
         
+        // 根據篩選條件過濾
+        if (this.trackingFilter === 'pending') {
+            treatments = treatments.filter(t => t.pending_interventions?.length > 0);
+        } else if (this.trackingFilter === 'overdue') {
+            treatments = treatments.filter(t => t.tracking_status?.status === 'overdue');
+        }
+        
+        // 清除篩選狀態（只用一次）
+        const currentFilter = this.trackingFilter;
+        this.trackingFilter = null;
+        
+        // 顯示篩選提示
+        let filterNotice = '';
+        if (currentFilter === 'pending') {
+            filterNotice = `<div style="padding: 8px 12px; background: rgba(228, 185, 90, 0.1); border-radius: 8px; margin-bottom: 12px; font-size: 13px; color: var(--warning);">
+                顯示需處理的病人（${treatments.length} 人）
+            </div>`;
+        } else if (currentFilter === 'overdue') {
+            filterNotice = `<div style="padding: 8px 12px; background: rgba(217, 123, 123, 0.1); border-radius: 8px; margin-bottom: 12px; font-size: 13px; color: var(--danger);">
+                顯示待輸體重的病人（${treatments.length} 人）
+            </div>`;
+        }
+        
         if (treatments.length === 0) {
             listContainer.innerHTML = `
+                ${filterNotice}
                 <div class="empty-state" style="width: 100%;">
                     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                         <circle cx="12" cy="12" r="10"></circle>
@@ -300,7 +351,7 @@ const App = {
         }
         
         // 渲染卡片列表
-        let cardsHtml = '';
+        let cardsHtml = filterNotice;
         for (const t of treatments) {
             const rateClass = getRateClass(t.change_rate);
             const isSelected = t.id === this.selectedTreatmentId;
@@ -374,12 +425,12 @@ const App = {
         let pendingHtml = '';
         if (treatment.pending_interventions?.length > 0) {
             pendingHtml = `
-                <div style="background: rgba(228, 185, 90, 0.1); padding: 12px; border-radius: 8px; margin-bottom: 16px;">
-                    <strong style="color: var(--warning);">待處理介入</strong>
+                <div style="background: rgba(228, 185, 90, 0.1); padding: 8px 10px; border-radius: 6px; margin-bottom: 10px;">
+                    <strong style="color: var(--warning); font-size: 12px;">待處理介入</strong>
                     ${treatment.pending_interventions.map(i => `
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
-                            <span>${formatInterventionType(i.type)}</span>
-                            <button class="btn btn-warning" style="padding: 4px 12px; font-size: 12px;"
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px;">
+                            <span style="font-size: 12px;">${formatInterventionType(i.type)}</span>
+                            <button class="btn btn-warning btn-sm" style="padding: 2px 8px; font-size: 11px;"
                                     onclick="Intervention.showExecuteForm(${i.id})">
                                 執行
                             </button>
@@ -389,10 +440,10 @@ const App = {
             `;
         }
         
-        // 最近體重記錄
+        // 最近體重記錄（顯示3筆）
         let weightsHtml = '';
         if (treatment.weight_records?.length > 0) {
-            const recent = treatment.weight_records.slice(0, 5);
+            const recent = treatment.weight_records.slice(0, 3);
             weightsHtml = recent.map(r => {
                 const weightDisplay = r.unable_to_measure 
                     ? '<span style="color: var(--text-hint);">無法測量</span>'
@@ -401,7 +452,7 @@ const App = {
                     ? `<span class="${getRateClass(r.change_rate)}" style="margin-left: 4px;">${formatChangeRate(r.change_rate)}</span>`
                     : '';
                 return `
-                    <div class="detail-row">
+                    <div class="detail-row" style="font-size: 12px;">
                         <span>${formatDate(r.measure_date, 'MM/DD')}</span>
                         <span>
                             ${weightDisplay}
@@ -411,7 +462,7 @@ const App = {
                 `;
             }).join('');
         } else {
-            weightsHtml = '<p style="color: var(--text-hint);">尚無體重記錄</p>';
+            weightsHtml = '<p style="color: var(--text-hint); font-size: 12px;">尚無體重記錄</p>';
         }
         
         // 體重趨勢圖（有基準體重且至少1筆記錄才顯示）
@@ -420,7 +471,7 @@ const App = {
             chartHtml = `
                 <div class="detail-section">
                     <div class="detail-section-title">體重趨勢</div>
-                    <div style="height: 200px; background: var(--bg); border-radius: 8px; padding: 8px;">
+                    <div style="height: 120px; background: var(--bg); border-radius: 6px; padding: 6px;">
                         <canvas id="weight-trend-chart"></canvas>
                     </div>
                 </div>
@@ -433,50 +484,48 @@ const App = {
                     <div class="detail-title">${patient.medical_id} ${patient.name}</div>
                     <div class="detail-subtitle">
                         ${formatGender(patient.gender)} · ${age}歲 · ${treatment.cancer_type_label}
-                        <span class="tag ${getStatusTagClass(treatment.status)}" style="margin-left: 8px;">
+                        <span class="tag ${getStatusTagClass(treatment.status)}" style="margin-left: 6px; font-size: 11px;">
                             ${formatTreatmentStatus(treatment.status)}
                         </span>
                     </div>
                 </div>
-                <div style="display: flex; gap: 4px;">
-                    <button class="btn-icon" onclick="Treatment.showEditForm(${treatment.id})" title="編輯療程">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                        </svg>
-                    </button>
-                </div>
+                <button class="btn-icon" onclick="Treatment.showEditForm(${treatment.id})" title="編輯療程">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                </button>
             </div>
             
-            <div class="action-group" style="flex-wrap: wrap; margin-bottom: 16px;">
-                <button class="btn btn-primary" onclick="Weight.showForm(${treatment.id})">
+            <div class="action-group" style="flex-wrap: wrap; margin-bottom: 10px; gap: 6px;">
+                <button class="btn btn-primary btn-sm" onclick="Weight.showForm(${treatment.id})">
                     記錄體重
                 </button>
-                <button class="btn btn-outline" onclick="Intervention.showList(${treatment.id})">
+                <button class="btn btn-outline btn-sm" onclick="Intervention.showList(${treatment.id})">
                     介入記錄
                 </button>
                 ${treatment.status === 'active' ? `
-                    <button class="btn btn-outline" style="color: var(--warning); border-color: var(--warning);" 
+                    <button class="btn btn-outline btn-sm" style="color: var(--warning); border-color: var(--warning);" 
                             onclick="Treatment.confirmPause(${treatment.id})">
-                        暫停療程
+                        暫停
                     </button>
-                    <button class="btn btn-outline" style="color: var(--success); border-color: var(--success);" 
+                    <button class="btn btn-outline btn-sm" style="color: var(--success); border-color: var(--success);" 
                             onclick="Treatment.confirmComplete(${treatment.id})">
-                        完成療程
+                        完成
                     </button>
-                    <button class="btn btn-outline" style="color: var(--danger); border-color: var(--danger);" 
+                    <button class="btn btn-outline btn-sm" style="color: var(--danger); border-color: var(--danger);" 
                             onclick="Treatment.confirmTerminate(${treatment.id})">
-                        提早終止
+                        終止
                     </button>
                 ` : ''}
                 ${treatment.status === 'paused' ? `
-                    <button class="btn btn-outline" style="color: var(--success); border-color: var(--success);" 
+                    <button class="btn btn-outline btn-sm" style="color: var(--success); border-color: var(--success);" 
                             onclick="Treatment.confirmResume(${treatment.id})">
-                        恢復療程
+                        恢復
                     </button>
-                    <button class="btn btn-outline" style="color: var(--danger); border-color: var(--danger);" 
+                    <button class="btn btn-outline btn-sm" style="color: var(--danger); border-color: var(--danger);" 
                             onclick="Treatment.confirmTerminate(${treatment.id})">
-                        提早終止
+                        終止
                     </button>
                 ` : ''}
             </div>
@@ -485,30 +534,32 @@ const App = {
             
             <div class="detail-section">
                 <div class="detail-section-title">基本資訊</div>
-                <div class="detail-row">
-                    <span>基準體重</span>
-                    <span>${treatment.baseline_weight ? treatment.baseline_weight + ' kg' : '-'}</span>
-                </div>
-                <div class="detail-row">
-                    <span>目前體重</span>
-                    <span>${treatment.latest_weight ? treatment.latest_weight.weight + ' kg' : '-'}</span>
-                </div>
-                <div class="detail-row">
-                    <span>變化率</span>
-                    <span class="${getRateClass(treatment.change_rate)}">${formatChangeRate(treatment.change_rate)}</span>
-                </div>
-                <div class="detail-row">
-                    <span>開始日期</span>
-                    <span>${formatDate(treatment.treatment_start)}</span>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; font-size: 13px;">
+                    <div class="detail-row" style="padding: 2px 0;">
+                        <span>基準</span>
+                        <span>${treatment.baseline_weight ? treatment.baseline_weight + ' kg' : '-'}</span>
+                    </div>
+                    <div class="detail-row" style="padding: 2px 0;">
+                        <span>目前</span>
+                        <span>${treatment.latest_weight ? treatment.latest_weight.weight + ' kg' : '-'}</span>
+                    </div>
+                    <div class="detail-row" style="padding: 2px 0;">
+                        <span>變化</span>
+                        <span class="${getRateClass(treatment.change_rate)}">${formatChangeRate(treatment.change_rate)}</span>
+                    </div>
+                    <div class="detail-row" style="padding: 2px 0;">
+                        <span>開始</span>
+                        <span>${formatDate(treatment.treatment_start, 'MM/DD')}</span>
+                    </div>
                 </div>
             </div>
             
             ${chartHtml}
             
             <div class="detail-section">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span class="detail-section-title">體重記錄</span>
-                    <button class="btn btn-outline" style="padding: 4px 8px; font-size: 12px;"
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <span class="detail-section-title" style="margin-bottom: 0;">體重記錄</span>
+                    <button class="btn btn-outline" style="padding: 2px 6px; font-size: 11px;"
                             onclick="Weight.showList(${treatment.id})">
                         全部
                     </button>

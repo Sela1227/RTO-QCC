@@ -1,5 +1,5 @@
 /* ============================================
-   SELA 體重追蹤系統 - 北歐風格樣式
+   彰濱放腫體重監控預防系統 - 北歐風格樣式
    ============================================ */
 
 /* === 變數定義 === */
@@ -41,25 +41,25 @@
     --radius-full: 9999px;
     
     /* 間距 */
-    --space-xs: 4px;
-    --space-sm: 8px;
-    --space-md: 16px;
-    --space-lg: 24px;
-    --space-xl: 32px;
+    --space-xs: 6px;
+    --space-sm: 10px;
+    --space-md: 18px;
+    --space-lg: 28px;
+    --space-xl: 40px;
     
     /* 尺寸 */
-    --header-height: 56px;
-    --sidebar-width: 180px;
-    --footer-height: 40px;
+    --header-height: 60px;
+    --sidebar-width: 200px;
+    --footer-height: 44px;
     
     /* 字體 */
     --font-family: -apple-system, BlinkMacSystemFont, "Noto Sans TC", "微軟正黑體", sans-serif;
-    --font-size-xs: 11px;
-    --font-size-sm: 13px;
-    --font-size-base: 14px;
-    --font-size-lg: 16px;
-    --font-size-xl: 20px;
-    --font-size-2xl: 28px;
+    --font-size-xs: 12px;
+    --font-size-sm: 14px;
+    --font-size-base: 15px;
+    --font-size-lg: 17px;
+    --font-size-xl: 22px;
+    --font-size-2xl: 32px;
     
     /* 動畫 */
     --transition: 0.2s ease;
@@ -191,6 +191,17 @@ body {
 .nav-footer {
     padding: var(--space-md);
     border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.nav-logo {
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    object-fit: contain;
 }
 
 .version {
@@ -233,21 +244,21 @@ body {
     grid-template-columns: repeat(3, 1fr);
     gap: var(--space-lg);
     margin-bottom: var(--space-xl);
-    max-width: 720px;
+    max-width: 1000px;
 }
 
 .stats-grid-2x2 {
     grid-template-columns: repeat(2, 1fr);
-    max-width: 480px;
+    max-width: 640px;
 }
 
 .stat-card {
     background: var(--bg-card);
     border-radius: var(--radius-lg);
-    padding: var(--space-lg);
+    padding: 28px 36px;
     display: flex;
     align-items: center;
-    gap: var(--space-md);
+    gap: var(--space-xl);
     box-shadow: var(--shadow-sm);
     cursor: pointer;
     transition: var(--transition);
@@ -259,12 +270,17 @@ body {
 }
 
 .stat-icon {
-    width: 48px;
-    height: 48px;
+    width: 64px;
+    height: 64px;
     border-radius: var(--radius-md);
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+.stat-icon svg {
+    width: 32px;
+    height: 32px;
 }
 
 .stat-icon-blue {
@@ -293,15 +309,16 @@ body {
 }
 
 .stat-value {
-    font-size: var(--font-size-2xl);
+    font-size: 42px;
     font-weight: 700;
     color: var(--text);
     line-height: 1.2;
 }
 
 .stat-label {
-    font-size: var(--font-size-sm);
+    font-size: var(--font-size-lg);
     color: var(--text-secondary);
+    margin-top: 4px;
 }
 
 /* === 搜尋區 === */
@@ -355,9 +372,9 @@ body {
     align-items: center;
     justify-content: center;
     gap: var(--space-sm);
-    padding: var(--space-sm) var(--space-md);
+    padding: 10px 18px;
     border-radius: var(--radius-md);
-    font-size: var(--font-size-sm);
+    font-size: var(--font-size-base);
     font-weight: 500;
     cursor: pointer;
     transition: var(--transition);
@@ -453,8 +470,8 @@ body {
 /* === 追蹤頁面佈局 === */
 .tracking-layout {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--space-lg);
+    grid-template-columns: 55% 45%;
+    gap: var(--space-md);
     height: calc(100vh - var(--header-height) - var(--footer-height) - 140px);
 }
 
@@ -465,23 +482,23 @@ body {
     overflow-y: auto;
     display: flex;
     flex-wrap: wrap;
-    gap: var(--space-sm);
+    gap: 8px;
     align-content: flex-start;
 }
 
 .tracking-detail {
     background: var(--bg-card);
     border-radius: var(--radius-lg);
-    padding: var(--space-lg);
+    padding: var(--space-md);
     overflow-y: auto;
 }
 
-/* === 病人卡片 === */
+/* === 病人卡片（緊湊版）=== */
 .patient-card {
-    width: 180px;
-    padding: var(--space-md);
+    width: 140px;
+    padding: 8px 10px;
     background: var(--bg);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-sm);
     cursor: pointer;
     transition: var(--transition);
     border: 2px solid transparent;
@@ -508,17 +525,17 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: var(--space-xs);
+    margin-bottom: 2px;
 }
 
 .patient-card-id {
-    font-size: var(--font-size-sm);
+    font-size: 13px;
     font-weight: 600;
     color: var(--text);
 }
 
 .patient-card-name {
-    font-size: var(--font-size-sm);
+    font-size: 12px;
     color: var(--text-secondary);
 }
 
@@ -822,43 +839,44 @@ body {
     color: var(--text-secondary);
 }
 
-/* === 詳情面板 === */
+/* === 詳情面板（緊湊版）=== */
 .detail-header {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    margin-bottom: var(--space-lg);
-    padding-bottom: var(--space-md);
+    margin-bottom: var(--space-sm);
+    padding-bottom: var(--space-sm);
     border-bottom: 1px solid var(--border);
 }
 
 .detail-title {
-    font-size: var(--font-size-lg);
+    font-size: var(--font-size-base);
     font-weight: 600;
-    margin-bottom: var(--space-xs);
+    margin-bottom: 2px;
 }
 
 .detail-subtitle {
-    font-size: var(--font-size-sm);
+    font-size: var(--font-size-xs);
     color: var(--text-secondary);
 }
 
 .detail-section {
-    margin-bottom: var(--space-lg);
+    margin-bottom: var(--space-sm);
 }
 
 .detail-section-title {
-    font-size: var(--font-size-sm);
+    font-size: var(--font-size-xs);
     font-weight: 600;
     color: var(--text-secondary);
-    margin-bottom: var(--space-sm);
+    margin-bottom: 4px;
 }
 
 .detail-row {
     display: flex;
     justify-content: space-between;
-    padding: var(--space-sm) 0;
+    padding: 4px 0;
     border-bottom: 1px solid var(--border-light);
+    font-size: var(--font-size-sm);
 }
 
 .detail-row:last-child {
@@ -867,7 +885,7 @@ body {
 
 .detail-label {
     color: var(--text-secondary);
-    font-size: var(--font-size-sm);
+    font-size: var(--font-size-xs);
 }
 
 .detail-value {
@@ -1031,20 +1049,206 @@ body {
     font-size: 12px;
 }
 
-@media (max-width: 768px) {
-    .sidebar {
-        width: 60px;
+/* === 響應式設計 - 平板 === */
+@media (max-width: 1024px) {
+    .tracking-layout {
+        grid-template-columns: 1fr 1fr;
     }
     
-    .nav-item span {
-        display: none;
+    .patient-card {
+        width: 160px;
+    }
+}
+
+/* === 響應式設計 - 手機 === */
+@media (max-width: 768px) {
+    :root {
+        --header-height: 50px;
+        --sidebar-width: 0px;
+        --footer-height: 56px;
+    }
+    
+    /* 頂部列 */
+    .header {
+        padding: 0 12px;
+    }
+    
+    .logo-text {
+        font-size: 14px;
+    }
+    
+    /* 側邊欄改為底部導航 */
+    .sidebar {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        top: auto;
+        width: 100%;
+        height: var(--footer-height);
+        flex-direction: row;
+        border-right: none;
+        border-top: 1px solid var(--border);
+        z-index: 100;
+    }
+    
+    .nav-list {
+        display: flex;
+        flex-direction: row;
+        width: 100%;
+        justify-content: space-around;
+        padding: 0;
     }
     
     .nav-item {
+        flex-direction: column;
+        gap: 2px;
+        padding: 8px 12px;
+        margin: 0;
+        flex: 1;
         justify-content: center;
     }
     
-    .stats-grid {
+    .nav-item span {
+        font-size: 10px;
+    }
+    
+    .nav-item svg {
+        width: 20px;
+        height: 20px;
+    }
+    
+    .nav-footer {
+        display: none;
+    }
+    
+    /* 內容區 */
+    .content {
+        padding: 12px;
+        padding-bottom: calc(var(--footer-height) + 12px);
+    }
+    
+    /* 底部列隱藏 */
+    .footer {
+        display: none;
+    }
+    
+    /* 儀表板 */
+    .page-header h1 {
+        font-size: 18px;
+    }
+    
+    .stats-grid,
+    .stats-grid-2x2 {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        max-width: 100%;
+    }
+    
+    .stat-card {
+        padding: 12px;
+        gap: 10px;
+    }
+    
+    .stat-icon {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .stat-icon svg {
+        width: 20px;
+        height: 20px;
+    }
+    
+    .stat-value {
+        font-size: 24px;
+    }
+    
+    .stat-label {
+        font-size: 11px;
+    }
+    
+    /* 治療清單 - 單欄顯示 */
+    .tracking-layout {
         grid-template-columns: 1fr;
+        height: auto;
+    }
+    
+    .tracking-list {
+        max-height: 50vh;
+        padding: 10px;
+        gap: 8px;
+    }
+    
+    .tracking-detail {
+        padding: 16px;
+    }
+    
+    .patient-card {
+        width: calc(50% - 4px);
+        padding: 10px;
+    }
+    
+    .patient-card-id {
+        font-size: 13px;
+    }
+    
+    .patient-card-name {
+        font-size: 12px;
+    }
+    
+    .patient-card-info {
+        font-size: 11px;
+    }
+    
+    /* 按鈕 */
+    .btn {
+        padding: 8px 14px;
+        font-size: 13px;
+    }
+    
+    .action-group {
+        gap: 8px;
+    }
+    
+    /* 表單 */
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    /* 對話框 */
+    .modal-content {
+        width: 95%;
+        max-height: 85vh;
+        margin: 10px;
+    }
+    
+    /* 報表 */
+    .report-filters {
+        flex-direction: column;
+        gap: 10px !important;
+    }
+    
+    .report-cards {
+        grid-template-columns: 1fr !important;
+    }
+    
+    /* 表格 */
+    .data-table {
+        font-size: 12px;
+    }
+    
+    .data-table th,
+    .data-table td {
+        padding: 8px 6px;
+    }
+    
+    /* 搜尋 */
+    .search-box {
+        padding: 8px 12px;
+    }
+    
+    .search-box input {
+        font-size: 14px;
     }
 }
