@@ -1,5 +1,5 @@
 /**
- * SELA 體重追蹤系統 - 工具函數
+ * 彰濱放腫體重監控預防系統 - 工具函數
  */
 
 /**
@@ -132,6 +132,8 @@ function formatInterventionType(type) {
     const map = {
         sdm: 'SDM',
         nutrition: '營養師轉介',
+        ng_tube: '鼻胃管',
+        gastrostomy: '胃造廔',
         manual: '手動介入'
     };
     return map[type] || type;

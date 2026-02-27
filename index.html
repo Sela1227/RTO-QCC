@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SELA 體重追蹤系統</title>
+    <title>彰濱放腫體重監控預防系統</title>
     <link rel="stylesheet" href="css/style.css">
     <!-- 外部套件 -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
@@ -17,7 +18,7 @@
             <div class="header-left">
                 <div class="logo">
                     <span class="logo-icon">●</span>
-                    <span class="logo-text">SELA 體重追蹤系統</span>
+                    <span class="logo-text">彰濱放腫體重監控預防系統</span>
                 </div>
             </div>
             <div class="header-right">
@@ -40,7 +41,7 @@
                             <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
                             <polyline points="9 22 9 12 15 12 15 22"></polyline>
                         </svg>
-                        <span>首頁</span>
+                        <span>儀表板</span>
                     </li>
                     <li class="nav-item" data-page="tracking">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -50,14 +51,7 @@
                             <line x1="16" y1="17" x2="8" y2="17"></line>
                             <polyline points="10 9 9 9 8 9"></polyline>
                         </svg>
-                        <span>追蹤</span>
-                    </li>
-                    <li class="nav-item" data-page="patients">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                            <circle cx="12" cy="7" r="4"></circle>
-                        </svg>
-                        <span>病人</span>
+                        <span>治療清單</span>
                     </li>
                     <li class="nav-item" data-page="reports">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -67,20 +61,28 @@
                         </svg>
                         <span>報表</span>
                     </li>
+                    <li class="nav-item" data-page="patients">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+                            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+                        </svg>
+                        <span>資料庫</span>
+                    </li>
                 </ul>
                 <div class="nav-footer">
-                    <span class="version">v2.2 Web</span>
+                    <span class="version">v3.0 Web</span>
                 </div>
             </nav>
 
             <!-- 內容區 -->
             <main class="content">
-                <!-- 首頁 -->
+                <!-- 儀表板 -->
                 <section class="page active" id="page-home">
                     <div class="page-header">
-                        <h1>總覽</h1>
+                        <h1>儀表板</h1>
                     </div>
-                    <div class="stats-grid">
+                    <div class="stats-grid stats-grid-2x2">
                         <div class="stat-card" data-filter="active">
                             <div class="stat-icon stat-icon-blue">
                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -90,6 +92,19 @@
                             <div class="stat-info">
                                 <span class="stat-value" id="stat-active">0</span>
                                 <span class="stat-label">治療中</span>
+                            </div>
+                        </div>
+                        <div class="stat-card" data-filter="paused">
+                            <div class="stat-icon stat-icon-gray">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <line x1="10" y1="15" x2="10" y2="9"></line>
+                                    <line x1="14" y1="15" x2="14" y2="9"></line>
+                                </svg>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="stat-paused">0</span>
+                                <span class="stat-label">暫停中</span>
                             </div>
                         </div>
                         <div class="stat-card" data-filter="pending">
@@ -102,7 +117,7 @@
                             </div>
                             <div class="stat-info">
                                 <span class="stat-value" id="stat-pending">0</span>
-                                <span class="stat-label">待介入</span>
+                                <span class="stat-label">需處理</span>
                             </div>
                         </div>
                         <div class="stat-card" data-filter="overdue">
@@ -114,23 +129,12 @@
                             </div>
                             <div class="stat-info">
                                 <span class="stat-value" id="stat-overdue">0</span>
-                                <span class="stat-label">逾期</span>
+                                <span class="stat-label">待輸體重</span>
                             </div>
                         </div>
                     </div>
-                    <div class="search-section">
-                        <div class="search-box">
-                            <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="11" cy="11" r="8"></circle>
-                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                            </svg>
-                            <input type="text" id="search-input" placeholder="搜尋病歷號或姓名...">
-                            <button class="btn btn-primary" id="btn-search">搜尋</button>
-                        </div>
-                        <div class="search-result" id="search-result"></div>
-                    </div>
                     <div class="quick-actions">
-                        <button class="btn btn-outline" id="btn-new-patient">
+                        <button class="btn btn-primary" id="btn-new-patient">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <line x1="12" y1="5" x2="12" y2="19"></line>
                                 <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -143,7 +147,7 @@
                 <!-- 追蹤頁 -->
                 <section class="page" id="page-tracking">
                     <div class="page-header">
-                        <h1>追蹤清單</h1>
+                        <h1>治療清單</h1>
                         <div class="tab-group">
                             <button class="tab active" data-tab="active">治療中</button>
                             <button class="tab" data-tab="paused">暫停中</button>
@@ -168,7 +172,7 @@
                 <!-- 病人頁 -->
                 <section class="page" id="page-patients">
                     <div class="page-header">
-                        <h1>病人管理</h1>
+                        <h1>資料庫</h1>
                         <button class="btn btn-primary" id="btn-add-patient">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -176,6 +180,17 @@
                             </svg>
                             新增病人
                         </button>
+                    </div>
+                    <div class="search-section" style="margin-bottom: 16px;">
+                        <div class="search-box">
+                            <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                            </svg>
+                            <input type="text" id="patient-search-input" placeholder="搜尋病歷號或姓名...">
+                            <button class="btn btn-primary" id="btn-patient-search">搜尋</button>
+                            <button class="btn btn-outline" id="btn-patient-search-clear" style="display: none;">清除</button>
+                        </div>
                     </div>
                     <div class="patient-list" id="patient-list">
                         <!-- 動態載入 -->
@@ -186,14 +201,59 @@
                 <section class="page" id="page-reports">
                     <div class="page-header">
                         <h1>統計報表</h1>
-                        <button class="btn btn-outline" id="btn-export-excel">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                <polyline points="7 10 12 15 17 10"></polyline>
-                                <line x1="12" y1="15" x2="12" y2="3"></line>
-                            </svg>
-                            匯出 Excel
-                        </button>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn btn-outline" id="btn-export-pdf">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                                    <polyline points="10 9 9 9 8 9"></polyline>
+                                </svg>
+                                匯出 PDF
+                            </button>
+                            <button class="btn btn-outline" id="btn-export-excel">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7 10 12 15 17 10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                                匯出 Excel
+                            </button>
+                        </div>
+                    </div>
+                    <!-- 篩選區 -->
+                    <div class="report-filters" style="display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; align-items: flex-end;">
+                        <div class="form-group" style="margin: 0; min-width: 120px;">
+                            <label class="form-label">時間區間</label>
+                            <select class="form-select" id="report-period" onchange="Report.onFilterChange()">
+                                <option value="all">全部</option>
+                                <option value="week">本週</option>
+                                <option value="month" selected>本月</option>
+                                <option value="year">本年</option>
+                                <option value="specific_year">指定年份</option>
+                                <option value="custom">自訂日期</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin: 0; display: none;" id="report-year-group">
+                            <label class="form-label">年份</label>
+                            <select class="form-select" id="report-year" onchange="Report.onFilterChange()">
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin: 0; display: none;" id="report-date-from-group">
+                            <label class="form-label">開始日期</label>
+                            <input type="date" class="form-input" id="report-date-from" onchange="Report.onFilterChange()">
+                        </div>
+                        <div class="form-group" style="margin: 0; display: none;" id="report-date-to-group">
+                            <label class="form-label">結束日期</label>
+                            <input type="date" class="form-input" id="report-date-to" onchange="Report.onFilterChange()">
+                        </div>
+                        <div class="form-group" style="margin: 0; min-width: 120px;">
+                            <label class="form-label">癌別</label>
+                            <select class="form-select" id="report-cancer-type" onchange="Report.onFilterChange()">
+                                <option value="all">全部</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="report-content" id="report-content">
                         <!-- 動態載入 -->
@@ -206,7 +266,7 @@
         <footer class="footer">
             <span id="footer-stats">載入中...</span>
             <span class="footer-divider">·</span>
-            <span>By SELA</span>
+            <span>彰濱秀傳紀念醫院</span>
         </footer>
     </div>
 

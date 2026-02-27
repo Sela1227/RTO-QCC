@@ -1,5 +1,5 @@
 /**
- * SELA 體重追蹤系統 - 介入管理模組
+ * 彰濱放腫體重監控預防系統 - 介入管理模組
  */
 
 const Intervention = {
@@ -246,11 +246,21 @@ const Intervention = {
         const patient = await Patient.getById(treatment.patient_id);
         const staffList = await Settings.get('staff_list', []);
         
+        // 手動介入類型選項
+        const interventionTypes = [
+            { code: 'sdm', label: 'SDM' },
+            { code: 'nutrition', label: '營養師' },
+            { code: 'ng_tube', label: '鼻胃管' },
+            { code: 'gastrostomy', label: '胃造廔' }
+        ];
+        
         const html = `
             <form id="manual-intervention-form">
                 <div style="background: var(--bg); padding: 12px; border-radius: 8px; margin-bottom: 16px;">
                     <strong>${patient.medical_id}</strong> ${patient.name}
                 </div>
+                
+                ${createFormGroup('介入類型', createSelect('manual_type', interventionTypes), true)}
                 
                 <div class="form-row">
                     ${createFormGroup('執行日期', `
@@ -271,9 +281,15 @@ const Intervention = {
                 class: 'btn-primary',
                 closeOnClick: false,
                 onClick: async () => {
+                    const interventionType = document.getElementById('manual_type').value;
                     const executeDate = document.getElementById('manual_date').value;
                     const executor = document.getElementById('manual_executor').value;
                     const notes = document.getElementById('manual_notes').value;
+                    
+                    if (!interventionType) {
+                        showToast('請選擇介入類型', 'error');
+                        return;
+                    }
                     
                     if (!executeDate) {
                         showToast('請選擇執行日期', 'error');
@@ -283,7 +299,7 @@ const Intervention = {
                     try {
                         await Intervention.create({
                             treatment_id: treatmentId,
-                            type: 'manual',
+                            type: interventionType,
                             notes: notes,
                             executor: executor,
                             status: 'executed',

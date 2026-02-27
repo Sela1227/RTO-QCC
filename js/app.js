@@ -1,6 +1,6 @@
 /**
- * SELA 體重追蹤系統 - 主程式
- * v2.2 Web 版
+ * 彰濱放腫體重監控預防系統 - 主程式
+ * v3.0 Web 版
  */
 
 const App = {
@@ -8,6 +8,7 @@ const App = {
     currentTrackingTab: 'active',
     selectedTreatmentId: null,
     weightChart: null,  // 體重趨勢圖實例
+    patientSearchKeyword: null,  // 病人搜尋關鍵字
     
     /**
      * 初始化應用程式
@@ -24,7 +25,7 @@ const App = {
             // 載入首頁
             await this.refresh();
             
-            console.log('SELA 體重追蹤系統已啟動');
+            console.log('彰濱放腫體重監控預防系統已啟動');
         } catch (e) {
             console.error('初始化失敗:', e);
             showToast('系統初始化失敗', 'error');
@@ -49,15 +50,16 @@ const App = {
             if (e.target === e.currentTarget) closeModal();
         };
         
-        // 首頁搜尋
-        document.getElementById('btn-search').onclick = () => this.search();
-        document.getElementById('search-input').onkeypress = (e) => {
-            if (e.key === 'Enter') this.search();
-        };
-        
         // 新增病人按鈕
         document.getElementById('btn-new-patient').onclick = () => Patient.showForm();
         document.getElementById('btn-add-patient').onclick = () => Patient.showForm();
+        
+        // 病人頁搜尋
+        document.getElementById('btn-patient-search').onclick = () => this.searchPatients();
+        document.getElementById('patient-search-input').onkeypress = (e) => {
+            if (e.key === 'Enter') this.searchPatients();
+        };
+        document.getElementById('btn-patient-search-clear').onclick = () => this.clearPatientSearch();
         
         // 統計卡片點擊
         document.querySelectorAll('.stat-card').forEach(card => {
@@ -80,6 +82,9 @@ const App = {
         
         // 匯出 Excel
         document.getElementById('btn-export-excel').onclick = () => Report.exportExcel();
+        
+        // 匯出 PDF
+        document.getElementById('btn-export-pdf').onclick = () => Report.exportPdf();
     },
     
     /**
@@ -120,6 +125,7 @@ const App = {
                 await renderPatientList();
                 break;
             case 'reports':
+                await Report.initFilters();
                 await Report.render();
                 break;
         }
@@ -129,14 +135,16 @@ const App = {
      * 更新統計數字
      */
     async updateStats() {
-        const treatments = await Treatment.getActive();
+        const activeTreatments = await Treatment.getActive();
+        const pausedTreatments = await Treatment.getPaused();
         const pendingInterventions = await Intervention.getPending();
         
-        const overdueCount = treatments.filter(t => 
+        const overdueCount = activeTreatments.filter(t => 
             t.tracking_status?.status === 'overdue'
         ).length;
         
-        document.getElementById('stat-active').textContent = treatments.length;
+        document.getElementById('stat-active').textContent = activeTreatments.length;
+        document.getElementById('stat-paused').textContent = pausedTreatments.length;
         document.getElementById('stat-pending').textContent = pendingInterventions.length;
         document.getElementById('stat-overdue').textContent = overdueCount;
     },
@@ -151,60 +159,109 @@ const App = {
     },
     
     /**
-     * 搜尋病人
+     * 搜尋病人（病人頁）
      */
-    async search() {
-        const keyword = document.getElementById('search-input').value.trim();
-        if (!keyword) return;
+    async searchPatients() {
+        const keyword = document.getElementById('patient-search-input').value.trim();
+        if (!keyword) {
+            showToast('請輸入搜尋關鍵字', 'error');
+            return;
+        }
         
         const results = await Patient.search(keyword);
-        const container = document.getElementById('search-result');
+        this.patientSearchKeyword = keyword;
+        
+        // 顯示清除按鈕
+        document.getElementById('btn-patient-search-clear').style.display = 'inline-flex';
+        
+        // 渲染搜尋結果
+        await this.renderPatientSearchResults(results, keyword);
+    },
+    
+    /**
+     * 清除病人搜尋
+     */
+    async clearPatientSearch() {
+        document.getElementById('patient-search-input').value = '';
+        document.getElementById('btn-patient-search-clear').style.display = 'none';
+        this.patientSearchKeyword = null;
+        await renderPatientList();
+    },
+    
+    /**
+     * 渲染病人搜尋結果
+     */
+    async renderPatientSearchResults(results, keyword) {
+        const container = document.getElementById('patient-list');
         
         if (results.length === 0) {
             container.innerHTML = `
-                <p style="color: var(--text-hint);">找不到符合的病人</p>
-                <button class="btn btn-outline" onclick="Patient.showForm()">新增病人</button>
+                <div class="empty-state" style="padding: 60px;">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <p>找不到符合「${keyword}」的病人</p>
+                    <button class="btn btn-primary" onclick="Patient.showForm()">新增病人</button>
+                </div>
             `;
             return;
         }
         
-        let html = '<div style="display: flex; flex-wrap: wrap; gap: 8px;">';
+        let html = `
+            <div style="margin-bottom: 12px; color: var(--text-secondary);">
+                找到 ${results.length} 筆符合「${keyword}」的結果
+            </div>
+            <table class="patient-table">
+                <thead>
+                    <tr>
+                        <th>病歷號</th>
+                        <th>姓名</th>
+                        <th>性別</th>
+                        <th>年齡</th>
+                        <th>療程數</th>
+                        <th>目前狀態</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
         
         for (const p of results) {
-            const patientWithTreatments = await Patient.getWithTreatments(p.id);
-            const hasOngoing = !!patientWithTreatments.ongoing_treatment;
+            const treatments = await Treatment.getByPatient(p.id);
+            const activeTreatment = treatments.find(t => t.status === 'active');
+            const ongoingTreatment = treatments.find(t => t.status === 'active' || t.status === 'paused');
+            const age = calculateAge(p.birth_date);
+            
+            let statusHtml = '<span class="tag tag-gray">無療程</span>';
+            if (activeTreatment) {
+                statusHtml = '<span class="tag tag-blue">治療中</span>';
+            } else if (ongoingTreatment) {
+                statusHtml = '<span class="tag tag-amber">暫停中</span>';
+            } else if (treatments.length > 0) {
+                statusHtml = '<span class="tag tag-green">已結案</span>';
+            }
             
             html += `
-                <div class="patient-card" onclick="App.handleSearchResult(${p.id}, ${hasOngoing})">
-                    <div class="patient-card-header">
-                        <span class="patient-card-id">${p.medical_id}</span>
-                    </div>
-                    <div class="patient-card-name">${p.name}</div>
-                    <div class="patient-card-info">
-                        ${formatGender(p.gender)} · ${calculateAge(p.birth_date)}歲
-                    </div>
-                </div>
+                <tr>
+                    <td><strong>${p.medical_id}</strong></td>
+                    <td>${p.name}</td>
+                    <td>${formatGender(p.gender)}</td>
+                    <td>${age ? age + '歲' : '-'}</td>
+                    <td>${treatments.length}</td>
+                    <td>${statusHtml}</td>
+                    <td>
+                        <button class="btn btn-outline" style="padding: 4px 8px; font-size: 12px;" 
+                                onclick="showPatientDetail(${p.id})">
+                            查看
+                        </button>
+                    </td>
+                </tr>
             `;
         }
         
-        html += '</div>';
+        html += '</tbody></table>';
         container.innerHTML = html;
-    },
-    
-    /**
-     * 處理搜尋結果點擊
-     */
-    async handleSearchResult(patientId, hasOngoing) {
-        const patient = await Patient.getWithTreatments(patientId);
-        
-        if (hasOngoing) {
-            // 有進行中療程 → 顯示追蹤頁並選中
-            this.selectedTreatmentId = patient.ongoing_treatment.id;
-            this.navigate('tracking');
-        } else {
-            // 無進行中療程 → 詢問是否開新療程
-            showPatientDetail(patientId);
-        }
     },
     
     /**
@@ -336,17 +393,23 @@ const App = {
         let weightsHtml = '';
         if (treatment.weight_records?.length > 0) {
             const recent = treatment.weight_records.slice(0, 5);
-            weightsHtml = recent.map(r => `
-                <div class="detail-row">
-                    <span>${formatDate(r.measure_date, 'MM/DD')}</span>
-                    <span>
-                        ${r.weight} kg
-                        ${r.change_rate !== null ? 
-                            `<span class="${getRateClass(r.change_rate)}" style="margin-left: 4px;">${formatChangeRate(r.change_rate)}</span>` 
-                            : ''}
-                    </span>
-                </div>
-            `).join('');
+            weightsHtml = recent.map(r => {
+                const weightDisplay = r.unable_to_measure 
+                    ? '<span style="color: var(--text-hint);">無法測量</span>'
+                    : `${r.weight} kg`;
+                const rateDisplay = (!r.unable_to_measure && r.change_rate !== null)
+                    ? `<span class="${getRateClass(r.change_rate)}" style="margin-left: 4px;">${formatChangeRate(r.change_rate)}</span>`
+                    : '';
+                return `
+                    <div class="detail-row">
+                        <span>${formatDate(r.measure_date, 'MM/DD')}</span>
+                        <span>
+                            ${weightDisplay}
+                            ${rateDisplay}
+                        </span>
+                    </div>
+                `;
+            }).join('');
         } else {
             weightsHtml = '<p style="color: var(--text-hint);">尚無體重記錄</p>';
         }
@@ -382,14 +445,40 @@ const App = {
                             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                         </svg>
                     </button>
-                    <button class="btn-icon" onclick="Treatment.showActions(${treatment.id})" title="療程操作">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="1"></circle>
-                            <circle cx="19" cy="12" r="1"></circle>
-                            <circle cx="5" cy="12" r="1"></circle>
-                        </svg>
-                    </button>
                 </div>
+            </div>
+            
+            <div class="action-group" style="flex-wrap: wrap; margin-bottom: 16px;">
+                <button class="btn btn-primary" onclick="Weight.showForm(${treatment.id})">
+                    記錄體重
+                </button>
+                <button class="btn btn-outline" onclick="Intervention.showList(${treatment.id})">
+                    介入記錄
+                </button>
+                ${treatment.status === 'active' ? `
+                    <button class="btn btn-outline" style="color: var(--warning); border-color: var(--warning);" 
+                            onclick="Treatment.confirmPause(${treatment.id})">
+                        暫停療程
+                    </button>
+                    <button class="btn btn-outline" style="color: var(--success); border-color: var(--success);" 
+                            onclick="Treatment.confirmComplete(${treatment.id})">
+                        完成療程
+                    </button>
+                    <button class="btn btn-outline" style="color: var(--danger); border-color: var(--danger);" 
+                            onclick="Treatment.confirmTerminate(${treatment.id})">
+                        提早終止
+                    </button>
+                ` : ''}
+                ${treatment.status === 'paused' ? `
+                    <button class="btn btn-outline" style="color: var(--success); border-color: var(--success);" 
+                            onclick="Treatment.confirmResume(${treatment.id})">
+                        恢復療程
+                    </button>
+                    <button class="btn btn-outline" style="color: var(--danger); border-color: var(--danger);" 
+                            onclick="Treatment.confirmTerminate(${treatment.id})">
+                        提早終止
+                    </button>
+                ` : ''}
             </div>
             
             ${pendingHtml}
@@ -426,15 +515,6 @@ const App = {
                 </div>
                 ${weightsHtml}
             </div>
-            
-            <div class="action-group">
-                <button class="btn btn-primary" onclick="Weight.showForm(${treatment.id})">
-                    記錄體重
-                </button>
-                <button class="btn btn-outline" onclick="Intervention.showList(${treatment.id})">
-                    介入記錄
-                </button>
-            </div>
         `;
         
         // 渲染體重趨勢圖
@@ -450,22 +530,43 @@ const App = {
         const ctx = document.getElementById('weight-trend-chart');
         if (!ctx) return;
         
-        // 準備資料：從基準值開始
-        const records = treatment.weight_records.slice(0, 15).reverse();
+        // 過濾掉無法測量的記錄，只取有效體重
+        const validRecords = treatment.weight_records
+            .filter(r => !r.unable_to_measure && r.weight)
+            .slice(0, 15)
+            .reverse();
+        
         const baseline = treatment.baseline_weight;
         
-        // 標籤：治療開始日 + 各量測日
+        // 標籤與體重資料
         const labels = [];
         const weights = [];
         
-        // 第一個點：基準值（治療開始日）
+        // 判斷起始點：
+        // 如果第一筆有效體重 = 基準體重，表示療程開始時無法量測，
+        // 則起始日期用該體重記錄的日期；否則用療程開始日期
+        let baselineDate = treatment.treatment_start;
+        let baselineIsFromRecord = false;
+        
+        if (baseline && validRecords.length > 0) {
+            const firstRecord = validRecords[0];
+            // 檢查第一筆記錄的體重是否等於基準體重（允許小誤差）
+            if (Math.abs(firstRecord.weight - baseline) < 0.01) {
+                // 基準體重來自體重記錄，使用該記錄日期
+                baselineDate = firstRecord.measure_date;
+                baselineIsFromRecord = true;
+            }
+        }
+        
+        // 第一個點：基準值
         if (baseline) {
-            labels.push(formatDate(treatment.treatment_start, 'MM/DD'));
+            labels.push(formatDate(baselineDate, 'MM/DD'));
             weights.push(baseline);
         }
         
-        // 後續體重記錄
-        records.forEach(r => {
+        // 後續體重記錄（如果基準來自記錄，則跳過第一筆避免重複）
+        const recordsToPlot = baselineIsFromRecord ? validRecords.slice(1) : validRecords;
+        recordsToPlot.forEach(r => {
             labels.push(formatDate(r.measure_date, 'MM/DD'));
             weights.push(r.weight);
         });

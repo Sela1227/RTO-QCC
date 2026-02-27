@@ -1,5 +1,5 @@
 /**
- * SELA 體重追蹤系統 - 設定模組
+ * 彰濱放腫體重監控預防系統 - 設定模組
  */
 
 const SettingsUI = {
@@ -19,83 +19,83 @@ const SettingsUI = {
                 <button class="tab" data-settings-tab="data">資料</button>
             </div>
             
-            <div class="settings-content">
+            <div class="settings-content" style="min-height: 280px;">
                 <!-- 癌別設定 -->
                 <div class="settings-panel active" id="settings-cancer">
-                    <div id="cancer-list">
+                    <div class="settings-list" id="cancer-list">
                         ${cancerTypes.map((c, i) => `
-                            <div class="detail-row">
-                                <span>${c.label}</span>
-                                <span>
-                                    <button class="btn-icon" onclick="SettingsUI.editCancerType(${i})">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                                        </svg>
-                                    </button>
-                                    <button class="btn-icon" onclick="SettingsUI.deleteCancerType(${i})">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <polyline points="3 6 5 6 21 6"></polyline>
-                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                        </svg>
-                                    </button>
+                            <div class="settings-item" data-index="${i}">
+                                <span class="settings-item-text">${c.label}</span>
+                                <span class="settings-item-actions">
+                                    <button class="btn-mini" onclick="SettingsUI.moveCancerType(${i}, -1)" title="上移">▲</button>
+                                    <button class="btn-mini" onclick="SettingsUI.moveCancerType(${i}, 1)" title="下移">▼</button>
+                                    <button class="btn-mini" onclick="SettingsUI.editCancerType(${i})" title="編輯">✎</button>
+                                    <button class="btn-mini btn-mini-danger" onclick="SettingsUI.deleteCancerType(${i})" title="刪除">✕</button>
                                 </span>
                             </div>
                         `).join('')}
                     </div>
-                    <button class="btn btn-outline" style="margin-top: 12px;" onclick="SettingsUI.addCancerType()">
-                        + 新增癌別
+                    <button class="btn btn-outline btn-sm" style="margin-top: 12px;" onclick="SettingsUI.addCancerType()">
+                        + 新增
                     </button>
                 </div>
                 
                 <!-- 人員設定 -->
                 <div class="settings-panel" id="settings-staff" style="display: none;">
-                    <div id="staff-list">
+                    <div class="settings-list" id="staff-list">
                         ${staffList.map((s, i) => `
-                            <div class="detail-row">
-                                <span>${s}</span>
-                                <span>
-                                    <button class="btn-icon" onclick="SettingsUI.moveStaff(${i}, -1)">↑</button>
-                                    <button class="btn-icon" onclick="SettingsUI.moveStaff(${i}, 1)">↓</button>
-                                    <button class="btn-icon" onclick="SettingsUI.editStaff(${i})">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                                        </svg>
-                                    </button>
-                                    <button class="btn-icon" onclick="SettingsUI.deleteStaff(${i})">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <polyline points="3 6 5 6 21 6"></polyline>
-                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                        </svg>
-                                    </button>
+                            <div class="settings-item" data-index="${i}">
+                                <span class="settings-item-text">${s}</span>
+                                <span class="settings-item-actions">
+                                    <button class="btn-mini" onclick="SettingsUI.moveStaff(${i}, -1)" title="上移">▲</button>
+                                    <button class="btn-mini" onclick="SettingsUI.moveStaff(${i}, 1)" title="下移">▼</button>
+                                    <button class="btn-mini" onclick="SettingsUI.editStaff(${i})" title="編輯">✎</button>
+                                    <button class="btn-mini btn-mini-danger" onclick="SettingsUI.deleteStaff(${i})" title="刪除">✕</button>
                                 </span>
                             </div>
                         `).join('')}
                     </div>
-                    <button class="btn btn-outline" style="margin-top: 12px;" onclick="SettingsUI.addStaff()">
-                        + 新增人員
+                    <button class="btn btn-outline btn-sm" style="margin-top: 12px;" onclick="SettingsUI.addStaff()">
+                        + 新增
                     </button>
                 </div>
                 
                 <!-- 警示設定 -->
                 <div class="settings-panel" id="settings-alert" style="display: none;">
-                    <p style="color: var(--text-secondary); margin-bottom: 12px;">
-                        設定體重下降達到多少百分比時觸發警示
+                    <p style="color: var(--text-secondary); font-size: 12px; margin-bottom: 12px;">
+                        體重下降達閾值時自動觸發介入提醒
                     </p>
-                    <div class="detail-row">
-                        <span>SDM 閾值</span>
-                        <span>-3%</span>
+                    <div class="settings-list" id="alert-list">
+                        ${alertRules.map((r, i) => {
+                            const label = r.cancer_type === 'default' ? '預設規則' : 
+                                (cancerTypes.find(c => c.code === r.cancer_type)?.label || r.cancer_type);
+                            return `
+                            <div class="settings-item" data-index="${i}">
+                                <span class="settings-item-text">
+                                    <strong>${label}</strong>
+                                    <span style="color: var(--text-hint); font-size: 11px; margin-left: 8px;">
+                                        SDM ${r.sdm_threshold}% · 營養 ${r.nutrition_threshold}%
+                                    </span>
+                                </span>
+                                <span class="settings-item-actions">
+                                    <button class="btn-mini" onclick="SettingsUI.moveAlertRule(${i}, -1)" title="上移">▲</button>
+                                    <button class="btn-mini" onclick="SettingsUI.moveAlertRule(${i}, 1)" title="下移">▼</button>
+                                    <button class="btn-mini" onclick="SettingsUI.editAlertRule(${i})" title="編輯">✎</button>
+                                    ${r.cancer_type !== 'default' ? 
+                                        `<button class="btn-mini btn-mini-danger" onclick="SettingsUI.deleteAlertRule(${i})" title="刪除">✕</button>` 
+                                        : '<span style="width:20px;"></span>'}
+                                </span>
+                            </div>
+                        `}).join('')}
                     </div>
-                    <div class="detail-row">
-                        <span>營養師轉介閾值</span>
-                        <span>-5%</span>
-                    </div>
+                    <button class="btn btn-outline btn-sm" style="margin-top: 12px;" onclick="SettingsUI.addAlertRule()">
+                        + 新增癌別規則
+                    </button>
                 </div>
                 
                 <!-- 資料管理 -->
                 <div class="settings-panel" id="settings-data" style="display: none;">
-                    <div class="action-group" style="flex-direction: column; gap: 12px;">
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
                         <button class="btn btn-outline" onclick="SettingsUI.exportData()">
                             匯出備份 (JSON)
                         </button>
@@ -104,7 +104,7 @@ const SettingsUI = {
                         </button>
                         <input type="file" id="import-file" accept=".json" style="display: none;" 
                                onchange="SettingsUI.importData(this.files[0])">
-                        <hr style="border: none; border-top: 1px solid var(--border);">
+                        <hr style="border: none; border-top: 1px solid var(--border); margin: 8px 0;">
                         <button class="btn btn-danger" onclick="SettingsUI.clearAllData()">
                             清除所有資料
                         </button>
@@ -166,6 +166,18 @@ const SettingsUI = {
         this.show();
     },
     
+    async moveCancerType(index, direction) {
+        const cancerTypes = await Settings.get('cancer_types', []);
+        const newIndex = index + direction;
+        
+        if (newIndex < 0 || newIndex >= cancerTypes.length) return;
+        
+        [cancerTypes[index], cancerTypes[newIndex]] = [cancerTypes[newIndex], cancerTypes[index]];
+        await Settings.set('cancer_types', cancerTypes);
+        
+        this.show();
+    },
+    
     // === 人員管理 ===
     
     async addStaff() {
@@ -220,11 +232,148 @@ const SettingsUI = {
         this.show();
     },
     
+    // === 警示規則管理 ===
+    
+    async addAlertRule() {
+        const cancerTypes = await Settings.get('cancer_types', []);
+        const alertRules = await Settings.get('alert_rules', []);
+        
+        const existingCodes = alertRules.map(r => r.cancer_type);
+        const availableCancerTypes = cancerTypes.filter(c => !existingCodes.includes(c.code));
+        
+        if (availableCancerTypes.length === 0) {
+            showToast('所有癌別都已設定規則', 'error');
+            return;
+        }
+        
+        closeModal();
+        setTimeout(() => this.showAlertRuleForm(null, availableCancerTypes), 100);
+    },
+    
+    async editAlertRule(index) {
+        const alertRules = await Settings.get('alert_rules', []);
+        const rule = alertRules[index];
+        
+        closeModal();
+        setTimeout(() => this.showAlertRuleForm(rule, null, index), 100);
+    },
+    
+    async deleteAlertRule(index) {
+        if (!confirm('確定刪除此警示規則？')) return;
+        
+        const alertRules = await Settings.get('alert_rules', []);
+        alertRules.splice(index, 1);
+        await Settings.set('alert_rules', alertRules);
+        
+        showToast('警示規則已刪除');
+        this.show();
+    },
+    
+    async moveAlertRule(index, direction) {
+        const alertRules = await Settings.get('alert_rules', []);
+        const newIndex = index + direction;
+        
+        if (newIndex < 0 || newIndex >= alertRules.length) return;
+        
+        [alertRules[index], alertRules[newIndex]] = [alertRules[newIndex], alertRules[index]];
+        await Settings.set('alert_rules', alertRules);
+        
+        this.show();
+    },
+    
+    async showAlertRuleForm(rule = null, availableCancerTypes = null, editIndex = null) {
+        const isEdit = rule !== null;
+        const cancerTypes = await Settings.get('cancer_types', []);
+        
+        let cancerSelectHtml = '';
+        if (isEdit) {
+            const label = rule.cancer_type === 'default' ? '預設' : 
+                         (cancerTypes.find(c => c.code === rule.cancer_type)?.label || rule.cancer_type);
+            cancerSelectHtml = `<input type="text" class="form-input" value="${label}" readonly>
+                                <input type="hidden" id="alert_cancer_type" value="${rule.cancer_type}">`;
+        } else {
+            cancerSelectHtml = `<select class="form-select" id="alert_cancer_type">
+                ${availableCancerTypes.map(c => `<option value="${c.code}">${c.label}</option>`).join('')}
+            </select>`;
+        }
+        
+        const html = `
+            <form id="alert-rule-form">
+                ${createFormGroup('癌別', cancerSelectHtml)}
+                <div class="form-row">
+                    ${createFormGroup('SDM 閾值 (%)', `
+                        <input type="number" step="0.1" class="form-input" id="sdm_threshold" 
+                               value="${rule?.sdm_threshold || -3}" placeholder="-3">
+                    `, true)}
+                    ${createFormGroup('營養師閾值 (%)', `
+                        <input type="number" step="0.1" class="form-input" id="nutrition_threshold" 
+                               value="${rule?.nutrition_threshold || -5}" placeholder="-5">
+                    `, true)}
+                </div>
+                <p style="color: var(--text-hint); font-size: 12px; margin-top: 8px;">
+                    體重下降達 SDM 閾值觸發 SDM；達營養師閾值觸發營養轉介
+                </p>
+            </form>
+        `;
+        
+        openModal(isEdit ? '編輯警示規則' : '新增警示規則', html, [
+            { 
+                text: '取消', 
+                class: 'btn-outline',
+                onClick: () => this.show()
+            },
+            {
+                text: isEdit ? '儲存' : '新增',
+                class: 'btn-primary',
+                closeOnClick: false,
+                onClick: async () => {
+                    const cancerType = document.getElementById('alert_cancer_type').value;
+                    const sdmThreshold = parseFloat(document.getElementById('sdm_threshold').value);
+                    const nutritionThreshold = parseFloat(document.getElementById('nutrition_threshold').value);
+                    
+                    if (isNaN(sdmThreshold) || isNaN(nutritionThreshold)) {
+                        showToast('請輸入有效的數值', 'error');
+                        return;
+                    }
+                    
+                    if (sdmThreshold >= 0 || nutritionThreshold >= 0) {
+                        showToast('閾值應為負數', 'error');
+                        return;
+                    }
+                    
+                    if (nutritionThreshold > sdmThreshold) {
+                        showToast('營養師閾值應小於或等於 SDM 閾值', 'error');
+                        return;
+                    }
+                    
+                    const alertRules = await Settings.get('alert_rules', []);
+                    
+                    const newRule = {
+                        cancer_type: cancerType,
+                        sdm_threshold: sdmThreshold,
+                        nutrition_threshold: nutritionThreshold
+                    };
+                    
+                    if (isEdit) {
+                        alertRules[editIndex] = newRule;
+                    } else {
+                        alertRules.push(newRule);
+                    }
+                    
+                    await Settings.set('alert_rules', alertRules);
+                    showToast(isEdit ? '警示規則已更新' : '警示規則已新增');
+                    closeModal();
+                    this.show();
+                }
+            }
+        ]);
+    },
+    
     // === 資料管理 ===
     
     async exportData() {
         const data = await exportAllData();
-        const filename = `sela_backup_${today()}.json`;
+        const filename = `weight_backup_${today()}.json`;
         downloadJSON(data, filename);
         showToast('備份已下載');
     },

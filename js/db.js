@@ -1,5 +1,5 @@
 /**
- * SELA 體重追蹤系統 - IndexedDB 資料庫模組
+ * 彰濱放腫體重監控預防系統 - IndexedDB 資料庫模組
  * 負責所有資料的本地儲存
  */
 
@@ -315,7 +315,7 @@ async function initDefaultSettings() {
     ]);
     
     // 人員
-    await Settings.set('staff_list', ['營養師', 'SDM']);
+    await Settings.set('staff_list', ['王孝宇', '陳詩韻', '廖芝穎']);
     
     // 警示規則
     await Settings.set('alert_rules', [

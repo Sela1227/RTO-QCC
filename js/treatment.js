@@ -1,5 +1,5 @@
 /**
- * SELA 體重追蹤系統 - 療程管理模組
+ * 彰濱放腫體重監控預防系統 - 療程管理模組
  */
 
 const Treatment = {
@@ -139,6 +139,93 @@ const Treatment = {
     },
     
     /**
+     * 確認暫停療程
+     */
+    async confirmPause(treatmentId) {
+        const treatment = await this.getById(treatmentId);
+        const patient = await Patient.getById(treatment.patient_id);
+        
+        const html = `
+            <div style="margin-bottom: 16px;">
+                <strong>${patient.medical_id}</strong> ${patient.name}
+            </div>
+            ${createFormGroup('暫停原因（選填）', `
+                <input type="text" class="form-input" id="pause_reason" 
+                       placeholder="例如：住院、外出、身體狀況不佳">
+            `)}
+            <p style="color: var(--text-hint); font-size: 12px;">
+                暫停後病人會從「治療中」移到「暫停中」清單
+            </p>
+        `;
+        
+        openModal('暫停療程', html, [
+            { text: '取消', class: 'btn-outline' },
+            {
+                text: '確定暫停',
+                class: 'btn-warning',
+                closeOnClick: false,
+                onClick: async () => {
+                    const reason = document.getElementById('pause_reason').value.trim();
+                    try {
+                        await Treatment.pause(treatmentId, reason);
+                        closeModal();
+                        showToast('療程已暫停');
+                        App.refresh();
+                    } catch (e) {
+                        showToast(e.message, 'error');
+                    }
+                }
+            }
+        ]);
+    },
+    
+    /**
+     * 確認恢復療程
+     */
+    async confirmResume(treatmentId) {
+        const treatment = await this.getById(treatmentId);
+        const patient = await Patient.getById(treatment.patient_id);
+        
+        let pauseInfo = '';
+        if (treatment.pause_reason) {
+            pauseInfo = `<p style="color: var(--text-secondary); margin-top: 8px;">暫停原因：${treatment.pause_reason}</p>`;
+        }
+        if (treatment.paused_at) {
+            pauseInfo += `<p style="color: var(--text-hint); font-size: 12px;">暫停時間：${formatDate(treatment.paused_at)}</p>`;
+        }
+        
+        const html = `
+            <div style="margin-bottom: 16px;">
+                <strong>${patient.medical_id}</strong> ${patient.name}
+                ${pauseInfo}
+            </div>
+            <p>確定要恢復此療程嗎？</p>
+            <p style="color: var(--text-hint); font-size: 12px; margin-top: 8px;">
+                恢復後病人會回到「治療中」清單
+            </p>
+        `;
+        
+        openModal('恢復療程', html, [
+            { text: '取消', class: 'btn-outline' },
+            {
+                text: '確定恢復',
+                class: 'btn-primary',
+                closeOnClick: false,
+                onClick: async () => {
+                    try {
+                        await Treatment.resume(treatmentId);
+                        closeModal();
+                        showToast('療程已恢復');
+                        App.refresh();
+                    } catch (e) {
+                        showToast(e.message, 'error');
+                    }
+                }
+            }
+        ]);
+    },
+    
+    /**
      * 恢復療程
      */
     async resume(treatmentId) {
@@ -166,6 +253,43 @@ const Treatment = {
     },
     
     /**
+     * 確認結案療程
+     */
+    async confirmComplete(treatmentId) {
+        const treatment = await this.getById(treatmentId);
+        const patient = await Patient.getById(treatment.patient_id);
+        
+        const html = `
+            <div style="margin-bottom: 16px;">
+                <strong>${patient.medical_id}</strong> ${patient.name}
+            </div>
+            <p>確定要結案此療程嗎？</p>
+            <p style="color: var(--text-hint); font-size: 12px; margin-top: 8px;">
+                結案後療程將標記為「已完成」
+            </p>
+        `;
+        
+        openModal('結案療程', html, [
+            { text: '取消', class: 'btn-outline' },
+            {
+                text: '確定結案',
+                class: 'btn-primary',
+                closeOnClick: false,
+                onClick: async () => {
+                    try {
+                        await Treatment.complete(treatmentId);
+                        closeModal();
+                        showToast('療程已結案');
+                        App.refresh();
+                    } catch (e) {
+                        showToast(e.message, 'error');
+                    }
+                }
+            }
+        ]);
+    },
+    
+    /**
      * 終止療程
      */
     async terminate(treatmentId, reason = '') {
@@ -180,6 +304,47 @@ const Treatment = {
     },
     
     /**
+     * 確認終止療程
+     */
+    async confirmTerminate(treatmentId) {
+        const treatment = await this.getById(treatmentId);
+        const patient = await Patient.getById(treatment.patient_id);
+        
+        const html = `
+            <div style="margin-bottom: 16px;">
+                <strong>${patient.medical_id}</strong> ${patient.name}
+            </div>
+            ${createFormGroup('終止原因（選填）', `
+                <input type="text" class="form-input" id="terminate_reason" 
+                       placeholder="例如：轉院、放棄治療">
+            `)}
+            <p style="color: var(--danger); font-size: 12px; margin-top: 8px;">
+                終止後療程將標記為「已終止」
+            </p>
+        `;
+        
+        openModal('提早終止療程', html, [
+            { text: '取消', class: 'btn-outline' },
+            {
+                text: '確定終止',
+                class: 'btn-danger',
+                closeOnClick: false,
+                onClick: async () => {
+                    const reason = document.getElementById('terminate_reason').value.trim();
+                    try {
+                        await Treatment.terminate(treatmentId, reason);
+                        closeModal();
+                        showToast('療程已終止');
+                        App.refresh();
+                    } catch (e) {
+                        showToast(e.message, 'error');
+                    }
+                }
+            }
+        ]);
+    },
+    
+    /**
      * 顯示新增療程對話框
      */
     async showForm(patient, treatment = null) {
@@ -188,6 +353,8 @@ const Treatment = {
         
         const cancerTypes = await Settings.get('cancer_types', []);
         const intents = await Settings.get('treatment_intents', []);
+        
+        const isUnableToMeasure = treatment?.unable_to_measure || false;
         
         const html = `
             <form id="treatment-form">
@@ -211,13 +378,15 @@ const Treatment = {
                 <div class="form-row">
                     ${createFormGroup('基準體重 (kg)', `
                         <input type="number" step="0.1" class="form-input" id="baseline_weight" 
-                               value="${treatment?.baseline_weight || ''}" 
-                               placeholder="輸入體重">
+                               value="${isUnableToMeasure ? '' : (treatment?.baseline_weight || '')}" 
+                               placeholder="輸入體重"
+                               ${isUnableToMeasure ? 'disabled' : ''}>
                     `)}
                     <div class="form-group" style="display: flex; align-items: flex-end; padding-bottom: 8px;">
                         <label class="form-checkbox">
                             <input type="checkbox" id="unable_to_measure" 
-                                   ${treatment?.unable_to_measure ? 'checked' : ''}>
+                                   ${isUnableToMeasure ? 'checked' : ''}
+                                   onchange="Treatment.toggleWeightInput(this.checked)">
                             <span>無法測量</span>
                         </label>
                     </div>
@@ -242,6 +411,13 @@ const Treatment = {
                     const unableToMeasure = document.getElementById('unable_to_measure').checked;
                     const baselineWeight = document.getElementById('baseline_weight').value;
                     
+                    // 驗證：無法測量時不能填體重
+                    if (unableToMeasure && baselineWeight) {
+                        showToast('勾選無法測量時不能填寫體重', 'error');
+                        return;
+                    }
+                    
+                    // 驗證：必須二擇一
                     if (!unableToMeasure && !baselineWeight) {
                         showToast('請輸入基準體重或勾選無法測量', 'error');
                         return;
@@ -275,6 +451,21 @@ const Treatment = {
                 }
             }
         ]);
+    },
+    
+    /**
+     * 切換體重輸入框狀態
+     */
+    toggleWeightInput(isUnableToMeasure) {
+        const weightInput = document.getElementById('baseline_weight');
+        if (isUnableToMeasure) {
+            weightInput.value = '';
+            weightInput.disabled = true;
+            weightInput.placeholder = '無法測量';
+        } else {
+            weightInput.disabled = false;
+            weightInput.placeholder = '輸入體重';
+        }
     },
     
     /**

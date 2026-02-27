@@ -1,5 +1,5 @@
 /**
- * SELA 體重追蹤系統 - 病人管理模組
+ * 彰濱放腫體重監控預防系統 - 病人管理模組
  */
 
 const Patient = {
@@ -53,7 +53,10 @@ const Patient = {
         // 檢查病歷號是否已存在
         const existing = await this.getByMedicalId(data.medical_id);
         if (existing) {
-            throw new Error('病歷號已存在');
+            // 返回現有病人資料，讓呼叫端處理
+            const error = new Error('病歷號已存在');
+            error.existingPatient = existing;
+            throw error;
         }
         
         return DB.add('patients', data);
@@ -92,6 +95,91 @@ const Patient = {
         
         // 刪除病人
         return DB.delete('patients', patientId);
+    },
+    
+    /**
+     * 雙重確認刪除病人
+     */
+    async confirmDelete(patientId, medicalId, name) {
+        closeModal();
+        
+        setTimeout(() => {
+            const html = `
+                <div style="text-align: center; padding: 16px 0;">
+                    <div style="font-size: 48px; margin-bottom: 16px;">⚠️</div>
+                    <p style="margin-bottom: 8px;">確定要刪除此病人嗎？</p>
+                    <div style="background: var(--bg); padding: 12px; border-radius: 8px; margin: 16px 0;">
+                        <strong>${medicalId}</strong> ${name}
+                    </div>
+                    <p style="color: var(--danger); font-size: 13px;">
+                        此操作將同時刪除所有療程、體重記錄、介入記錄<br>
+                        <strong>刪除後無法復原！</strong>
+                    </p>
+                </div>
+            `;
+            
+            openModal('確認刪除', html, [
+                { text: '取消', class: 'btn-outline' },
+                {
+                    text: '確定刪除',
+                    class: 'btn-danger',
+                    closeOnClick: false,
+                    onClick: () => Patient.confirmDeleteStep2(patientId, medicalId, name)
+                }
+            ]);
+        }, 100);
+    },
+    
+    /**
+     * 雙重確認刪除 - 第二步
+     */
+    async confirmDeleteStep2(patientId, medicalId, name) {
+        closeModal();
+        
+        setTimeout(() => {
+            const html = `
+                <div style="text-align: center; padding: 16px 0;">
+                    <div style="font-size: 48px; margin-bottom: 16px;">🗑️</div>
+                    <p style="margin-bottom: 16px; color: var(--danger); font-weight: 600;">
+                        再次確認：真的要刪除嗎？
+                    </p>
+                    <div style="background: var(--bg); padding: 12px; border-radius: 8px; margin-bottom: 16px;">
+                        <strong>${medicalId}</strong> ${name}
+                    </div>
+                    <p style="font-size: 13px; color: var(--text-secondary);">
+                        請輸入病歷號以確認刪除
+                    </p>
+                    <input type="text" class="form-input" id="confirm-medical-id" 
+                           placeholder="輸入 ${medicalId}" 
+                           style="text-align: center; margin-top: 8px;">
+                </div>
+            `;
+            
+            openModal('最終確認', html, [
+                { text: '取消', class: 'btn-outline' },
+                {
+                    text: '永久刪除',
+                    class: 'btn-danger',
+                    closeOnClick: false,
+                    onClick: async () => {
+                        const input = document.getElementById('confirm-medical-id').value.trim();
+                        if (input !== medicalId) {
+                            showToast('病歷號不符，取消刪除', 'error');
+                            return;
+                        }
+                        
+                        try {
+                            await Patient.delete(patientId);
+                            closeModal();
+                            showToast('病人已刪除');
+                            App.refresh();
+                        } catch (e) {
+                            showToast('刪除失敗: ' + e.message, 'error');
+                        }
+                    }
+                }
+            ]);
+        }, 100);
     },
     
     /**
@@ -188,11 +276,87 @@ const Patient = {
                             }, 300);
                         }
                     } catch (e) {
-                        showToast(e.message, 'error');
+                        // 檢查是否為病歷號重複
+                        if (e.existingPatient) {
+                            closeModal();
+                            setTimeout(() => {
+                                Patient.showExistingPatientDialog(e.existingPatient);
+                            }, 100);
+                        } else {
+                            showToast(e.message, 'error');
+                        }
                     }
                 }
             }
         ]);
+    },
+    
+    /**
+     * 顯示已存在病人的對話框
+     */
+    async showExistingPatientDialog(patient) {
+        const patientWithTreatments = await Patient.getWithTreatments(patient.id);
+        const age = calculateAge(patient.birth_date);
+        const hasOngoing = !!patientWithTreatments.ongoing_treatment;
+        
+        let statusText = '';
+        if (hasOngoing) {
+            const status = patientWithTreatments.ongoing_treatment.status === 'active' ? '治療中' : '暫停中';
+            statusText = `<span class="tag tag-blue">${status}</span>`;
+        } else if (patientWithTreatments.treatments.length > 0) {
+            statusText = '<span class="tag tag-green">已結案</span>';
+        } else {
+            statusText = '<span class="tag tag-gray">無療程</span>';
+        }
+        
+        const html = `
+            <div style="text-align: center; padding: 16px 0;">
+                <div style="font-size: 48px; margin-bottom: 16px;">⚠️</div>
+                <p style="margin-bottom: 16px;">此病歷號已有資料：</p>
+                <div style="background: var(--bg); padding: 16px; border-radius: 8px; text-align: left;">
+                    <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">
+                        ${patient.medical_id} ${patient.name}
+                    </div>
+                    <div style="color: var(--text-secondary);">
+                        ${formatGender(patient.gender)} · ${age ? age + '歲' : '-'}
+                    </div>
+                    <div style="margin-top: 8px;">
+                        ${statusText}
+                        <span style="color: var(--text-hint); margin-left: 8px;">
+                            ${patientWithTreatments.treatments.length} 筆療程
+                        </span>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        const buttons = [
+            { text: '關閉', class: 'btn-outline' },
+            { 
+                text: '查看詳情', 
+                class: 'btn-outline',
+                closeOnClick: false,
+                onClick: () => {
+                    closeModal();
+                    setTimeout(() => showPatientDetail(patient.id), 100);
+                }
+            }
+        ];
+        
+        // 如果沒有進行中療程，可以開新療程
+        if (!hasOngoing) {
+            buttons.push({
+                text: '開新療程',
+                class: 'btn-primary',
+                closeOnClick: false,
+                onClick: () => {
+                    closeModal();
+                    setTimeout(() => Treatment.showForm(patient), 100);
+                }
+            });
+        }
+        
+        openModal('病歷號已存在', html, buttons);
     },
     
     /**
@@ -332,6 +496,12 @@ async function showPatientDetail(patientId) {
         <div class="detail-section">
             <div class="detail-section-title">療程記錄（點擊查看詳情）</div>
             ${treatmentsHtml}
+        </div>
+        <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border);">
+            <button class="btn btn-outline" style="color: var(--danger); border-color: var(--danger);" 
+                    onclick="Patient.confirmDelete(${patient.id}, '${patient.medical_id}', '${patient.name}')">
+                刪除病人
+            </button>
         </div>
     `;
     
