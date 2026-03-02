@@ -400,6 +400,11 @@ const SettingsUI = {
         const data = await exportAllData();
         const filename = `weight_backup_${today()}.json`;
         downloadJSON(data, filename);
+        
+        // 記錄備份時間
+        await Settings.set('last_backup_date', today());
+        await Settings.set('last_backup_time', new Date().toISOString());
+        
         showToast('備份已下載');
     },
     

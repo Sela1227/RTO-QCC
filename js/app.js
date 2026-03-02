@@ -1,6 +1,6 @@
 /**
  * 彰濱放腫體重監控預防系統 - 主程式
- * v4.1 Web 版
+ * v4.2 Web 版
  */
 
 const App = {
@@ -23,6 +23,9 @@ const App = {
             // 綁定事件
             this.bindEvents();
             
+            // 檢查備份狀態
+            await this.checkBackupStatus();
+            
             // 載入首頁
             await this.refresh();
             
@@ -31,6 +34,123 @@ const App = {
             console.error('初始化失敗:', e);
             showToast('系統初始化失敗', 'error');
         }
+    },
+    
+    /**
+     * 檢查備份狀態
+     */
+    async checkBackupStatus() {
+        const lastBackupDate = await Settings.get('last_backup_date', null);
+        const hasData = await this.hasAnyData();
+        
+        // 如果有資料但從未備份，強制備份
+        if (hasData && !lastBackupDate) {
+            await this.showForceBackupModal('首次使用');
+            return;
+        }
+        
+        // 如果有備份記錄，檢查是否超過 7 天
+        if (hasData && lastBackupDate) {
+            const lastDate = new Date(lastBackupDate);
+            const now = new Date();
+            const diffDays = Math.floor((now - lastDate) / (1000 * 60 * 60 * 24));
+            
+            if (diffDays >= 7) {
+                await this.showForceBackupModal(`已超過 ${diffDays} 天未備份`);
+            }
+        }
+    },
+    
+    /**
+     * 檢查是否有任何資料
+     */
+    async hasAnyData() {
+        const patients = await DB.getAll('patients');
+        return patients.length > 0;
+    },
+    
+    /**
+     * 顯示強制備份對話框
+     */
+    async showForceBackupModal(reason) {
+        const stats = await this.getDataStats();
+        
+        const html = `
+            <div style="text-align: center; padding: 20px 0;">
+                <div style="font-size: 48px; margin-bottom: 16px;">⚠️</div>
+                <h3 style="margin-bottom: 8px; color: var(--warning);">請先備份資料</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 20px;">
+                    ${reason}，為避免資料遺失，請立即備份。
+                </p>
+                
+                <div style="background: var(--bg); padding: 16px; border-radius: 8px; margin-bottom: 20px; text-align: left;">
+                    <div class="detail-row">
+                        <span>病人數</span>
+                        <strong>${stats.patientCount}</strong>
+                    </div>
+                    <div class="detail-row">
+                        <span>療程數</span>
+                        <strong>${stats.treatmentCount}</strong>
+                    </div>
+                    <div class="detail-row">
+                        <span>體重記錄</span>
+                        <strong>${stats.weightCount}</strong>
+                    </div>
+                    <div class="detail-row">
+                        <span>介入記錄</span>
+                        <strong>${stats.interventionCount}</strong>
+                    </div>
+                </div>
+                
+                <p style="font-size: 12px; color: var(--text-hint);">
+                    備份檔案會下載到您的電腦，請妥善保存。
+                </p>
+            </div>
+        `;
+        
+        return new Promise((resolve) => {
+            openModal('資料備份提醒', html, [
+                {
+                    text: '立即備份',
+                    class: 'btn-primary',
+                    closeOnClick: false,
+                    onClick: async () => {
+                        await SettingsUI.exportData();
+                        
+                        // 恢復關閉按鈕
+                        document.getElementById('modal-close').style.display = '';
+                        document.getElementById('modal-overlay').onclick = (e) => {
+                            if (e.target === e.currentTarget) closeModal();
+                        };
+                        
+                        closeModal();
+                        showToast('感謝您的備份！資料已安全保存。');
+                        resolve();
+                    }
+                }
+            ]);
+            
+            // 禁止關閉對話框（移除關閉按鈕和點擊外部關閉）
+            document.getElementById('modal-close').style.display = 'none';
+            document.getElementById('modal-overlay').onclick = null;
+        });
+    },
+    
+    /**
+     * 取得資料統計
+     */
+    async getDataStats() {
+        const patients = await DB.getAll('patients');
+        const treatments = await DB.getAll('treatments');
+        const weights = await DB.getAll('weight_records');
+        const interventions = await DB.getAll('interventions');
+        
+        return {
+            patientCount: patients.length,
+            treatmentCount: treatments.length,
+            weightCount: weights.length,
+            interventionCount: interventions.length
+        };
     },
     
     /**
