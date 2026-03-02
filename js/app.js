@@ -1,6 +1,6 @@
 /**
  * 彰濱放腫體重監控預防系統 - 主程式
- * v4.2 Web 版
+ * v4.3 Web 版
  */
 
 const App = {
@@ -463,11 +463,25 @@ const App = {
             const rateClass = getRateClass(t.change_rate);
             const isSelected = t.id === this.selectedTreatmentId;
             const hasPending = t.pending_interventions?.length > 0;
+            const isOverdue = t.tracking_status?.status === 'overdue';
             
             let cardClass = 'patient-card';
             if (isSelected) cardClass += ' active';
             if (hasPending) cardClass += ' alert-warning';
-            if (t.tracking_status?.class === 'red') cardClass += ' alert-danger';
+            if (isOverdue) cardClass += ' alert-danger';
+            
+            // 生成標籤
+            let tagsHtml = '';
+            if (hasPending || isOverdue) {
+                tagsHtml = '<div class="patient-card-tags">';
+                if (hasPending) {
+                    tagsHtml += '<span class="tag tag-amber" style="font-size: 10px; padding: 1px 5px;">需處理</span>';
+                }
+                if (isOverdue) {
+                    tagsHtml += '<span class="tag tag-red" style="font-size: 10px; padding: 1px 5px;">待量體重</span>';
+                }
+                tagsHtml += '</div>';
+            }
             
             cardsHtml += `
                 <div class="${cardClass}" onclick="App.selectTreatment(${t.id})">
@@ -482,6 +496,7 @@ const App = {
                             `<span class="patient-card-rate ${rateClass}">${formatChangeRate(t.change_rate)}</span>` 
                             : ''}
                     </div>
+                    ${tagsHtml}
                 </div>
             `;
         }

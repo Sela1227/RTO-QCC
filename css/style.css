@@ -658,6 +658,13 @@ body {
     border-radius: var(--radius-sm);
 }
 
+.patient-card-tags {
+    display: flex;
+    gap: 4px;
+    margin-top: 6px;
+    flex-wrap: wrap;
+}
+
 .rate-success {
     background: rgba(107, 175, 141, 0.15);
     color: var(--success);
