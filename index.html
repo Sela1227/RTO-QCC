@@ -1,399 +1,373 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>彰濱放腫體重監控預防系統</title>
-    <link rel="stylesheet" href="css/style.css">
-    <!-- 外部套件 -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-</head>
-<body>
-    <!-- 登入畫面 -->
-    <div class="login-screen" id="login-screen">
-        <div class="login-box">
-            <img src="logo.png" alt="SELA" width="64" height="64" style="width:64px;height:64px;border-radius:12px;margin-bottom:16px;">
-            <h1>彰濱放腫體重監控預防系統</h1>
-            <p>請輸入密碼進入系統</p>
-            <form id="login-form" onsubmit="return handleLogin(event)">
-                <input type="password" id="login-password" class="login-input" placeholder="請輸入密碼" autofocus>
-                <button type="submit" class="btn btn-primary login-btn">進入系統</button>
-            </form>
-            <p class="login-error" id="login-error"></p>
-        </div>
-    </div>
+/**
+ * 彰濱放腫體重監控預防系統 - 工具函數
+ */
 
-    <div class="app" id="main-app" style="display: none;">
-        <!-- 頂部列 -->
-        <header class="header">
-            <div class="header-left">
-                <div class="logo">
-                    <img src="logo.png" alt="SELA" class="logo-img" width="28" height="28" style="width:28px;height:28px;max-width:28px;max-height:28px;">
-                    <span class="logo-text">彰濱放腫體重監控預防系統</span>
-                </div>
-            </div>
-            <div class="header-right">
-                <button class="btn-icon" id="btn-settings" title="設定">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="3"></circle>
-                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-                    </svg>
-                </button>
-            </div>
-        </header>
-
-        <!-- 主內容區 -->
-        <div class="main">
-            <!-- 左側選單 -->
-            <nav class="sidebar">
-                <ul class="nav-list">
-                    <li class="nav-item active" data-page="home">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                            <polyline points="9 22 9 12 15 12 15 22"></polyline>
-                        </svg>
-                        <span>儀表板</span>
-                    </li>
-                    <li class="nav-item" data-page="tracking">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                            <polyline points="14 2 14 8 20 8"></polyline>
-                            <line x1="16" y1="13" x2="8" y2="13"></line>
-                            <line x1="16" y1="17" x2="8" y2="17"></line>
-                            <polyline points="10 9 9 9 8 9"></polyline>
-                        </svg>
-                        <span>治療清單</span>
-                    </li>
-                    <li class="nav-item" data-page="reports">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="18" y1="20" x2="18" y2="10"></line>
-                            <line x1="12" y1="20" x2="12" y2="4"></line>
-                            <line x1="6" y1="20" x2="6" y2="14"></line>
-                        </svg>
-                        <span>報表</span>
-                    </li>
-                    <li class="nav-item" data-page="patients">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
-                            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
-                            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
-                        </svg>
-                        <span>資料庫</span>
-                    </li>
-                </ul>
-                <div class="nav-footer">
-                    <img src="logo.png" alt="SELA" class="nav-logo" width="48" height="48" style="width:48px;height:48px;max-width:48px;max-height:48px;">
-                    <span class="version">v4.2 Web</span>
-                </div>
-            </nav>
-
-            <!-- 內容區 -->
-            <main class="content">
-                <!-- 儀表板 -->
-                <section class="page active" id="page-home">
-                    <div class="page-header">
-                        <h1>儀表板</h1>
-                    </div>
-                    <div class="stats-grid stats-grid-2x2">
-                        <div class="stat-card" data-filter="active">
-                            <div class="stat-icon stat-icon-blue">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
-                                </svg>
-                            </div>
-                            <div class="stat-info">
-                                <span class="stat-value" id="stat-active">0</span>
-                                <span class="stat-label">治療中</span>
-                            </div>
-                        </div>
-                        <div class="stat-card" data-filter="paused">
-                            <div class="stat-icon stat-icon-gray">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="10"></circle>
-                                    <line x1="10" y1="15" x2="10" y2="9"></line>
-                                    <line x1="14" y1="15" x2="14" y2="9"></line>
-                                </svg>
-                            </div>
-                            <div class="stat-info">
-                                <span class="stat-value" id="stat-paused">0</span>
-                                <span class="stat-label">暫停中</span>
-                            </div>
-                        </div>
-                        <div class="stat-card" data-filter="pending">
-                            <div class="stat-icon stat-icon-amber">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="10"></circle>
-                                    <line x1="12" y1="8" x2="12" y2="12"></line>
-                                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                                </svg>
-                            </div>
-                            <div class="stat-info">
-                                <span class="stat-value" id="stat-pending">0</span>
-                                <span class="stat-label">需處理</span>
-                            </div>
-                        </div>
-                        <div class="stat-card" data-filter="overdue">
-                            <div class="stat-icon stat-icon-coral">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="10"></circle>
-                                    <polyline points="12 6 12 12 16 14"></polyline>
-                                </svg>
-                            </div>
-                            <div class="stat-info">
-                                <span class="stat-value" id="stat-overdue">0</span>
-                                <span class="stat-label">待輸體重</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- 備份提醒 -->
-                    <div id="backup-reminder" class="backup-reminder" style="display: none;">
-                        <div class="backup-reminder-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                <polyline points="7 10 12 15 17 10"></polyline>
-                                <line x1="12" y1="15" x2="12" y2="3"></line>
-                            </svg>
-                        </div>
-                        <div class="backup-reminder-text">
-                            <strong>資料備份提醒</strong>
-                            <span id="backup-reminder-msg">已超過一週未備份</span>
-                        </div>
-                        <button class="btn btn-warning btn-sm" onclick="App.doBackup()">
-                            立即備份
-                        </button>
-                    </div>
-                    
-                    <div class="quick-actions">
-                        <button class="btn btn-primary" id="btn-new-patient">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="12" y1="5" x2="12" y2="19"></line>
-                                <line x1="5" y1="12" x2="19" y2="12"></line>
-                            </svg>
-                            新增病人
-                        </button>
-                    </div>
-                </section>
-
-                <!-- 追蹤頁 -->
-                <section class="page" id="page-tracking">
-                    <div class="page-header">
-                        <h1>治療清單</h1>
-                        <div class="tab-group">
-                            <button class="tab active" data-tab="active">治療中</button>
-                            <button class="tab" data-tab="paused">暫停中</button>
-                        </div>
-                    </div>
-                    <div class="tracking-layout">
-                        <div class="tracking-list" id="tracking-list">
-                            <!-- 動態載入 -->
-                        </div>
-                        <div class="tracking-detail" id="tracking-detail">
-                            <div class="empty-state">
-                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                    <polyline points="14 2 14 8 20 8"></polyline>
-                                </svg>
-                                <p>點選左側病人查看詳情</p>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- 病人頁 -->
-                <section class="page" id="page-patients">
-                    <div class="page-header">
-                        <h1>資料庫</h1>
-                        <button class="btn btn-primary" id="btn-add-patient">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="12" y1="5" x2="12" y2="19"></line>
-                                <line x1="5" y1="12" x2="19" y2="12"></line>
-                            </svg>
-                            新增病人
-                        </button>
-                    </div>
-                    <!-- 篩選與搜尋區 -->
-                    <div class="filter-section" style="display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; align-items: flex-end;">
-                        <div class="form-group" style="margin: 0; min-width: 100px;">
-                            <label class="form-label">療程狀態</label>
-                            <select class="form-select" id="patient-filter-status" onchange="App.filterPatients()">
-                                <option value="all">全部</option>
-                                <option value="has_active">有治療中</option>
-                                <option value="has_paused">有暫停中</option>
-                                <option value="no_active">無進行療程</option>
-                            </select>
-                        </div>
-                        <div class="form-group" style="margin: 0; min-width: 100px;">
-                            <label class="form-label">癌別</label>
-                            <select class="form-select" id="patient-filter-cancer" onchange="App.filterPatients()">
-                                <option value="all">全部</option>
-                                <!-- 動態載入 -->
-                            </select>
-                        </div>
-                        <div class="search-box" style="flex: 1; min-width: 200px;">
-                            <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="11" cy="11" r="8"></circle>
-                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                            </svg>
-                            <input type="text" id="patient-search-input" placeholder="搜尋病歷號或姓名...">
-                            <button class="btn btn-primary" id="btn-patient-search">搜尋</button>
-                            <button class="btn btn-outline" id="btn-patient-search-clear" style="display: none;">清除</button>
-                        </div>
-                    </div>
-                    <div class="patient-list" id="patient-list">
-                        <!-- 動態載入 -->
-                    </div>
-                </section>
-
-                <!-- 報表頁 -->
-                <section class="page" id="page-reports">
-                    <div class="page-header">
-                        <h1>統計報表</h1>
-                        <div style="display: flex; gap: 8px;">
-                            <button class="btn btn-outline" id="btn-export-pdf">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                    <polyline points="14 2 14 8 20 8"></polyline>
-                                    <line x1="16" y1="13" x2="8" y2="13"></line>
-                                    <line x1="16" y1="17" x2="8" y2="17"></line>
-                                    <polyline points="10 9 9 9 8 9"></polyline>
-                                </svg>
-                                匯出 PDF
-                            </button>
-                            <button class="btn btn-outline" id="btn-export-excel">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                    <polyline points="7 10 12 15 17 10"></polyline>
-                                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                                </svg>
-                                匯出 Excel
-                            </button>
-                        </div>
-                    </div>
-                    <!-- 篩選區 -->
-                    <div class="report-filters" style="display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; align-items: flex-end;">
-                        <div class="form-group" style="margin: 0; min-width: 120px;">
-                            <label class="form-label">時間區間</label>
-                            <select class="form-select" id="report-period" onchange="Report.onFilterChange()">
-                                <option value="all">全部</option>
-                                <option value="week">本週</option>
-                                <option value="month" selected>本月</option>
-                                <option value="year">本年</option>
-                                <option value="specific_year">指定年份</option>
-                                <option value="custom">自訂日期</option>
-                            </select>
-                        </div>
-                        <div class="form-group" style="margin: 0; display: none;" id="report-year-group">
-                            <label class="form-label">年份</label>
-                            <select class="form-select" id="report-year" onchange="Report.onFilterChange()">
-                            </select>
-                        </div>
-                        <div class="form-group" style="margin: 0; display: none;" id="report-date-from-group">
-                            <label class="form-label">開始日期</label>
-                            <input type="date" class="form-input" id="report-date-from" onchange="Report.onFilterChange()">
-                        </div>
-                        <div class="form-group" style="margin: 0; display: none;" id="report-date-to-group">
-                            <label class="form-label">結束日期</label>
-                            <input type="date" class="form-input" id="report-date-to" onchange="Report.onFilterChange()">
-                        </div>
-                        <div class="form-group" style="margin: 0; min-width: 120px;">
-                            <label class="form-label">癌別</label>
-                            <select class="form-select" id="report-cancer-type" onchange="Report.onFilterChange()">
-                                <option value="all">全部</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="report-content" id="report-content">
-                        <!-- 動態載入 -->
-                    </div>
-                </section>
-            </main>
-        </div>
-
-        <!-- 底部列 -->
-        <footer class="footer">
-            <span id="footer-stats">載入中...</span>
-            <span class="footer-divider">·</span>
-            <span>彰濱秀傳紀念醫院</span>
-        </footer>
-    </div>
-
-    <!-- 對話框容器 -->
-    <div class="modal-overlay" id="modal-overlay">
-        <div class="modal" id="modal">
-            <div class="modal-header">
-                <h2 class="modal-title" id="modal-title">標題</h2>
-                <button class="btn-icon modal-close" id="modal-close">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
-                </button>
-            </div>
-            <div class="modal-body" id="modal-body">
-                <!-- 動態內容 -->
-            </div>
-            <div class="modal-footer" id="modal-footer">
-                <!-- 動態按鈕 -->
-            </div>
-        </div>
-    </div>
-
-    <!-- Toast 通知 -->
-    <div class="toast-container" id="toast-container"></div>
-
-    <!-- JS 模組 -->
-    <script src="js/config.js"></script>
-    <script src="js/db.js"></script>
-    <script src="js/utils.js"></script>
-    <script src="js/patient.js"></script>
-    <script src="js/treatment.js"></script>
-    <script src="js/weight.js"></script>
-    <script src="js/intervention.js"></script>
-    <script src="js/report.js"></script>
-    <script src="js/settings.js"></script>
-    <script src="js/app.js"></script>
+/**
+ * 日期格式化
+ */
+function formatDate(date, format = 'YYYY-MM-DD') {
+    if (!date) return '-';
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return '-';
     
-    <!-- 登入驗證 -->
-    <script>
-    function handleLogin(e) {
-        e.preventDefault();
-        const pwd = document.getElementById('login-password').value;
-        const errorEl = document.getElementById('login-error');
-        
-        if (pwd === CONFIG.PASSWORD) {
-            // 密碼正確，儲存登入狀態
-            if (CONFIG.REMEMBER_DAYS > 0) {
-                const expires = Date.now() + (CONFIG.REMEMBER_DAYS * 24 * 60 * 60 * 1000);
-                localStorage.setItem('login_expires', expires);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    
+    if (format === 'YYYY-MM-DD') {
+        return `${year}-${month}-${day}`;
+    } else if (format === 'MM/DD') {
+        return `${month}/${day}`;
+    } else if (format === 'YYYY/MM/DD') {
+        return `${year}/${month}/${day}`;
+    }
+    return `${year}-${month}-${day}`;
+}
+
+/**
+ * 取得今天日期
+ */
+function today() {
+    return formatDate(new Date());
+}
+
+/**
+ * 計算天數差
+ */
+function daysBetween(date1, date2 = new Date()) {
+    const d1 = new Date(date1);
+    const d2 = new Date(date2);
+    const diffTime = d2 - d1;
+    return Math.floor(diffTime / (1000 * 60 * 60 * 24));
+}
+
+/**
+ * 病歷號補 0 到 7 碼
+ */
+function padMedicalId(id) {
+    if (!id) return '';
+    return String(id).padStart(7, '0');
+}
+
+/**
+ * 計算年齡
+ */
+function calculateAge(birthDate) {
+    if (!birthDate) return null;
+    const birth = new Date(birthDate);
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+        age--;
+    }
+    return age;
+}
+
+/**
+ * 計算體重變化率
+ */
+function calculateWeightChangeRate(currentWeight, baselineWeight) {
+    if (!currentWeight || !baselineWeight || baselineWeight === 0) return null;
+    return ((currentWeight - baselineWeight) / baselineWeight) * 100;
+}
+
+/**
+ * 格式化變化率顯示
+ */
+function formatChangeRate(rate) {
+    if (rate === null || rate === undefined) return '-';
+    const sign = rate >= 0 ? '+' : '';
+    return `${sign}${rate.toFixed(1)}%`;
+}
+
+/**
+ * 取得變化率 CSS 類別
+ */
+function getRateClass(rate) {
+    if (rate === null || rate === undefined) return '';
+    if (rate <= -5) return 'rate-danger';
+    if (rate <= -3) return 'rate-warning';
+    return 'rate-success';
+}
+
+/**
+ * 性別顯示
+ */
+function formatGender(gender) {
+    const map = { M: '男', F: '女', O: '其他' };
+    return map[gender] || '-';
+}
+
+/**
+ * 療程狀態顯示
+ */
+function formatTreatmentStatus(status) {
+    const map = {
+        active: '治療中',
+        paused: '暫停中',
+        completed: '已結案',
+        terminated: '已終止'
+    };
+    return map[status] || status;
+}
+
+/**
+ * 療程狀態標籤樣式
+ */
+function getStatusTagClass(status) {
+    const map = {
+        active: 'tag-blue',
+        paused: 'tag-amber',
+        completed: 'tag-green',
+        terminated: 'tag-gray'
+    };
+    return map[status] || 'tag-gray';
+}
+
+/**
+ * 介入類型顯示
+ */
+function formatInterventionType(type) {
+    const map = {
+        sdm: 'SDM',
+        nutrition: '營養師轉介',
+        ng_tube: '鼻胃管',
+        gastrostomy: '胃造廔',
+        manual: '手動介入'
+    };
+    return map[type] || type;
+}
+
+/**
+ * 介入狀態顯示
+ */
+function formatInterventionStatus(status) {
+    const map = {
+        pending: '待處理',
+        executed: '已執行',
+        skipped: '不執行'
+    };
+    return map[status] || status;
+}
+
+/**
+ * 顯示 Toast 通知
+ */
+function showToast(message, type = 'info', duration = 3000) {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
+    container.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(100%)';
+        setTimeout(() => toast.remove(), 300);
+    }, duration);
+}
+
+/**
+ * 開啟對話框
+ */
+function openModal(title, bodyContent, footerButtons = []) {
+    const overlay = document.getElementById('modal-overlay');
+    const modalTitle = document.getElementById('modal-title');
+    const modalBody = document.getElementById('modal-body');
+    const modalFooter = document.getElementById('modal-footer');
+    
+    modalTitle.textContent = title;
+    
+    // 設定內容
+    if (typeof bodyContent === 'string') {
+        modalBody.innerHTML = bodyContent;
+    } else {
+        modalBody.innerHTML = '';
+        modalBody.appendChild(bodyContent);
+    }
+    
+    // 設定按鈕
+    modalFooter.innerHTML = '';
+    footerButtons.forEach(btn => {
+        const button = document.createElement('button');
+        button.className = `btn ${btn.class || 'btn-outline'}`;
+        button.textContent = btn.text;
+        button.onclick = () => {
+            if (btn.onClick) btn.onClick();
+            if (btn.closeOnClick !== false) closeModal();
+        };
+        modalFooter.appendChild(button);
+    });
+    
+    overlay.classList.add('active');
+}
+
+/**
+ * 關閉對話框
+ */
+function closeModal() {
+    const overlay = document.getElementById('modal-overlay');
+    overlay.classList.remove('active');
+}
+
+/**
+ * 確認對話框
+ */
+function confirmDialog(message, onConfirm, onCancel = null) {
+    openModal('確認', `<p>${message}</p>`, [
+        { text: '取消', class: 'btn-outline', onClick: onCancel },
+        { text: '確認', class: 'btn-primary', onClick: onConfirm }
+    ]);
+}
+
+/**
+ * 建立表單 HTML
+ */
+function createFormGroup(label, inputHtml, required = false) {
+    return `
+        <div class="form-group">
+            <label class="form-label">${label}${required ? ' *' : ''}</label>
+            ${inputHtml}
+        </div>
+    `;
+}
+
+/**
+ * 建立下拉選單 HTML
+ */
+function createSelect(id, options, selectedValue = '', placeholder = '請選擇') {
+    let html = `<select class="form-select" id="${id}">`;
+    html += `<option value="">${placeholder}</option>`;
+    options.forEach(opt => {
+        const value = typeof opt === 'object' ? opt.code || opt.value : opt;
+        const label = typeof opt === 'object' ? opt.label || opt.text : opt;
+        const selected = value === selectedValue ? 'selected' : '';
+        html += `<option value="${value}" ${selected}>${label}</option>`;
+    });
+    html += '</select>';
+    return html;
+}
+
+/**
+ * 取得表單資料
+ */
+function getFormData(formId) {
+    const form = document.getElementById(formId);
+    if (!form) return {};
+    
+    const data = {};
+    const inputs = form.querySelectorAll('input, select, textarea');
+    inputs.forEach(input => {
+        if (input.id) {
+            if (input.type === 'checkbox') {
+                data[input.id] = input.checked;
+            } else {
+                data[input.id] = input.value;
             }
-            showMainApp();
-        } else {
-            errorEl.textContent = '密碼錯誤，請重試';
-            document.getElementById('login-password').value = '';
-            document.getElementById('login-password').focus();
         }
-        return false;
-    }
-    
-    function showMainApp() {
-        document.getElementById('login-screen').style.display = 'none';
-        document.getElementById('main-app').style.display = 'flex';
-        App.init();
-    }
-    
-    function checkLogin() {
-        const expires = localStorage.getItem('login_expires');
-        if (expires && Date.now() < parseInt(expires)) {
-            showMainApp();
+    });
+    return data;
+}
+
+/**
+ * 驗證必填欄位
+ */
+function validateRequired(fields) {
+    for (const field of fields) {
+        const element = document.getElementById(field.id);
+        if (!element || !element.value.trim()) {
+            showToast(`請填寫${field.label}`, 'error');
+            element?.focus();
+            return false;
         }
     }
+    return true;
+}
+
+/**
+ * 下載 JSON 檔案
+ */
+function downloadJSON(data, filename) {
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+/**
+ * 讀取上傳的 JSON 檔案
+ */
+function readJSONFile(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+            try {
+                const data = JSON.parse(reader.result);
+                resolve(data);
+            } catch (e) {
+                reject(new Error('JSON 格式錯誤'));
+            }
+        };
+        reader.onerror = () => reject(reader.error);
+        reader.readAsText(file);
+    });
+}
+
+/**
+ * 防抖函數
+ */
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+/**
+ * 追蹤狀態計算
+ */
+function getTrackingStatus(lastMeasureDate) {
+    if (!lastMeasureDate) return { status: 'overdue', label: '未量測', class: 'red' };
     
-    // 頁面載入時檢查登入狀態
-    checkLogin();
-    </script>
-</body>
-</html>
+    const days = daysBetween(lastMeasureDate);
+    
+    if (days <= 5) {
+        return { status: 'normal', label: '正常', class: 'green' };
+    } else if (days <= 7) {
+        return { status: 'pending', label: '待量測', class: 'amber' };
+    } else {
+        return { status: 'overdue', label: '逾期', class: 'red' };
+    }
+}
+
+/**
+ * 檢查是否需要觸發警示
+ */
+function checkAlertTrigger(rate, cancerType, alertRules) {
+    const rule = alertRules.find(r => r.cancer_type === cancerType) || 
+                 alertRules.find(r => r.cancer_type === 'default') ||
+                 { sdm_threshold: -3, nutrition_threshold: -5 };
+    
+    if (rate <= rule.nutrition_threshold) {
+        return { type: 'nutrition', label: '營養師轉介' };
+    } else if (rate <= rule.sdm_threshold) {
+        return { type: 'sdm', label: 'SDM' };
+    }
+    return null;
+}
+
+/**
+ * 產生唯一 ID
+ */
+function generateId() {
+    return Date.now().toString(36) + Math.random().toString(36).substr(2);
+}
