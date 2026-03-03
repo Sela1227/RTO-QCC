@@ -15,6 +15,10 @@ const Patient = {
      * 依 ID 取得病人
      */
     async getById(id) {
+        // 檢查 id 是否有效
+        if (!id || (typeof id !== 'number' && typeof id !== 'string')) {
+            return null;
+        }
         return DB.get('patients', id);
     },
     

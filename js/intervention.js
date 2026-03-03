@@ -328,8 +328,14 @@ const Intervention = {
         // 擴充資料
         const enriched = [];
         for (const i of all) {
+            // 檢查 treatment_id 是否有效
+            if (!i.treatment_id || typeof i.treatment_id !== 'number') continue;
+            
             const treatment = await Treatment.getById(i.treatment_id);
             if (!treatment || treatment.status !== 'active') continue;
+            
+            // 檢查 patient_id 是否有效
+            if (!treatment.patient_id || typeof treatment.patient_id !== 'number') continue;
             
             const patient = await Patient.getById(treatment.patient_id);
             if (!patient) continue;

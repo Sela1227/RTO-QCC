@@ -699,11 +699,11 @@ const SettingsUI = {
         // 新增病人
         const patientIds = [];
         for (const p of demoPatients) {
-            const id = await DB.add('patients', {
+            const result = await DB.add('patients', {
                 ...p,
                 created_at: new Date().toISOString()
             });
-            patientIds.push(id);
+            patientIds.push(result.id);  // 取 id 而不是整個對象
         }
         
         // 療程資料（不同狀態、不同癌別）
@@ -742,8 +742,8 @@ const SettingsUI = {
                 data.pause_reason = t.pause_reason;
                 data.paused_at = new Date().toISOString();
             }
-            const id = await DB.add('treatments', data);
-            treatmentIds.push(id);
+            const result = await DB.add('treatments', data);
+            treatmentIds.push(result.id);  // 取 id 而不是整個對象
         }
         
         // 體重記錄（各種變化趨勢）

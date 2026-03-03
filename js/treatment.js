@@ -7,6 +7,11 @@ const Treatment = {
      * 依 ID 取得療程
      */
     async getById(id) {
+        // 檢查 id 是否有效
+        if (!id || (typeof id !== 'number' && typeof id !== 'string')) {
+            return null;
+        }
+        
         const treatment = await DB.get('treatments', id);
         if (treatment) {
             // 附加癌別標籤
