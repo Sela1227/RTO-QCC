@@ -142,6 +142,12 @@ const SettingsUI = {
                         <button class="btn btn-danger" onclick="SettingsUI.clearAllData()">
                             清除所有資料
                         </button>
+                        <button class="btn btn-outline" onclick="SettingsUI.resetToDemo()">
+                            還原測試資料
+                        </button>
+                        <p style="font-size: 12px; color: var(--text-hint); margin: 0;">
+                            清除所有資料並載入測試用的範例病人
+                        </p>
                     </div>
                 </div>
             </div>
@@ -652,6 +658,234 @@ const SettingsUI = {
         await DB.clear('interventions');
         
         showToast('所有資料已清除');
+        closeModal();
+        App.refresh();
+    },
+    
+    /**
+     * 還原測試資料
+     */
+    async resetToDemo() {
+        if (!confirm('這將清除所有現有資料，並載入測試用的範例病人。確定繼續？')) return;
+        
+        // 清除所有資料
+        await DB.clear('patients');
+        await DB.clear('treatments');
+        await DB.clear('weight_records');
+        await DB.clear('interventions');
+        
+        // 清除備份時間（讓備份提醒顯示）
+        await Settings.set('last_backup_date', null);
+        
+        const today = new Date();
+        const dayMs = 24 * 60 * 60 * 1000;
+        
+        // 測試病人資料（15人）
+        const demoPatients = [
+            { medical_id: '1234567', name: '王大明', gender: 'M', birth_date: '1965-03-15', phone: '0912-345-678' },
+            { medical_id: '2345678', name: '李小華', gender: 'F', birth_date: '1972-08-22', phone: '0923-456-789' },
+            { medical_id: '3456789', name: '張美玲', gender: 'F', birth_date: '1958-11-08', phone: '0934-567-890' },
+            { medical_id: '4567890', name: '陳志明', gender: 'M', birth_date: '1955-05-20', phone: '0945-678-901' },
+            { medical_id: '5678901', name: '林淑芬', gender: 'F', birth_date: '1968-12-03', phone: '0956-789-012' },
+            { medical_id: '6789012', name: '黃建國', gender: 'M', birth_date: '1960-07-18', phone: '0967-890-123' },
+            { medical_id: '7890123', name: '吳美惠', gender: 'F', birth_date: '1975-09-25', phone: '0978-901-234' },
+            { medical_id: '8901234', name: '周文杰', gender: 'M', birth_date: '1962-04-12', phone: '0989-012-345' },
+            { medical_id: '9012345', name: '鄭雅琳', gender: 'F', birth_date: '1970-01-30', phone: '0910-123-456' },
+            { medical_id: '0123456', name: '許志豪', gender: 'M', birth_date: '1958-06-14', phone: '0921-234-567' },
+            { medical_id: '1122334', name: '楊淑娟', gender: 'F', birth_date: '1966-10-08', phone: '0932-345-678' },
+            { medical_id: '2233445', name: '蔡明宏', gender: 'M', birth_date: '1963-02-28', phone: '0943-456-789' },
+            { medical_id: '3344556', name: '劉佳玲', gender: 'F', birth_date: '1978-11-15', phone: '0954-567-890' },
+            { medical_id: '4455667', name: '洪建華', gender: 'M', birth_date: '1952-08-05', phone: '0965-678-901' },
+            { medical_id: '5566778', name: '謝雅婷', gender: 'F', birth_date: '1973-04-22', phone: '0976-789-012' }
+        ];
+        
+        // 新增病人
+        const patientIds = [];
+        for (const p of demoPatients) {
+            const id = await DB.add('patients', {
+                ...p,
+                created_at: new Date().toISOString()
+            });
+            patientIds.push(id);
+        }
+        
+        // 療程資料（不同狀態、不同癌別）
+        const demoTreatments = [
+            // 治療中 - 有各種狀態
+            { patientIdx: 0, cancer_type: 'head_neck', daysAgo: 35, baseline: 68.5, status: 'active' },   // 王大明 - 頭頸癌，體重下降
+            { patientIdx: 1, cancer_type: 'breast', daysAgo: 20, baseline: 55.2, status: 'active' },      // 李小華 - 乳癌，穩定
+            { patientIdx: 2, cancer_type: 'lung', daysAgo: 50, baseline: 52.0, status: 'active' },        // 張美玲 - 肺癌，待輸體重
+            { patientIdx: 3, cancer_type: 'esophagus', daysAgo: 40, baseline: 62.0, status: 'active' },   // 陳志明 - 食道癌，嚴重下降
+            { patientIdx: 4, cancer_type: 'colorectal', daysAgo: 28, baseline: 58.5, status: 'active' },  // 林淑芬 - 大腸癌，微降
+            { patientIdx: 6, cancer_type: 'breast', daysAgo: 25, baseline: 60.0, status: 'active' },      // 吳美惠 - 乳癌，體重上升
+            { patientIdx: 7, cancer_type: 'lung', daysAgo: 45, baseline: 70.0, status: 'active' },        // 周文杰 - 肺癌，已介入
+            { patientIdx: 8, cancer_type: 'esophagus', daysAgo: 18, baseline: 48.5, status: 'active' },   // 鄭雅琳 - 食道癌，穩定
+            { patientIdx: 9, cancer_type: 'colorectal', daysAgo: 30, baseline: 75.0, status: 'active' },  // 許志豪 - 大腸癌，待輸體重
+            { patientIdx: 10, cancer_type: 'head_neck', daysAgo: 22, baseline: 50.0, status: 'active' },  // 楊淑娟 - 頭頸癌，中度下降
+            { patientIdx: 12, cancer_type: 'lung', daysAgo: 5, baseline: 56.0, status: 'active' },        // 劉佳玲 - 肺癌，剛開始
+            { patientIdx: 13, cancer_type: 'esophagus', daysAgo: 60, baseline: 65.0, status: 'active' },  // 洪建華 - 食道癌，極嚴重
+            { patientIdx: 14, cancer_type: 'colorectal', daysAgo: 15, baseline: 53.0, status: 'active' }, // 謝雅婷 - 大腸癌，穩定
+            // 暫停中
+            { patientIdx: 5, cancer_type: 'head_neck', daysAgo: 40, baseline: 72.0, status: 'paused', pause_reason: 'side_effect' },  // 黃建國
+            { patientIdx: 11, cancer_type: 'breast', daysAgo: 35, baseline: 67.0, status: 'paused', pause_reason: 'personal' }        // 蔡明宏
+        ];
+        
+        const treatmentIds = [];
+        for (const t of demoTreatments) {
+            const startDate = new Date(today - t.daysAgo * dayMs);
+            const data = {
+                patient_id: patientIds[t.patientIdx],
+                cancer_type: t.cancer_type,
+                treatment_start: formatDate(startDate),
+                baseline_weight: t.baseline,
+                status: t.status,
+                created_at: new Date().toISOString()
+            };
+            if (t.pause_reason) {
+                data.pause_reason = t.pause_reason;
+                data.paused_at = new Date().toISOString();
+            }
+            const id = await DB.add('treatments', data);
+            treatmentIds.push(id);
+        }
+        
+        // 體重記錄（各種變化趨勢）
+        const weightRecords = [
+            // 王大明 - 下降趨勢 (-4.8%)
+            { tIdx: 0, daysAgo: 33, weight: 68.5 },
+            { tIdx: 0, daysAgo: 26, weight: 67.8 },
+            { tIdx: 0, daysAgo: 19, weight: 66.5 },
+            { tIdx: 0, daysAgo: 12, weight: 65.8 },
+            { tIdx: 0, daysAgo: 5, weight: 65.2 },
+            
+            // 李小華 - 穩定
+            { tIdx: 1, daysAgo: 18, weight: 55.2 },
+            { tIdx: 1, daysAgo: 11, weight: 55.0 },
+            { tIdx: 1, daysAgo: 4, weight: 55.1 },
+            
+            // 張美玲 - 待輸體重（最後量測超過10天）
+            { tIdx: 2, daysAgo: 45, weight: 52.0 },
+            { tIdx: 2, daysAgo: 35, weight: 51.5 },
+            { tIdx: 2, daysAgo: 25, weight: 51.0 },
+            { tIdx: 2, daysAgo: 15, weight: 50.5 },
+            
+            // 陳志明 - 嚴重下降 (-8%)
+            { tIdx: 3, daysAgo: 38, weight: 62.0 },
+            { tIdx: 3, daysAgo: 31, weight: 60.5 },
+            { tIdx: 3, daysAgo: 24, weight: 59.0 },
+            { tIdx: 3, daysAgo: 17, weight: 58.0 },
+            { tIdx: 3, daysAgo: 10, weight: 57.5 },
+            { tIdx: 3, daysAgo: 3, weight: 57.0 },
+            
+            // 林淑芬 - 微降 (-2.5%)
+            { tIdx: 4, daysAgo: 26, weight: 58.5 },
+            { tIdx: 4, daysAgo: 19, weight: 58.0 },
+            { tIdx: 4, daysAgo: 12, weight: 57.5 },
+            { tIdx: 4, daysAgo: 5, weight: 57.0 },
+            
+            // 吳美惠 - 上升 (+2%)
+            { tIdx: 5, daysAgo: 23, weight: 60.0 },
+            { tIdx: 5, daysAgo: 16, weight: 60.5 },
+            { tIdx: 5, daysAgo: 9, weight: 61.0 },
+            { tIdx: 5, daysAgo: 2, weight: 61.2 },
+            
+            // 周文杰 - 下降後穩定 (-5.7%)
+            { tIdx: 6, daysAgo: 43, weight: 70.0 },
+            { tIdx: 6, daysAgo: 36, weight: 68.5 },
+            { tIdx: 6, daysAgo: 29, weight: 67.0 },
+            { tIdx: 6, daysAgo: 22, weight: 66.0 },
+            { tIdx: 6, daysAgo: 15, weight: 66.0 },
+            { tIdx: 6, daysAgo: 8, weight: 66.0 },
+            
+            // 鄭雅琳 - 穩定
+            { tIdx: 7, daysAgo: 16, weight: 48.5 },
+            { tIdx: 7, daysAgo: 9, weight: 48.3 },
+            { tIdx: 7, daysAgo: 2, weight: 48.4 },
+            
+            // 許志豪 - 待輸體重
+            { tIdx: 8, daysAgo: 28, weight: 75.0 },
+            { tIdx: 8, daysAgo: 18, weight: 74.5 },
+            
+            // 楊淑娟 - 中度下降 (-4%)
+            { tIdx: 9, daysAgo: 20, weight: 50.0 },
+            { tIdx: 9, daysAgo: 13, weight: 49.0 },
+            { tIdx: 9, daysAgo: 6, weight: 48.0 },
+            
+            // 劉佳玲 - 剛開始
+            { tIdx: 10, daysAgo: 3, weight: 56.0 },
+            
+            // 洪建華 - 極嚴重下降 (-12%)
+            { tIdx: 11, daysAgo: 55, weight: 65.0 },
+            { tIdx: 11, daysAgo: 45, weight: 63.0 },
+            { tIdx: 11, daysAgo: 35, weight: 61.0 },
+            { tIdx: 11, daysAgo: 25, weight: 59.0 },
+            { tIdx: 11, daysAgo: 15, weight: 57.5 },
+            { tIdx: 11, daysAgo: 5, weight: 57.0 },
+            
+            // 謝雅婷 - 穩定
+            { tIdx: 12, daysAgo: 13, weight: 53.0 },
+            { tIdx: 12, daysAgo: 6, weight: 52.8 },
+            
+            // 黃建國（暫停）
+            { tIdx: 13, daysAgo: 38, weight: 72.0 },
+            { tIdx: 13, daysAgo: 28, weight: 71.0 },
+            
+            // 蔡明宏（暫停）
+            { tIdx: 14, daysAgo: 33, weight: 67.0 },
+            { tIdx: 14, daysAgo: 23, weight: 66.5 }
+        ];
+        
+        for (const w of weightRecords) {
+            await DB.add('weight_records', {
+                treatment_id: treatmentIds[w.tIdx],
+                measure_date: formatDate(new Date(today - w.daysAgo * dayMs)),
+                weight: w.weight,
+                created_at: new Date().toISOString()
+            });
+        }
+        
+        // 介入記錄（各種狀態）
+        const interventions = [
+            // 王大明 - 待處理 SDM
+            { tIdx: 0, type: 'sdm', trigger_rate: -4.8, status: 'pending', daysAgo: 5 },
+            
+            // 陳志明 - 待處理營養師
+            { tIdx: 3, type: 'nutrition', trigger_rate: -8.1, status: 'pending', daysAgo: 3 },
+            
+            // 林淑芬 - 已執行 SDM
+            { tIdx: 4, type: 'sdm', trigger_rate: -3.5, status: 'executed', daysAgo: 10, executor: '護理師A' },
+            
+            // 周文杰 - 已執行營養師
+            { tIdx: 6, type: 'nutrition', trigger_rate: -5.7, status: 'executed', daysAgo: 20, executor: '護理師B' },
+            { tIdx: 6, type: 'sdm', trigger_rate: -4.3, status: 'executed', daysAgo: 25, executor: '護理師B' },
+            
+            // 楊淑娟 - 待處理 SDM
+            { tIdx: 9, type: 'sdm', trigger_rate: -4.0, status: 'pending', daysAgo: 6 },
+            
+            // 洪建華 - 多次介入
+            { tIdx: 11, type: 'sdm', trigger_rate: -3.1, status: 'executed', daysAgo: 40, executor: '護理師A' },
+            { tIdx: 11, type: 'nutrition', trigger_rate: -6.2, status: 'executed', daysAgo: 30, executor: '護理師A' },
+            { tIdx: 11, type: 'ng_tube', trigger_rate: -9.2, status: 'executed', daysAgo: 20, executor: '醫師' },
+            { tIdx: 11, type: 'nutrition', trigger_rate: -12.3, status: 'pending', daysAgo: 5 }
+        ];
+        
+        for (const i of interventions) {
+            const data = {
+                treatment_id: treatmentIds[i.tIdx],
+                type: i.type,
+                trigger_rate: i.trigger_rate,
+                status: i.status,
+                created_at: new Date(today - i.daysAgo * dayMs).toISOString()
+            };
+            if (i.status === 'executed') {
+                data.executor = i.executor;
+                data.executed_at = new Date(today - (i.daysAgo - 1) * dayMs).toISOString();
+                data.execute_date = formatDate(new Date(today - (i.daysAgo - 1) * dayMs));
+            }
+            await DB.add('interventions', data);
+        }
+        
+        showToast('測試資料已載入（15 位病人）');
         closeModal();
         App.refresh();
     },

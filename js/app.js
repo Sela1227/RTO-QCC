@@ -1,6 +1,6 @@
 /**
  * 彰濱放腫體重監控預防系統 - 主程式
- * v4.4 Web 版
+ * v4.5 Web 版
  */
 
 const App = {
@@ -353,6 +353,26 @@ const App = {
     },
     
     /**
+     * 點擊同步按鈕（開啟檔案選擇）
+     */
+    syncFromFile() {
+        document.getElementById('home-sync-file').click();
+    },
+    
+    /**
+     * 執行同步
+     */
+    async doSyncFromFile(file) {
+        if (!file) return;
+        
+        // 呼叫 SettingsUI.syncData 的邏輯
+        await SettingsUI.syncData(file);
+        
+        // 清除 input
+        document.getElementById('home-sync-file').value = '';
+    },
+    
+    /**
      * 更新底部列
      */
     async updateFooter() {
@@ -407,13 +427,27 @@ const App = {
         
         // 取得療程列表
         let treatments = [];
+        let tabTitle = '';
+        
         if (this.currentTrackingTab === 'active') {
             treatments = await Treatment.getActive();
-        } else {
+            tabTitle = '治療中';
+        } else if (this.currentTrackingTab === 'paused') {
             treatments = await Treatment.getPaused();
+            tabTitle = '暫停中';
+        } else if (this.currentTrackingTab === 'pending') {
+            // 需處理：從治療中篩選有待處理介入的
+            treatments = await Treatment.getActive();
+            treatments = treatments.filter(t => t.pending_interventions?.length > 0);
+            tabTitle = '需處理';
+        } else if (this.currentTrackingTab === 'overdue') {
+            // 待輸體重：從治療中篩選超過追蹤週期的
+            treatments = await Treatment.getActive();
+            treatments = treatments.filter(t => t.tracking_status?.status === 'overdue');
+            tabTitle = '待輸體重';
         }
         
-        // 根據篩選條件過濾
+        // 如果是從儀表板來的篩選（相容舊邏輯）
         if (this.trackingFilter === 'pending') {
             treatments = treatments.filter(t => t.pending_interventions?.length > 0);
         } else if (this.trackingFilter === 'overdue') {
@@ -424,7 +458,7 @@ const App = {
         const currentFilter = this.trackingFilter;
         this.trackingFilter = null;
         
-        // 顯示篩選提示
+        // 顯示篩選提示（從儀表板來的）
         let filterNotice = '';
         if (currentFilter === 'pending') {
             filterNotice = `<div style="padding: 8px 12px; background: rgba(228, 185, 90, 0.1); border-radius: 8px; margin-bottom: 12px; font-size: 13px; color: var(--warning);">
@@ -437,6 +471,8 @@ const App = {
         }
         
         if (treatments.length === 0) {
+            let emptyMsg = `目前沒有${tabTitle}的病人`;
+            
             listContainer.innerHTML = `
                 ${filterNotice}
                 <div class="empty-state" style="width: 100%;">
@@ -446,7 +482,7 @@ const App = {
                         <line x1="9" y1="9" x2="9.01" y2="9"></line>
                         <line x1="15" y1="9" x2="15.01" y2="9"></line>
                     </svg>
-                    <p>目前沒有${this.currentTrackingTab === 'active' ? '治療中' : '暫停中'}的病人</p>
+                    <p>${emptyMsg}</p>
                 </div>
             `;
             detailContainer.innerHTML = `

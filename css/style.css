@@ -466,6 +466,19 @@ body {
     font-size: var(--font-size-xs);
 }
 
+/* === 同步區塊 === */
+.sync-section {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    margin-bottom: var(--space-lg);
+}
+
+.sync-hint {
+    color: var(--text-hint);
+    font-size: var(--font-size-xs);
+}
+
 /* === 快速操作 === */
 .quick-actions {
     display: flex;
@@ -571,6 +584,24 @@ body {
     background: var(--bg-card);
     color: var(--text);
     box-shadow: var(--shadow-sm);
+}
+
+.tab.tab-warning {
+    color: var(--warning);
+}
+
+.tab.tab-warning.active {
+    background: rgba(228, 185, 90, 0.15);
+    color: var(--warning);
+}
+
+.tab.tab-danger {
+    color: var(--danger);
+}
+
+.tab.tab-danger.active {
+    background: rgba(217, 123, 123, 0.15);
+    color: var(--danger);
 }
 
 /* === 追蹤頁面佈局 === */
