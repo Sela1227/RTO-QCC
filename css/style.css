@@ -310,6 +310,12 @@ body {
     color: var(--text);
 }
 
+.header-actions {
+    display: flex;
+    gap: var(--space-sm);
+    align-items: center;
+}
+
 /* === 統計卡片 === */
 .stats-grid {
     display: grid;
@@ -658,6 +664,10 @@ body {
     background: rgba(217, 123, 123, 0.08);
 }
 
+.patient-card.alert-overdue {
+    background: rgba(147, 112, 219, 0.08);
+}
+
 .patient-card-header {
     display: flex;
     align-items: center;
@@ -981,6 +991,11 @@ body {
 .tag-gray {
     background: var(--bg);
     color: var(--text-secondary);
+}
+
+.tag-purple {
+    background: rgba(147, 112, 219, 0.12);
+    color: #7B5BB5;
 }
 
 /* === 詳情面板（緊湊版）=== */

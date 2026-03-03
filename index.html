@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>彰濱放腫體重監控預防系統</title>
-    <link rel="stylesheet" href="css/style.css?v=4.5.2">
+    <link rel="stylesheet" href="css/style.css?v=4.5.3">
     <!-- 外部套件 -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -86,7 +86,7 @@
                 </ul>
                 <div class="nav-footer">
                     <img src="logo.png" alt="SELA" class="nav-logo" width="48" height="48" style="width:48px;height:48px;max-width:48px;max-height:48px;">
-                    <span class="version">v4.5.2 Web</span>
+                    <span class="version">v4.5.3 Web</span>
                 </div>
             </nav>
 
@@ -96,6 +96,25 @@
                 <section class="page active" id="page-home">
                     <div class="page-header">
                         <h1>儀表板</h1>
+                        <div class="header-actions">
+                            <button class="btn btn-outline btn-sm" onclick="App.syncFromFile()">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="23 4 23 10 17 10"></polyline>
+                                    <polyline points="1 20 1 14 7 14"></polyline>
+                                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                                </svg>
+                                同步
+                            </button>
+                            <input type="file" id="home-sync-file" accept=".json" style="display: none;" 
+                                   onchange="App.doSyncFromFile(this.files[0])">
+                            <button class="btn btn-primary btn-sm" id="btn-new-patient">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                                新增病人
+                            </button>
+                        </div>
                     </div>
                     <div class="stats-grid stats-grid-2x2">
                         <div class="stat-card" data-filter="active">
@@ -164,31 +183,6 @@
                         </div>
                         <button class="btn btn-warning btn-sm" onclick="App.doBackup()">
                             立即備份
-                        </button>
-                    </div>
-                    
-                    <!-- 同步區塊 -->
-                    <div class="sync-section">
-                        <button class="btn btn-outline" id="btn-sync" onclick="App.syncFromFile()">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="23 4 23 10 17 10"></polyline>
-                                <polyline points="1 20 1 14 7 14"></polyline>
-                                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-                            </svg>
-                            同步資料
-                        </button>
-                        <input type="file" id="home-sync-file" accept=".json" style="display: none;" 
-                               onchange="App.doSyncFromFile(this.files[0])">
-                        <span class="sync-hint">從網芳匯入新資料（只新增不覆蓋）</span>
-                    </div>
-                    
-                    <div class="quick-actions">
-                        <button class="btn btn-primary" id="btn-new-patient">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="12" y1="5" x2="12" y2="19"></line>
-                                <line x1="5" y1="12" x2="19" y2="12"></line>
-                            </svg>
-                            新增病人
                         </button>
                     </div>
                 </section>
@@ -363,16 +357,16 @@
     <div class="toast-container" id="toast-container"></div>
 
     <!-- JS 模組 -->
-    <script src="js/config.js?v=4.5.2"></script>
-    <script src="js/db.js?v=4.5.2"></script>
-    <script src="js/utils.js?v=4.5.2"></script>
-    <script src="js/patient.js?v=4.5.2"></script>
-    <script src="js/treatment.js?v=4.5.2"></script>
-    <script src="js/weight.js?v=4.5.2"></script>
-    <script src="js/intervention.js?v=4.5.2"></script>
-    <script src="js/report.js?v=4.5.2"></script>
-    <script src="js/settings.js?v=4.5.2"></script>
-    <script src="js/app.js?v=4.5.2"></script>
+    <script src="js/config.js?v=4.5.3"></script>
+    <script src="js/db.js?v=4.5.3"></script>
+    <script src="js/utils.js?v=4.5.3"></script>
+    <script src="js/patient.js?v=4.5.3"></script>
+    <script src="js/treatment.js?v=4.5.3"></script>
+    <script src="js/weight.js?v=4.5.3"></script>
+    <script src="js/intervention.js?v=4.5.3"></script>
+    <script src="js/report.js?v=4.5.3"></script>
+    <script src="js/settings.js?v=4.5.3"></script>
+    <script src="js/app.js?v=4.5.3"></script>
     
     <!-- 登入驗證 -->
     <script>

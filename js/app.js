@@ -1,6 +1,6 @@
 /**
  * 彰濱放腫體重監控預防系統 - 主程式
- * v4.5.2 Web 版
+ * v4.5.3 Web 版
  */
 
 const App = {
@@ -501,20 +501,30 @@ const App = {
             const hasPending = t.pending_interventions?.length > 0;
             const isOverdue = t.tracking_status?.status === 'overdue';
             
+            // 檢查介入類型
+            const hasNutrition = t.pending_interventions?.some(i => i.type === 'nutrition');
+            const hasSdm = t.pending_interventions?.some(i => i.type === 'sdm');
+            
             let cardClass = 'patient-card';
             if (isSelected) cardClass += ' active';
-            if (hasPending) cardClass += ' alert-warning';
-            if (isOverdue) cardClass += ' alert-danger';
+            if (hasNutrition) {
+                cardClass += ' alert-danger';  // 營養師用紅色
+            } else if (hasSdm) {
+                cardClass += ' alert-warning'; // SDM 用橘色
+            }
+            if (isOverdue) cardClass += ' alert-overdue';
             
             // 生成標籤
             let tagsHtml = '';
             if (hasPending || isOverdue) {
                 tagsHtml = '<div class="patient-card-tags">';
-                if (hasPending) {
-                    tagsHtml += '<span class="tag tag-amber" style="font-size: 10px; padding: 1px 5px;">需處理</span>';
+                if (hasNutrition) {
+                    tagsHtml += '<span class="tag tag-red" style="font-size: 10px; padding: 1px 5px;">需營養師</span>';
+                } else if (hasSdm) {
+                    tagsHtml += '<span class="tag tag-amber" style="font-size: 10px; padding: 1px 5px;">需SDM</span>';
                 }
                 if (isOverdue) {
-                    tagsHtml += '<span class="tag tag-red" style="font-size: 10px; padding: 1px 5px;">待量體重</span>';
+                    tagsHtml += '<span class="tag tag-purple" style="font-size: 10px; padding: 1px 5px;">待量體重</span>';
                 }
                 tagsHtml += '</div>';
             }
