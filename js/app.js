@@ -23,8 +23,8 @@ const App = {
             // 綁定事件
             this.bindEvents();
             
-            // 檢查備份狀態
-            await this.checkBackupStatus();
+            // 檢查備份狀態（暫時關閉強制備份）
+            // await this.checkBackupStatus();
             
             // 載入首頁
             await this.refresh();

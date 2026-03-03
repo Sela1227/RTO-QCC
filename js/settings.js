@@ -674,9 +674,6 @@ const SettingsUI = {
         await DB.clear('weight_records');
         await DB.clear('interventions');
         
-        // 清除備份時間（讓備份提醒顯示）
-        await Settings.set('last_backup_date', null);
-        
         const today = new Date();
         const dayMs = 24 * 60 * 60 * 1000;
         
