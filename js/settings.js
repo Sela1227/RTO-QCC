@@ -130,6 +130,15 @@ const SettingsUI = {
                         <input type="file" id="import-file" accept=".json" style="display: none;" 
                                onchange="SettingsUI.importData(this.files[0])">
                         <hr style="border: none; border-top: 1px solid var(--border); margin: 8px 0;">
+                        <button class="btn btn-primary" onclick="document.getElementById('sync-file').click()">
+                            📥 同步資料（只新增不覆蓋）
+                        </button>
+                        <input type="file" id="sync-file" accept=".json" style="display: none;" 
+                               onchange="SettingsUI.syncData(this.files[0])">
+                        <p style="font-size: 12px; color: var(--text-hint); margin: 0;">
+                            從網芳選擇備份檔，新增本地沒有的資料
+                        </p>
+                        <hr style="border: none; border-top: 1px solid var(--border); margin: 8px 0;">
                         <button class="btn btn-danger" onclick="SettingsUI.clearAllData()">
                             清除所有資料
                         </button>
@@ -425,6 +434,212 @@ const SettingsUI = {
         } catch (e) {
             showToast('匯入失敗: ' + e.message, 'error');
         }
+    },
+    
+    /**
+     * 同步資料（只新增不覆蓋）
+     */
+    async syncData(file) {
+        if (!file) return;
+        
+        try {
+            const importData = await readJSONFile(file);
+            
+            // 取得本地資料
+            const localPatients = await DB.getAll('patients');
+            const localTreatments = await DB.getAll('treatments');
+            const localWeights = await DB.getAll('weight_records');
+            const localInterventions = await DB.getAll('interventions');
+            
+            // 建立本地索引（用業務鍵）
+            const localPatientIndex = new Set(localPatients.map(p => p.medical_id));
+            
+            // 療程索引：病歷號 + 開始日期 + 癌別
+            const localTreatmentIndex = new Map();
+            for (const t of localTreatments) {
+                const patient = localPatients.find(p => p.id === t.patient_id);
+                if (patient) {
+                    const key = `${patient.medical_id}_${t.treatment_start}_${t.cancer_type}`;
+                    localTreatmentIndex.set(key, t);
+                }
+            }
+            
+            // 體重索引：病歷號 + 療程開始日期 + 測量日期
+            const localWeightIndex = new Set();
+            for (const w of localWeights) {
+                const treatment = localTreatments.find(t => t.id === w.treatment_id);
+                if (treatment) {
+                    const patient = localPatients.find(p => p.id === treatment.patient_id);
+                    if (patient) {
+                        const key = `${patient.medical_id}_${treatment.treatment_start}_${w.measure_date}`;
+                        localWeightIndex.add(key);
+                    }
+                }
+            }
+            
+            // 介入索引：病歷號 + 療程開始日期 + 類型 + 建立日期
+            const localInterventionIndex = new Set();
+            for (const i of localInterventions) {
+                const treatment = localTreatments.find(t => t.id === i.treatment_id);
+                if (treatment) {
+                    const patient = localPatients.find(p => p.id === treatment.patient_id);
+                    if (patient) {
+                        const createdDate = i.created_at ? i.created_at.split('T')[0] : '';
+                        const key = `${patient.medical_id}_${treatment.treatment_start}_${i.type}_${createdDate}`;
+                        localInterventionIndex.add(key);
+                    }
+                }
+            }
+            
+            // 統計
+            const stats = {
+                patient: { added: 0, skipped: 0 },
+                treatment: { added: 0, skipped: 0 },
+                weight: { added: 0, skipped: 0 },
+                intervention: { added: 0, skipped: 0 }
+            };
+            
+            // 匯入資料的病人索引（用於對應 ID）
+            const importPatients = importData.patients || [];
+            const importTreatments = importData.treatments || [];
+            const importWeights = importData.weight_records || [];
+            const importInterventions = importData.interventions || [];
+            
+            // ID 對應表（匯入ID → 本地ID）
+            const patientIdMap = new Map();
+            const treatmentIdMap = new Map();
+            
+            // 1. 同步病人
+            for (const p of importPatients) {
+                if (localPatientIndex.has(p.medical_id)) {
+                    // 已存在，記錄 ID 對應
+                    const localPatient = localPatients.find(lp => lp.medical_id === p.medical_id);
+                    patientIdMap.set(p.id, localPatient.id);
+                    stats.patient.skipped++;
+                } else {
+                    // 新增
+                    const newPatient = { ...p };
+                    delete newPatient.id;
+                    const newId = await DB.add('patients', newPatient);
+                    patientIdMap.set(p.id, newId);
+                    localPatientIndex.add(p.medical_id);
+                    stats.patient.added++;
+                }
+            }
+            
+            // 2. 同步療程
+            for (const t of importTreatments) {
+                const importPatient = importPatients.find(p => p.id === t.patient_id);
+                if (!importPatient) continue;
+                
+                const key = `${importPatient.medical_id}_${t.treatment_start}_${t.cancer_type}`;
+                
+                if (localTreatmentIndex.has(key)) {
+                    // 已存在
+                    const localTreatment = localTreatmentIndex.get(key);
+                    treatmentIdMap.set(t.id, localTreatment.id);
+                    stats.treatment.skipped++;
+                } else {
+                    // 新增
+                    const newTreatment = { ...t };
+                    delete newTreatment.id;
+                    newTreatment.patient_id = patientIdMap.get(t.patient_id);
+                    const newId = await DB.add('treatments', newTreatment);
+                    treatmentIdMap.set(t.id, newId);
+                    localTreatmentIndex.set(key, { id: newId, ...newTreatment });
+                    stats.treatment.added++;
+                }
+            }
+            
+            // 3. 同步體重記錄
+            for (const w of importWeights) {
+                const importTreatment = importTreatments.find(t => t.id === w.treatment_id);
+                if (!importTreatment) continue;
+                
+                const importPatient = importPatients.find(p => p.id === importTreatment.patient_id);
+                if (!importPatient) continue;
+                
+                const key = `${importPatient.medical_id}_${importTreatment.treatment_start}_${w.measure_date}`;
+                
+                if (localWeightIndex.has(key)) {
+                    stats.weight.skipped++;
+                } else {
+                    const newWeight = { ...w };
+                    delete newWeight.id;
+                    newWeight.treatment_id = treatmentIdMap.get(w.treatment_id);
+                    if (newWeight.treatment_id) {
+                        await DB.add('weight_records', newWeight);
+                        localWeightIndex.add(key);
+                        stats.weight.added++;
+                    }
+                }
+            }
+            
+            // 4. 同步介入記錄
+            for (const i of importInterventions) {
+                const importTreatment = importTreatments.find(t => t.id === i.treatment_id);
+                if (!importTreatment) continue;
+                
+                const importPatient = importPatients.find(p => p.id === importTreatment.patient_id);
+                if (!importPatient) continue;
+                
+                const createdDate = i.created_at ? i.created_at.split('T')[0] : '';
+                const key = `${importPatient.medical_id}_${importTreatment.treatment_start}_${i.type}_${createdDate}`;
+                
+                if (localInterventionIndex.has(key)) {
+                    stats.intervention.skipped++;
+                } else {
+                    const newIntervention = { ...i };
+                    delete newIntervention.id;
+                    newIntervention.treatment_id = treatmentIdMap.get(i.treatment_id);
+                    if (newIntervention.treatment_id) {
+                        await DB.add('interventions', newIntervention);
+                        localInterventionIndex.add(key);
+                        stats.intervention.added++;
+                    }
+                }
+            }
+            
+            // 顯示結果
+            const resultHtml = `
+                <div style="text-align: center; padding: 16px 0;">
+                    <div style="font-size: 36px; margin-bottom: 12px;">✅</div>
+                    <h3 style="margin-bottom: 16px;">同步完成</h3>
+                    <div style="background: var(--bg); padding: 16px; border-radius: 8px; text-align: left;">
+                        <div class="detail-row">
+                            <span>病人</span>
+                            <span>新增 <strong>${stats.patient.added}</strong> / 跳過 ${stats.patient.skipped}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span>療程</span>
+                            <span>新增 <strong>${stats.treatment.added}</strong> / 跳過 ${stats.treatment.skipped}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span>體重</span>
+                            <span>新增 <strong>${stats.weight.added}</strong> / 跳過 ${stats.weight.skipped}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span>介入</span>
+                            <span>新增 <strong>${stats.intervention.added}</strong> / 跳過 ${stats.intervention.skipped}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            closeModal();
+            openModal('同步結果', resultHtml, [
+                { text: '確定', class: 'btn-primary' }
+            ]);
+            
+            App.refresh();
+            
+        } catch (e) {
+            console.error('同步失敗:', e);
+            showToast('同步失敗: ' + e.message, 'error');
+        }
+        
+        // 清除 input
+        document.getElementById('sync-file').value = '';
     },
     
     async clearAllData() {
