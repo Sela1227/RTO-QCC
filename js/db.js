@@ -141,8 +141,10 @@ const DB = {
      * 取得單筆記錄
      */
     async get(storeName, id) {
-        // 檢查 id 是否有效
-        if (id === undefined || id === null) {
+        // 檢查 id 是否有效（必須是數字或字串）
+        if (id === undefined || id === null || id === '' || 
+            (typeof id === 'number' && isNaN(id))) {
+            console.warn('DB.get: invalid id', id);
             return null;
         }
         return new Promise((resolve, reject) => {
@@ -354,8 +356,8 @@ async function initDefaultSettings() {
     await Settings.set('initialized', true);
     console.log('預設設定已初始化');
     
-    // 初始化測試資料
-    await initDemoData();
+    // 不自動初始化測試資料，由用戶手動選擇
+    // await initDemoData();
 }
 
 /**

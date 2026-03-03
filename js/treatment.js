@@ -91,8 +91,11 @@ const Treatment = {
         
         const enriched = [];
         for (const t of treatments) {
-            // 檢查 patient_id 是否有效
-            if (!t.patient_id) continue;
+            // 檢查 patient_id 是否有效（必須是正整數）
+            if (!t.patient_id || typeof t.patient_id !== 'number' || t.patient_id <= 0) {
+                console.warn('Invalid patient_id:', t.patient_id, 'for treatment:', t.id);
+                continue;
+            }
             
             // 病人資料
             const patient = await Patient.getById(t.patient_id);
