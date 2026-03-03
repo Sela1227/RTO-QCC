@@ -141,6 +141,10 @@ const DB = {
      * 取得單筆記錄
      */
     async get(storeName, id) {
+        // 檢查 id 是否有效
+        if (id === undefined || id === null) {
+            return null;
+        }
         return new Promise((resolve, reject) => {
             const transaction = db.transaction([storeName], 'readonly');
             const store = transaction.objectStore(storeName);

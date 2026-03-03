@@ -91,6 +91,9 @@ const Treatment = {
         
         const enriched = [];
         for (const t of treatments) {
+            // 檢查 patient_id 是否有效
+            if (!t.patient_id) continue;
+            
             // 病人資料
             const patient = await Patient.getById(t.patient_id);
             if (!patient) continue;
