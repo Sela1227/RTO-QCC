@@ -456,26 +456,15 @@ const PatientApp = {
         
         const payload = `S|${this.data.patient_id}|${this.data.treatment_start}|${limitedRecords.join(',')}`;
         
-        // 生成 QR Code
+        // 使用 QR Server API 生成 QR Code
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(payload)}`;
+        
+        // 顯示 QR Code
         this.showScreen('qr-display-screen');
         document.getElementById('qr-info').textContent = `共 ${limitedRecords.length} 筆體重記錄`;
         
         const container = document.getElementById('qr-canvas-container');
-        container.innerHTML = '';
-        
-        try {
-            new QRCode(container, {
-                text: payload,
-                width: 256,
-                height: 256,
-                colorDark: '#000000',
-                colorLight: '#ffffff',
-                correctLevel: QRCode.CorrectLevel.M
-            });
-        } catch (err) {
-            console.error('QR Code 生成失敗', err);
-            this.showToast('QR Code 生成失敗', 'error');
-        }
+        container.innerHTML = `<img src="${qrUrl}" alt="QR Code" style="display: block;">`;
     },
     
     /**

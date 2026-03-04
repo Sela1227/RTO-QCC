@@ -1,6 +1,6 @@
 /**
  * 彰濱放腫體重監控預防系統 - 主程式
- * v4.6.3 Web 版
+ * v4.6.4 Web 版
  */
 
 const App = {
@@ -1084,12 +1084,16 @@ const App = {
         // 格式：I|病歷號|姓名|開始日期|基準體重
         const payload = `I|${patient.medical_id}|${patient.name}|${treatment.treatment_start}|${treatment.baseline_weight || 0}`;
         
+        // 使用 QR Server API 生成 QR Code
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(payload)}`;
+        
         const html = `
             <div style="text-align: center;">
                 <div style="background: var(--bg); padding: 12px; border-radius: 8px; margin-bottom: 16px;">
                     <strong>${patient.medical_id}</strong> ${patient.name}
                 </div>
                 <div id="patient-qr-container" style="background: white; padding: 16px; border-radius: 8px; display: inline-block;">
+                    <img src="${qrUrl}" alt="QR Code" style="display: block; width: 200px; height: 200px;">
                 </div>
                 <p style="color: var(--text-secondary); font-size: 13px; margin-top: 12px;">
                     請病人用手機掃描此 QR Code
@@ -1104,46 +1108,16 @@ const App = {
             { 
                 text: '列印', 
                 class: 'btn-outline',
-                onClick: () => this.printPatientQRCode(patient, payload)
+                onClick: () => this.printPatientQRCode(patient, qrUrl)
             },
             { text: '關閉', class: 'btn-primary' }
         ]);
-        
-        // 生成 QR Code（使用 qrcodejs 庫）
-        setTimeout(() => {
-            const container = document.getElementById('patient-qr-container');
-            if (container && typeof QRCode !== 'undefined') {
-                try {
-                    container.innerHTML = '';
-                    new QRCode(container, {
-                        text: payload,
-                        width: 200,
-                        height: 200,
-                        colorDark: '#000000',
-                        colorLight: '#ffffff',
-                        correctLevel: QRCode.CorrectLevel.L
-                    });
-                } catch (err) {
-                    console.error('QR Code 生成失敗', err);
-                    container.innerHTML = '<div style="color: red;">QR Code 生成失敗</div>';
-                }
-            }
-        }, 100);
     },
     
     /**
      * 列印病人 QR Code
      */
-    printPatientQRCode(patient, payload) {
-        // 從已生成的 QR Code 取得圖片
-        const container = document.getElementById('patient-qr-container');
-        const img = container?.querySelector('img');
-        
-        if (!img || !img.src) {
-            showToast('請等待 QR Code 生成完成', 'error');
-            return;
-        }
-        
+    printPatientQRCode(patient, qrUrl) {
         const printWindow = window.open('', '_blank');
         printWindow.document.write(`
             <!DOCTYPE html>
@@ -1180,7 +1154,7 @@ const App = {
                     <strong>${patient.medical_id}</strong> ${patient.name}
                 </div>
                 <div class="qr-code">
-                    <img src="${img.src}" alt="QR Code">
+                    <img src="${qrUrl}" alt="QR Code">
                 </div>
                 <div class="instructions">
                     <strong>使用說明</strong><br><br>
