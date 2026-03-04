@@ -1,6 +1,6 @@
 /**
  * 彰濱放腫體重監控預防系統 - 主程式
- * v4.5.3 Web 版
+ * v4.6 Web 版
  */
 
 const App = {
@@ -673,6 +673,12 @@ const App = {
                 <button class="btn btn-primary btn-sm" onclick="Weight.showForm(${treatment.id})">
                     記錄體重
                 </button>
+                <button class="btn btn-outline btn-sm" onclick="App.showPatientQRCode(${treatment.id})" title="生成病人填報 QR Code">
+                    📱 QR
+                </button>
+                <button class="btn btn-outline btn-sm" onclick="App.showImportPatientWeight(${treatment.id})" title="匯入病人填報">
+                    📥 匯入
+                </button>
                 <button class="btn btn-outline btn-sm" onclick="Intervention.showList(${treatment.id})">
                     介入記錄
                 </button>
@@ -1065,6 +1071,359 @@ const App = {
                 }
             }
         });
+    },
+    
+    /**
+     * 顯示病人填報 QR Code
+     */
+    async showPatientQRCode(treatmentId) {
+        const treatment = await Treatment.getById(treatmentId);
+        const patient = await Patient.getById(treatment.patient_id);
+        
+        // 準備 QR Code 資料
+        const payload = {
+            v: 1,
+            t: 'init',
+            pid: patient.medical_id,
+            name: patient.name,
+            ts: treatment.treatment_start,
+            bw: treatment.baseline_weight,
+            ct: treatment.cancer_type,
+            sdm: -3,
+            nut: -5
+        };
+        
+        const html = `
+            <div style="text-align: center;">
+                <div style="background: var(--bg); padding: 12px; border-radius: 8px; margin-bottom: 16px;">
+                    <strong>${patient.medical_id}</strong> ${patient.name}
+                </div>
+                <div id="patient-qr-container" style="background: white; padding: 16px; border-radius: 8px; display: inline-block;">
+                    <!-- QR Code 將在這裡生成 -->
+                </div>
+                <p style="color: var(--text-secondary); font-size: 13px; margin-top: 12px;">
+                    請病人用手機掃描此 QR Code
+                </p>
+                <p style="color: var(--text-hint); font-size: 12px;">
+                    掃描後可在手機上記錄每日體重
+                </p>
+            </div>
+        `;
+        
+        openModal('病人填報 QR Code', html, [
+            { 
+                text: '列印', 
+                class: 'btn-outline',
+                onClick: () => this.printPatientQRCode(patient, payload)
+            },
+            { text: '關閉', class: 'btn-primary' }
+        ]);
+        
+        // 生成 QR Code
+        setTimeout(() => {
+            const container = document.getElementById('patient-qr-container');
+            if (container && typeof QRCode !== 'undefined') {
+                QRCode.toCanvas(JSON.stringify(payload), {
+                    width: 200,
+                    margin: 2,
+                    color: { dark: '#000000', light: '#ffffff' }
+                }, (err, canvas) => {
+                    if (!err && canvas) {
+                        container.innerHTML = '';
+                        container.appendChild(canvas);
+                    }
+                });
+            }
+        }, 100);
+    },
+    
+    /**
+     * 列印病人 QR Code
+     */
+    printPatientQRCode(patient, payload) {
+        const printWindow = window.open('', '_blank');
+        
+        // 先生成 QR Code 圖片
+        QRCode.toDataURL(JSON.stringify(payload), {
+            width: 300,
+            margin: 2
+        }, (err, url) => {
+            if (err) {
+                showToast('QR Code 生成失敗', 'error');
+                return;
+            }
+            
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>體重追蹤 QR Code - ${patient.name}</title>
+                    <style>
+                        body { 
+                            font-family: sans-serif; 
+                            text-align: center; 
+                            padding: 40px;
+                        }
+                        .title { font-size: 24px; margin-bottom: 20px; }
+                        .patient-info { font-size: 18px; margin-bottom: 30px; }
+                        .qr-code { margin-bottom: 30px; }
+                        .instructions { 
+                            font-size: 14px; 
+                            color: #666; 
+                            border: 1px solid #ddd;
+                            padding: 15px;
+                            border-radius: 8px;
+                            max-width: 300px;
+                            margin: 0 auto;
+                        }
+                        @media print {
+                            body { padding: 20px; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="title">🏥 體重追蹤</div>
+                    <div class="patient-info">
+                        <strong>${patient.medical_id}</strong> ${patient.name}
+                    </div>
+                    <div class="qr-code">
+                        <img src="${url}" alt="QR Code">
+                    </div>
+                    <div class="instructions">
+                        <strong>使用說明</strong><br><br>
+                        1. 用手機相機掃描 QR Code<br>
+                        2. 開啟網頁後記錄體重<br>
+                        3. 回診時出示 QR Code 給醫護人員
+                    </div>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+            printWindow.onload = () => {
+                printWindow.print();
+            };
+        });
+    },
+    
+    /**
+     * 顯示匯入病人體重對話框
+     */
+    async showImportPatientWeight(treatmentId) {
+        const treatment = await Treatment.getById(treatmentId);
+        const patient = await Patient.getById(treatment.patient_id);
+        
+        const html = `
+            <div style="margin-bottom: 16px;">
+                <strong>${patient.medical_id}</strong> ${patient.name}
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <div style="font-weight: 500; margin-bottom: 8px;">方式一：條碼槍掃描</div>
+                <input type="text" id="barcode-input" class="form-input" 
+                       placeholder="游標在此，直接掃描病人 QR Code"
+                       style="text-align: center;"
+                       autofocus>
+                <p style="color: var(--text-hint); font-size: 12px; margin-top: 4px;">
+                    掃描後會自動處理
+                </p>
+            </div>
+            
+            <div style="text-align: center; color: var(--text-hint); margin: 16px 0;">
+                ─────── 或 ───────
+            </div>
+            
+            <div style="text-align: center;">
+                <button class="btn btn-outline" onclick="App.startCameraScan(${treatmentId})">
+                    📷 開啟相機掃描
+                </button>
+            </div>
+            
+            <div id="camera-scan-container" style="display: none; margin-top: 16px;">
+                <div id="qr-reader" style="width: 100%;"></div>
+            </div>
+        `;
+        
+        openModal('匯入病人體重記錄', html, [
+            { text: '取消', class: 'btn-outline' }
+        ]);
+        
+        // 監聽條碼槍輸入
+        setTimeout(() => {
+            const input = document.getElementById('barcode-input');
+            if (input) {
+                input.focus();
+                
+                let buffer = '';
+                let timeout = null;
+                
+                input.addEventListener('input', (e) => {
+                    buffer = e.target.value;
+                    
+                    // 清除之前的 timeout
+                    if (timeout) clearTimeout(timeout);
+                    
+                    // 設定 timeout，條碼槍掃描通常很快完成
+                    timeout = setTimeout(() => {
+                        if (buffer && buffer.includes('{') && buffer.includes('}')) {
+                            this.processPatientQRData(buffer, treatmentId);
+                        }
+                    }, 300);
+                });
+            }
+        }, 100);
+    },
+    
+    /**
+     * 開啟相機掃描
+     */
+    async startCameraScan(treatmentId) {
+        const container = document.getElementById('camera-scan-container');
+        const readerDiv = document.getElementById('qr-reader');
+        
+        if (!container || !readerDiv) return;
+        
+        container.style.display = 'block';
+        
+        // 停止之前的掃描器
+        if (this.qrScanner) {
+            try {
+                await this.qrScanner.stop();
+            } catch (e) {}
+        }
+        
+        try {
+            this.qrScanner = new Html5Qrcode('qr-reader');
+            
+            await this.qrScanner.start(
+                { facingMode: 'environment' },
+                { fps: 10, qrbox: { width: 200, height: 200 } },
+                (decodedText) => {
+                    this.stopCameraScan();
+                    this.processPatientQRData(decodedText, treatmentId);
+                },
+                () => {}
+            );
+        } catch (e) {
+            console.error('相機啟動失敗', e);
+            showToast('無法啟動相機', 'error');
+            container.style.display = 'none';
+        }
+    },
+    
+    /**
+     * 停止相機掃描
+     */
+    async stopCameraScan() {
+        if (this.qrScanner) {
+            try {
+                await this.qrScanner.stop();
+                this.qrScanner.clear();
+            } catch (e) {}
+            this.qrScanner = null;
+        }
+    },
+    
+    /**
+     * 處理病人 QR Code 資料
+     */
+    async processPatientQRData(text, treatmentId) {
+        try {
+            const data = JSON.parse(text);
+            
+            // 驗證資料格式
+            if (data.v !== 1 || data.t !== 'sync') {
+                showToast('QR Code 格式不正確', 'error');
+                return;
+            }
+            
+            const treatment = await Treatment.getById(treatmentId);
+            const patient = await Patient.getById(treatment.patient_id);
+            
+            // 驗證病歷號
+            if (data.pid !== patient.medical_id) {
+                showToast(`病歷號不符！預期 ${patient.medical_id}，實際 ${data.pid}`, 'error');
+                return;
+            }
+            
+            // 驗證療程開始日期
+            if (data.ts !== treatment.treatment_start) {
+                showToast('療程資料不符，可能是舊的填報', 'error');
+                return;
+            }
+            
+            // 取得現有體重記錄
+            const existingWeights = await Weight.getByTreatment(treatmentId);
+            const existingDates = new Set(existingWeights.map(w => w.measure_date));
+            
+            // 匯入體重記錄
+            let addedCount = 0;
+            let skippedCount = 0;
+            const currentYear = new Date().getFullYear();
+            
+            for (const [mmdd, weight] of data.r) {
+                // 轉換日期格式 MMDD -> YYYY-MM-DD
+                const mm = mmdd.substring(0, 2);
+                const dd = mmdd.substring(2, 4);
+                const measureDate = `${currentYear}-${mm}-${dd}`;
+                
+                // 檢查是否已存在
+                if (existingDates.has(measureDate)) {
+                    skippedCount++;
+                    continue;
+                }
+                
+                // 計算變化率
+                const changeRate = treatment.baseline_weight 
+                    ? ((weight - treatment.baseline_weight) / treatment.baseline_weight) * 100
+                    : null;
+                
+                // 新增記錄
+                await Weight.create({
+                    treatment_id: treatmentId,
+                    weight: weight,
+                    measure_date: measureDate,
+                    change_rate: changeRate
+                });
+                
+                addedCount++;
+                existingDates.add(measureDate);
+            }
+            
+            closeModal();
+            
+            // 顯示結果
+            const resultHtml = `
+                <div style="text-align: center; padding: 16px 0;">
+                    <div style="font-size: 36px; margin-bottom: 12px;">✅</div>
+                    <h3 style="margin-bottom: 16px;">匯入成功</h3>
+                    <div style="background: var(--bg); padding: 16px; border-radius: 8px;">
+                        <div class="detail-row">
+                            <span>病人</span>
+                            <span><strong>${patient.name}</strong></span>
+                        </div>
+                        <div class="detail-row">
+                            <span>新增</span>
+                            <span><strong>${addedCount}</strong> 筆</span>
+                        </div>
+                        <div class="detail-row">
+                            <span>跳過（已存在）</span>
+                            <span>${skippedCount} 筆</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            openModal('匯入結果', resultHtml, [
+                { text: '確定', class: 'btn-primary' }
+            ]);
+            
+            // 重新整理
+            this.refresh();
+            
+        } catch (e) {
+            console.error('處理失敗', e);
+            showToast('QR Code 解析失敗: ' + e.message, 'error');
+        }
     }
 };
 

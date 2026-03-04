@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#1a1a2e">
+    <title>體重追蹤 - 病人端</title>
+    <link rel="stylesheet" href="css/patient.css?v=1.0">
+    <link rel="manifest" href="manifest.json">
+</head>
+<body>
+    <div id="app">
+        <!-- 未初始化狀態 -->
+        <div id="init-screen" class="screen">
+            <div class="init-container">
+                <div class="init-icon">📱</div>
+                <h1>體重追蹤</h1>
+                <p>請掃描醫護人員提供的<br>QR Code 來開始使用</p>
+                <button class="btn btn-primary btn-lg" id="btn-scan-init">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                        <circle cx="12" cy="13" r="4"></circle>
+                    </svg>
+                    掃描 QR Code
+                </button>
+                <p class="init-hint">或請醫護人員協助設定</p>
+            </div>
+        </div>
+
+        <!-- 主畫面 -->
+        <div id="main-screen" class="screen" style="display: none;">
+            <!-- 頂部資訊 -->
+            <header class="header">
+                <div class="header-title">
+                    <span class="hospital-icon">🏥</span>
+                    體重追蹤
+                </div>
+                <button class="btn-icon" id="btn-settings">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    </svg>
+                </button>
+            </header>
+
+            <!-- 病人資訊卡 -->
+            <div class="patient-info-card">
+                <div class="patient-name" id="display-name">王大明</div>
+                <div class="patient-details">
+                    <span>病歷號：<strong id="display-pid">1234567</strong></span>
+                    <span>基準體重：<strong id="display-baseline">68.5</strong> kg</span>
+                </div>
+            </div>
+
+            <!-- 警示區 -->
+            <div id="alert-banner" class="alert-banner" style="display: none;">
+                <div class="alert-icon">⚠️</div>
+                <div class="alert-content">
+                    <div class="alert-title">體重變化警示</div>
+                    <div class="alert-message" id="alert-message"></div>
+                </div>
+            </div>
+
+            <!-- 今日輸入區 -->
+            <div class="input-section">
+                <h2>記錄體重</h2>
+                <div class="weight-input-group">
+                    <input type="number" 
+                           id="weight-input" 
+                           class="weight-input" 
+                           placeholder="0.0"
+                           step="0.1"
+                           min="20"
+                           max="200"
+                           inputmode="decimal">
+                    <span class="weight-unit">kg</span>
+                </div>
+                <div class="input-date">
+                    <label>日期：</label>
+                    <input type="date" id="record-date" class="date-input">
+                </div>
+                <button class="btn btn-primary btn-block" id="btn-record">
+                    記錄體重
+                </button>
+            </div>
+
+            <!-- 歷史記錄 -->
+            <div class="history-section">
+                <div class="section-header">
+                    <h2>歷史記錄</h2>
+                    <span class="record-count" id="record-count">0 筆</span>
+                </div>
+                <div class="history-list" id="history-list">
+                    <!-- 動態生成 -->
+                </div>
+            </div>
+
+            <!-- 趨勢圖 -->
+            <div class="chart-section">
+                <h2>體重趨勢</h2>
+                <div class="chart-container">
+                    <canvas id="weight-chart"></canvas>
+                </div>
+            </div>
+
+            <!-- 底部操作 -->
+            <div class="bottom-actions">
+                <button class="btn btn-outline" id="btn-reminder">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    提醒設定
+                </button>
+                <button class="btn btn-primary" id="btn-generate-qr">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="3" width="7" height="7"></rect>
+                        <rect x="3" y="14" width="7" height="7"></rect>
+                        <rect x="14" y="14" width="7" height="7"></rect>
+                    </svg>
+                    回傳給醫護
+                </button>
+            </div>
+        </div>
+
+        <!-- 掃描器畫面 -->
+        <div id="scanner-screen" class="screen" style="display: none;">
+            <div class="scanner-header">
+                <button class="btn-back" id="btn-scanner-back">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 12H5M12 19l-7-7 7-7"/>
+                    </svg>
+                </button>
+                <h1>掃描 QR Code</h1>
+            </div>
+            <div id="scanner-container"></div>
+            <p class="scanner-hint">請將 QR Code 對準框框內</p>
+        </div>
+
+        <!-- QR Code 顯示畫面 -->
+        <div id="qr-display-screen" class="screen" style="display: none;">
+            <div class="qr-display-container">
+                <h2>📤 回傳體重記錄</h2>
+                <div id="qr-canvas-container"></div>
+                <p class="qr-info" id="qr-info">共 0 筆體重記錄</p>
+                <p class="qr-hint">請讓醫護人員掃描此 QR Code</p>
+                <button class="btn btn-outline btn-block" id="btn-close-qr">關閉</button>
+            </div>
+        </div>
+
+        <!-- 提醒設定畫面 -->
+        <div id="reminder-screen" class="screen" style="display: none;">
+            <div class="reminder-container">
+                <div class="reminder-header">
+                    <button class="btn-back" id="btn-reminder-back">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M19 12H5M12 19l-7-7 7-7"/>
+                        </svg>
+                    </button>
+                    <h1>提醒設定</h1>
+                </div>
+                
+                <div class="reminder-content">
+                    <div class="setting-item">
+                        <label class="setting-label">啟用提醒</label>
+                        <label class="toggle">
+                            <input type="checkbox" id="reminder-enabled">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <label class="setting-label">提醒時間</label>
+                        <input type="time" id="reminder-time" class="time-input" value="08:00">
+                    </div>
+                    
+                    <div class="setting-item">
+                        <label class="setting-label">提醒頻率</label>
+                        <div class="radio-group">
+                            <label class="radio-item">
+                                <input type="radio" name="frequency" value="daily" checked>
+                                <span>每天</span>
+                            </label>
+                            <label class="radio-item">
+                                <input type="radio" name="frequency" value="weekly">
+                                <span>每週</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="notification-status" id="notification-status">
+                        <!-- 通知權限狀態 -->
+                    </div>
+                    
+                    <button class="btn btn-primary btn-block" id="btn-save-reminder">
+                        儲存設定
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 設定畫面 -->
+        <div id="settings-screen" class="screen" style="display: none;">
+            <div class="settings-container">
+                <div class="settings-header">
+                    <button class="btn-back" id="btn-settings-back">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M19 12H5M12 19l-7-7 7-7"/>
+                        </svg>
+                    </button>
+                    <h1>設定</h1>
+                </div>
+                
+                <div class="settings-content">
+                    <div class="settings-section">
+                        <h3>病人資訊</h3>
+                        <div class="info-row">
+                            <span>姓名</span>
+                            <span id="settings-name">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span>病歷號</span>
+                            <span id="settings-pid">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span>療程開始</span>
+                            <span id="settings-start">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span>基準體重</span>
+                            <span id="settings-baseline">-</span>
+                        </div>
+                    </div>
+                    
+                    <div class="settings-section">
+                        <h3>資料管理</h3>
+                        <button class="btn btn-outline btn-block" id="btn-rescan">
+                            重新掃描 QR Code
+                        </button>
+                        <button class="btn btn-danger btn-block" id="btn-clear-data">
+                            清除所有資料
+                        </button>
+                    </div>
+                    
+                    <div class="settings-footer">
+                        <p>體重追蹤 病人端 v1.0</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast 訊息 -->
+    <div id="toast" class="toast"></div>
+
+    <!-- 確認對話框 -->
+    <div id="confirm-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-body" id="confirm-message"></div>
+            <div class="modal-actions">
+                <button class="btn btn-outline" id="confirm-cancel">取消</button>
+                <button class="btn btn-primary" id="confirm-ok">確定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 載入外部函式庫 -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    
+    <!-- 應用程式 -->
+    <script src="js/patient-app.js?v=1.0"></script>
+</body>
+</html>
