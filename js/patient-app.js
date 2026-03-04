@@ -159,34 +159,54 @@ const PatientApp = {
         await this.stopScan();
         
         try {
-            const data = JSON.parse(text);
+            let patientId, name, treatmentStart, baselineWeight;
             
-            // 驗證資料格式
-            if (data.t === 'init' && data.v === 1) {
-                // 初始化資料
-                this.data = {
-                    patient_id: data.pid,
-                    name: data.name,
-                    treatment_start: data.ts,
-                    baseline_weight: data.bw,
-                    cancer_type: data.ct || '',
-                    sdm_threshold: data.sdm || -3,
-                    nutrition_threshold: data.nut || -5,
-                    records: [],
-                    reminder: {
-                        enabled: false,
-                        time: '08:00',
-                        frequency: 'daily'
-                    }
-                };
-                
-                this.saveData();
-                this.showScreen('main-screen');
-                this.render();
-                this.showToast('設定成功！', 'success');
+            // 檢查是否為新的精簡格式：I|病歷號|姓名|開始日期|基準體重
+            if (text.startsWith('I|')) {
+                const parts = text.split('|');
+                if (parts.length >= 5) {
+                    patientId = parts[1];
+                    name = parts[2];
+                    treatmentStart = parts[3];
+                    baselineWeight = parseFloat(parts[4]) || 0;
+                } else {
+                    this.showToast('QR Code 格式不正確', 'error');
+                    return;
+                }
             } else {
-                this.showToast('QR Code 格式不正確', 'error');
+                // 舊的 JSON 格式（向後相容）
+                const data = JSON.parse(text);
+                if (data.t === 'init' && data.v === 1) {
+                    patientId = data.pid;
+                    name = data.name;
+                    treatmentStart = data.ts;
+                    baselineWeight = data.bw;
+                } else {
+                    this.showToast('QR Code 格式不正確', 'error');
+                    return;
+                }
             }
+            
+            // 初始化資料
+            this.data = {
+                patient_id: patientId,
+                name: name,
+                treatment_start: treatmentStart,
+                baseline_weight: baselineWeight,
+                sdm_threshold: -3,
+                nutrition_threshold: -5,
+                records: [],
+                reminder: {
+                    enabled: false,
+                    time: '08:00',
+                    frequency: 'daily'
+                }
+            };
+            
+            this.saveData();
+            this.showScreen('main-screen');
+            this.render();
+            this.showToast('設定成功！', 'success');
         } catch (e) {
             console.error('解析失敗', e);
             this.showToast('無法解析 QR Code', 'error');
@@ -422,34 +442,19 @@ const PatientApp = {
             return;
         }
         
-        // 準備資料
+        // 準備資料（精簡格式）
+        // 格式：S|病歷號|療程開始|MMDD:體重,MMDD:體重,...
         const records = this.data.records.map(r => {
-            // 日期格式：MMDD
             const d = new Date(r.date);
             const mm = String(d.getMonth() + 1).padStart(2, '0');
             const dd = String(d.getDate()).padStart(2, '0');
-            return [mm + dd, r.weight];
+            return `${mm}${dd}:${r.weight}`;
         });
         
-        // 限制最多 50 筆
-        const limitedRecords = records.slice(-50);
+        // 限制最多 30 筆（確保 QR Code 容量足夠）
+        const limitedRecords = records.slice(-30);
         
-        const payload = {
-            v: 1,
-            t: 'sync',
-            pid: this.data.patient_id,
-            ts: this.data.treatment_start,
-            r: limitedRecords
-        };
-        
-        // 計算校驗碼（簡單 hash）
-        const jsonStr = JSON.stringify(payload);
-        let hash = 0;
-        for (let i = 0; i < jsonStr.length; i++) {
-            hash = ((hash << 5) - hash) + jsonStr.charCodeAt(i);
-            hash = hash & hash;
-        }
-        payload.ck = Math.abs(hash).toString(16).substring(0, 4);
+        const payload = `S|${this.data.patient_id}|${this.data.treatment_start}|${limitedRecords.join(',')}`;
         
         // 生成 QR Code
         this.showScreen('qr-display-screen');
@@ -460,7 +465,7 @@ const PatientApp = {
         
         try {
             new QRCode(container, {
-                text: JSON.stringify(payload),
+                text: payload,
                 width: 256,
                 height: 256,
                 colorDark: '#000000',

@@ -1,6 +1,6 @@
 /**
  * 彰濱放腫體重監控預防系統 - 主程式
- * v4.6.2 Web 版
+ * v4.6.3 Web 版
  */
 
 const App = {
@@ -1080,18 +1080,9 @@ const App = {
         const treatment = await Treatment.getById(treatmentId);
         const patient = await Patient.getById(treatment.patient_id);
         
-        // 準備 QR Code 資料
-        const payload = {
-            v: 1,
-            t: 'init',
-            pid: patient.medical_id,
-            name: patient.name,
-            ts: treatment.treatment_start,
-            bw: treatment.baseline_weight,
-            ct: treatment.cancer_type,
-            sdm: -3,
-            nut: -5
-        };
+        // 準備 QR Code 資料（精簡格式）
+        // 格式：I|病歷號|姓名|開始日期|基準體重
+        const payload = `I|${patient.medical_id}|${patient.name}|${treatment.treatment_start}|${treatment.baseline_weight || 0}`;
         
         const html = `
             <div style="text-align: center;">
@@ -1125,12 +1116,12 @@ const App = {
                 try {
                     container.innerHTML = '';
                     new QRCode(container, {
-                        text: JSON.stringify(payload),
+                        text: payload,
                         width: 200,
                         height: 200,
                         colorDark: '#000000',
                         colorLight: '#ffffff',
-                        correctLevel: QRCode.CorrectLevel.M
+                        correctLevel: QRCode.CorrectLevel.L
                     });
                 } catch (err) {
                     console.error('QR Code 生成失敗', err);
@@ -1329,25 +1320,49 @@ const App = {
      */
     async processPatientQRData(text, treatmentId) {
         try {
-            const data = JSON.parse(text);
+            let pid, ts, records = [];
             
-            // 驗證資料格式
-            if (data.v !== 1 || data.t !== 'sync') {
-                showToast('QR Code 格式不正確', 'error');
-                return;
+            // 檢查是否為新的精簡格式：S|病歷號|療程開始|MMDD:體重,MMDD:體重,...
+            if (text.startsWith('S|')) {
+                const parts = text.split('|');
+                if (parts.length >= 4) {
+                    pid = parts[1];
+                    ts = parts[2];
+                    // 解析體重記錄
+                    const recordStr = parts[3];
+                    if (recordStr) {
+                        records = recordStr.split(',').map(r => {
+                            const [mmdd, weight] = r.split(':');
+                            return { mmdd, weight: parseFloat(weight) };
+                        });
+                    }
+                } else {
+                    showToast('QR Code 格式不正確', 'error');
+                    return;
+                }
+            } else {
+                // 舊的 JSON 格式（向後相容）
+                const data = JSON.parse(text);
+                if (data.v !== 1 || data.t !== 'sync') {
+                    showToast('QR Code 格式不正確', 'error');
+                    return;
+                }
+                pid = data.pid;
+                ts = data.ts;
+                records = (data.r || []).map(([mmdd, weight]) => ({ mmdd, weight }));
             }
             
             const treatment = await Treatment.getById(treatmentId);
             const patient = await Patient.getById(treatment.patient_id);
             
             // 驗證病歷號
-            if (data.pid !== patient.medical_id) {
-                showToast(`病歷號不符！預期 ${patient.medical_id}，實際 ${data.pid}`, 'error');
+            if (pid !== patient.medical_id) {
+                showToast(`病歷號不符！預期 ${patient.medical_id}，實際 ${pid}`, 'error');
                 return;
             }
             
             // 驗證療程開始日期
-            if (data.ts !== treatment.treatment_start) {
+            if (ts !== treatment.treatment_start) {
                 showToast('療程資料不符，可能是舊的填報', 'error');
                 return;
             }
@@ -1361,7 +1376,7 @@ const App = {
             let skippedCount = 0;
             const currentYear = new Date().getFullYear();
             
-            for (const [mmdd, weight] of data.r) {
+            for (const { mmdd, weight } of records) {
                 // 轉換日期格式 MMDD -> YYYY-MM-DD
                 const mm = mmdd.substring(0, 2);
                 const dd = mmdd.substring(2, 4);
