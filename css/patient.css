@@ -185,6 +185,37 @@ body {
     color: var(--text-secondary);
 }
 
+/* === 警示說明 === */
+.alert-legend {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    padding: var(--space-sm) var(--space-md);
+    margin-bottom: var(--space-md);
+    font-size: 13px;
+}
+
+.alert-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-secondary);
+}
+
+.alert-legend-item .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.alert-legend-item.warning .legend-dot {
+    background: var(--warning);
+}
+
+.alert-legend-item.danger .legend-dot {
+    background: var(--danger);
+}
+
 /* === 輸入區 === */
 .input-section {
     background: var(--bg-card);

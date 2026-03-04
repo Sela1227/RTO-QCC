@@ -1,6 +1,6 @@
 /**
  * 彰濱放腫體重監控預防系統 - 主程式
- * v4.8 Web 版
+ * v4.9 Web 版
  */
 
 const App = {
@@ -1114,9 +1114,28 @@ const App = {
         const patient = await Patient.getById(treatment.patient_id);
         const patientAppUrl = await Settings.get('patient_app_url', '');
         
+        // 取得既有的體重記錄
+        const weightRecords = await Weight.getByTreatment(treatmentId);
+        
+        // 將體重記錄轉為精簡格式 MMDD:體重
+        const recordsStr = weightRecords
+            .filter(r => r.weight) // 過濾無法量測的
+            .sort((a, b) => new Date(a.measure_date) - new Date(b.measure_date))
+            .slice(-30) // 最多30筆
+            .map(r => {
+                const d = new Date(r.measure_date);
+                const mm = String(d.getMonth() + 1).padStart(2, '0');
+                const dd = String(d.getDate()).padStart(2, '0');
+                return `${mm}${dd}:${r.weight}`;
+            })
+            .join(',');
+        
         // 準備 QR Code 資料（精簡格式）
-        // 格式：I|病歷號|姓名|開始日期|基準體重
-        const data = `I|${patient.medical_id}|${patient.name}|${treatment.treatment_start}|${treatment.baseline_weight || 0}`;
+        // 格式：I|病歷號|姓名|開始日期|基準體重|既有記錄
+        let data = `I|${patient.medical_id}|${patient.name}|${treatment.treatment_start}|${treatment.baseline_weight || 0}`;
+        if (recordsStr) {
+            data += `|${recordsStr}`;
+        }
         
         // 如果有設定網址，QR Code 包含完整 URL；否則只包含資料
         let qrContent;
@@ -1131,10 +1150,15 @@ const App = {
         // 使用 QR Server API 生成 QR Code
         const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrContent)}`;
         
+        const recordInfo = weightRecords.length > 0 
+            ? `<p style="color: var(--text-secondary); font-size: 12px; margin-top: 8px;">含 ${weightRecords.length} 筆既有體重記錄</p>`
+            : '';
+        
         const html = `
             <div style="text-align: center;">
                 <div style="background: var(--bg); padding: 12px; border-radius: 8px; margin-bottom: 16px;">
                     <strong>${patient.medical_id}</strong> ${patient.name}
+                    ${recordInfo}
                 </div>
                 <div id="patient-qr-container" style="background: white; padding: 16px; border-radius: 8px; display: inline-block;">
                     <img src="${qrUrl}" alt="QR Code" style="display: block; width: 200px; height: 200px;">

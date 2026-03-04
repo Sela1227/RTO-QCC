@@ -211,6 +211,7 @@ const PatientApp = {
         
         try {
             let patientId, name, treatmentStart, baselineWeight;
+            let existingRecords = []; // 從 QR Code 帶來的既有記錄
             let dataText = text;
             
             // 如果掃到的是完整 URL，提取 d 參數
@@ -230,7 +231,7 @@ const PatientApp = {
                 }
             }
             
-            // 檢查是否為新的精簡格式：I|病歷號|姓名|開始日期|基準體重
+            // 檢查是否為新的精簡格式：I|病歷號|姓名|開始日期|基準體重|既有記錄
             if (dataText.startsWith('I|')) {
                 const parts = dataText.split('|');
                 if (parts.length >= 5) {
@@ -238,6 +239,23 @@ const PatientApp = {
                     name = parts[2];
                     treatmentStart = parts[3];
                     baselineWeight = parseFloat(parts[4]) || 0;
+                    
+                    // 解析既有記錄（如果有）
+                    if (parts.length >= 6 && parts[5]) {
+                        const recordParts = parts[5].split(',');
+                        const currentYear = new Date().getFullYear();
+                        for (const rp of recordParts) {
+                            const [mmdd, weight] = rp.split(':');
+                            if (mmdd && weight) {
+                                const mm = mmdd.substring(0, 2);
+                                const dd = mmdd.substring(2, 4);
+                                existingRecords.push({
+                                    date: `${currentYear}-${mm}-${dd}`,
+                                    weight: parseFloat(weight)
+                                });
+                            }
+                        }
+                    }
                 } else {
                     this.showToast('QR Code 格式不正確', 'error');
                     return;
@@ -256,6 +274,33 @@ const PatientApp = {
                 }
             }
             
+            // 檢查是否已有同一病人的資料（合併記錄）
+            if (this.data && this.data.patient_id === patientId) {
+                // 同一病人，合併既有記錄
+                const currentRecords = this.data.records || [];
+                const currentDates = new Set(currentRecords.map(r => r.date));
+                
+                let addedCount = 0;
+                for (const record of existingRecords) {
+                    if (!currentDates.has(record.date)) {
+                        currentRecords.push(record);
+                        addedCount++;
+                    }
+                }
+                
+                this.data.records = currentRecords;
+                this.saveData();
+                this.render();
+                
+                if (addedCount > 0) {
+                    this.showToast(`已同步 ${addedCount} 筆記錄`, 'success');
+                } else {
+                    this.showToast('資料已是最新', 'success');
+                }
+                this.showScreen('main-screen');
+                return;
+            }
+            
             // 檢查是否已有其他病人的資料
             if (this.data && this.data.patient_id !== patientId) {
                 const confirmed = confirm(
@@ -269,7 +314,7 @@ const PatientApp = {
                 }
             }
             
-            // 初始化資料
+            // 初始化資料（新病人或確認切換）
             this.data = {
                 patient_id: patientId,
                 name: name,
@@ -277,7 +322,7 @@ const PatientApp = {
                 baseline_weight: baselineWeight,
                 sdm_threshold: -3,
                 nutrition_threshold: -5,
-                records: [],
+                records: existingRecords, // 帶入既有記錄
                 reminder: {
                     enabled: false,
                     time: '08:00',
@@ -288,7 +333,11 @@ const PatientApp = {
             this.saveData();
             this.showScreen('main-screen');
             this.render();
-            this.showToast('設定成功！', 'success');
+            
+            const recordMsg = existingRecords.length > 0 
+                ? `已載入 ${existingRecords.length} 筆記錄` 
+                : '設定成功！';
+            this.showToast(recordMsg, 'success');
             
             // 提示加到主畫面（僅首次且在手機上）
             setTimeout(() => {
@@ -371,6 +420,7 @@ const PatientApp = {
         
         const records = this.data.records || [];
         const baseline = this.data.baseline_weight;
+        const treatmentStart = this.data.treatment_start;
         
         // 銷毀舊圖表
         if (this.chart) {
@@ -389,11 +439,20 @@ const PatientApp = {
             return;
         }
         
+        // 計算警示線
+        const sdmLine = baseline * (1 + this.data.sdm_threshold / 100);
+        const nutLine = baseline * (1 + this.data.nutrition_threshold / 100);
+        
         // 重建 canvas（每次都重建以確保正確）
         chartSection.innerHTML = `
             <h2>體重趨勢</h2>
             <div class="chart-container">
                 <canvas id="weight-chart"></canvas>
+            </div>
+            <div class="chart-legend" style="display: flex; justify-content: center; gap: 16px; margin-top: 12px; font-size: 12px;">
+                <span style="color: #6BBF8A;">━ 基準 ${baseline} kg</span>
+                <span style="color: #E4B95A;">╴╴ -3% SDM (${sdmLine.toFixed(1)} kg)</span>
+                <span style="color: #D97B7B;">╴╴ -5% 營養師 (${nutLine.toFixed(1)} kg)</span>
             </div>
         `;
         
@@ -405,12 +464,12 @@ const PatientApp = {
             new Date(a.date) - new Date(b.date)
         );
         
-        // 組合標籤和數據：基準 + 所有記錄
-        const labels = ['基準', ...sorted.map(r => this.formatDate(r.date, 'short'))];
-        const weights = [baseline, ...sorted.map(r => r.weight)];
+        // 基準日期使用療程開始日期
+        const baselineLabel = treatmentStart ? this.formatDate(treatmentStart, 'short') : '基準';
         
-        const sdmLine = baseline * (1 + this.data.sdm_threshold / 100);
-        const nutLine = baseline * (1 + this.data.nutrition_threshold / 100);
+        // 組合標籤和數據：基準日期 + 所有記錄日期
+        const labels = [baselineLabel, ...sorted.map(r => this.formatDate(r.date, 'short'))];
+        const weights = [baseline, ...sorted.map(r => r.weight)];
         
         try {
             this.chart = new Chart(chartCanvas, {
