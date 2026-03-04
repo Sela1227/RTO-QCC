@@ -1,6 +1,6 @@
 /**
  * 彰濱放腫體重監控預防系統 - 主程式
- * v5.4 Web 版
+ * v5.5 Web 版
  */
 
 const App = {
@@ -734,10 +734,16 @@ const App = {
             <div class="detail-section">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                     <span class="detail-section-title" style="margin-bottom: 0;">體重記錄</span>
-                    <button class="btn btn-outline" style="padding: 2px 6px; font-size: 11px;"
-                            onclick="Weight.showList(${treatment.id})">
-                        全部
-                    </button>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn btn-outline" style="padding: 2px 8px; font-size: 11px;"
+                                onclick="SideEffect.showList(${treatment.id})">
+                            📋 副作用
+                        </button>
+                        <button class="btn btn-outline" style="padding: 2px 8px; font-size: 11px;"
+                                onclick="Weight.showList(${treatment.id})">
+                            全部
+                        </button>
+                    </div>
                 </div>
                 ${weightsHtml}
             </div>

@@ -1500,3 +1500,128 @@ body {
     background: rgba(217, 123, 123, 0.15);
     color: #D97B7B;
 }
+
+/* === 副作用評估列表 === */
+.side-effect-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.side-effect-record {
+    background: var(--bg);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    margin-bottom: var(--space-sm);
+    border-left: 3px solid transparent;
+}
+
+.side-effect-record.moderate {
+    border-left-color: #E4B95A;
+}
+
+.side-effect-record.severe {
+    border-left-color: #D97B7B;
+}
+
+.side-effect-record-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-sm);
+}
+
+.side-effect-date {
+    font-weight: 500;
+    color: var(--text);
+}
+
+.side-effect-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.side-effect-symptoms {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+/* === 副作用評估表單 === */
+.symptom-form-section {
+    background: var(--bg);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    margin-top: var(--space-md);
+}
+
+.symptom-form-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-md);
+    padding-bottom: var(--space-sm);
+    border-bottom: 1px solid var(--border);
+    font-weight: 500;
+}
+
+.symptom-form-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-sm) 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.symptom-form-item:last-child {
+    border-bottom: none;
+}
+
+.symptom-form-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+}
+
+.symptom-form-buttons {
+    display: flex;
+    gap: 4px;
+}
+
+.severity-select-btn {
+    width: 32px;
+    height: 32px;
+    border: 2px solid var(--border);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-hint);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.severity-select-btn:hover {
+    border-color: var(--primary);
+    color: var(--text);
+}
+
+.severity-select-btn.active {
+    border-color: transparent;
+    color: white;
+}
+
+.severity-select-btn.active[data-level="0"] {
+    background: var(--text-hint);
+}
+
+.severity-select-btn.active[data-level="1"] {
+    background: #6BBF8A;
+}
+
+.severity-select-btn.active[data-level="2"] {
+    background: #E4B95A;
+}
+
+.severity-select-btn.active[data-level="3"] {
+    background: #D97B7B;
+}
