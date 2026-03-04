@@ -1625,3 +1625,67 @@ body {
 .severity-select-btn.active[data-level="3"] {
     background: #D97B7B;
 }
+
+/* === 疼痛 0-10 量表 === */
+.symptom-pain {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+}
+
+.symptom-pain .symptom-form-label {
+    margin-bottom: 4px;
+}
+
+.pain-scale {
+    width: 100%;
+}
+
+.pain-slider {
+    width: 100%;
+    height: 8px;
+    border-radius: 4px;
+    background: linear-gradient(to right, 
+        #6BBF8A 0%, #6BBF8A 30%, 
+        #E4B95A 30%, #E4B95A 60%, 
+        #D97B7B 60%, #D97B7B 100%);
+    -webkit-appearance: none;
+    appearance: none;
+    cursor: pointer;
+}
+
+.pain-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: white;
+    border: 2px solid var(--primary);
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.pain-slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: white;
+    border: 2px solid var(--primary);
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.pain-labels {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--text-hint);
+}
+
+.pain-current {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+}

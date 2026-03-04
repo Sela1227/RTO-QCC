@@ -149,6 +149,12 @@ const Report = {
             filteredTreatmentIds.has(i.treatment_id)
         );
         
+        // 篩選相關的副作用評估
+        const allSideEffects = await DB.getAll('side_effects');
+        const filteredSideEffects = allSideEffects.filter(se => 
+            filteredTreatmentIds.has(se.treatment_id)
+        );
+        
         // 計算統計
         const activeCount = filteredTreatments.filter(t => t.status === 'active').length;
         const pausedCount = filteredTreatments.filter(t => t.status === 'paused').length;
@@ -329,6 +335,55 @@ const Report = {
         const avgChangeRate = changeRateCount > 0 ? (totalChangeRate / changeRateCount).toFixed(1) : '-';
         const avgDuration = durationCount > 0 ? Math.round(totalDuration / durationCount) : '-';
         
+        // === 副作用統計 ===
+        const sideEffectStats = {
+            total: filteredSideEffects.length,
+            bySymptom: {},
+            byMaxSeverity: { mild: 0, moderate: 0, severe: 0 },
+            avgPainScore: 0
+        };
+        
+        // 症狀名稱對照
+        const symptomNames = {
+            'N': '噁心嘔吐', 'F': '疲勞', 'O': '口腔黏膜炎', 'S': '皮膚反應',
+            'W': '吞嚥困難', 'A': '食慾下降', 'D': '腹瀉', 'P': '疼痛'
+        };
+        
+        let totalPainScore = 0;
+        let painCount = 0;
+        
+        filteredSideEffects.forEach(se => {
+            if (!se.symptoms) return;
+            
+            let maxLevel = 0;
+            
+            se.symptoms.forEach(s => {
+                // 統計各症狀出現次數（有症狀的）
+                if (s.level > 0) {
+                    const name = symptomNames[s.code] || s.code;
+                    sideEffectStats.bySymptom[name] = (sideEffectStats.bySymptom[name] || 0) + 1;
+                }
+                
+                // 疼痛分數統計
+                if (s.code === 'P' && s.level > 0) {
+                    totalPainScore += s.level;
+                    painCount++;
+                    // 疼痛轉換為標準化等級
+                    const painNormalized = s.level <= 3 ? 1 : (s.level <= 6 ? 2 : 3);
+                    maxLevel = Math.max(maxLevel, painNormalized);
+                } else if (s.level > 0) {
+                    maxLevel = Math.max(maxLevel, s.level);
+                }
+            });
+            
+            // 統計最嚴重程度分布
+            if (maxLevel === 1) sideEffectStats.byMaxSeverity.mild++;
+            else if (maxLevel === 2) sideEffectStats.byMaxSeverity.moderate++;
+            else if (maxLevel >= 3) sideEffectStats.byMaxSeverity.severe++;
+        });
+        
+        sideEffectStats.avgPainScore = painCount > 0 ? (totalPainScore / painCount).toFixed(1) : '-';
+        
         // 時間區間顯示
         let periodLabel = '';
         switch (this.filters.period) {
@@ -366,7 +421,9 @@ const Report = {
             minChangeRate: changeRateCount > 0 ? minChangeRate.toFixed(1) : '-',
             maxChangeRate: changeRateCount > 0 ? maxChangeRate.toFixed(1) : '-',
             avgDuration,
-            patientCount: new Set(filteredTreatments.map(t => t.patient_id)).size
+            patientCount: new Set(filteredTreatments.map(t => t.patient_id)).size,
+            // 副作用統計
+            sideEffectStats
         };
     },
     
@@ -523,6 +580,46 @@ const Report = {
                         <span>女</span>
                         <strong>${stats.genderDistribution['女']}</strong>
                     </div>
+                </div>
+                
+                <div class="report-card">
+                    <div class="report-card-title">📋 副作用評估統計</div>
+                    <div class="detail-row">
+                        <span>評估記錄數</span>
+                        <strong>${stats.sideEffectStats.total}</strong>
+                    </div>
+                    <div class="detail-row">
+                        <span>平均疼痛分數</span>
+                        <strong>${stats.sideEffectStats.avgPainScore}/10</strong>
+                    </div>
+                    <hr style="margin: 8px 0; border: none; border-top: 1px solid var(--border);">
+                    <div class="report-card-title" style="font-size: 12px; margin-bottom: 4px;">最嚴重程度分布</div>
+                    <div class="detail-row" style="font-size: 13px;">
+                        <span style="color: #6BBF8A;">輕微</span>
+                        <strong>${stats.sideEffectStats.byMaxSeverity.mild}</strong>
+                    </div>
+                    <div class="detail-row" style="font-size: 13px;">
+                        <span style="color: #E4B95A;">中等</span>
+                        <strong>${stats.sideEffectStats.byMaxSeverity.moderate}</strong>
+                    </div>
+                    <div class="detail-row" style="font-size: 13px;">
+                        <span style="color: #D97B7B;">嚴重</span>
+                        <strong>${stats.sideEffectStats.byMaxSeverity.severe}</strong>
+                    </div>
+                    <hr style="margin: 8px 0; border: none; border-top: 1px solid var(--border);">
+                    <div class="report-card-title" style="font-size: 12px; margin-bottom: 4px;">常見症狀</div>
+                    ${Object.entries(stats.sideEffectStats.bySymptom).length > 0 ? 
+                        Object.entries(stats.sideEffectStats.bySymptom)
+                            .sort((a, b) => b[1] - a[1])
+                            .slice(0, 5)
+                            .map(([symptom, count]) => `
+                                <div class="detail-row" style="font-size: 13px;">
+                                    <span>${symptom}</span>
+                                    <strong>${count}</strong>
+                                </div>
+                            `).join('') : 
+                        '<div style="color: var(--text-hint); font-size: 12px;">無資料</div>'
+                    }
                 </div>
             </div>
         `;

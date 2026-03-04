@@ -1,6 +1,6 @@
 /**
  * 彰濱放腫體重監控預防系統 - 主程式
- * v5.5 Web 版
+ * v5.6 Web 版
  */
 
 const App = {
@@ -672,6 +672,9 @@ const App = {
             <div class="action-group" style="flex-wrap: wrap; margin-bottom: 10px; gap: 6px;">
                 <button class="btn btn-primary btn-sm" onclick="Weight.showForm(${treatment.id})">
                     記錄體重
+                </button>
+                <button class="btn btn-outline btn-sm" onclick="SideEffect.showList(${treatment.id})">
+                    📋 副作用
                 </button>
                 <button class="btn btn-outline btn-sm" onclick="App.showQRMenu(${treatment.id})" title="QR Code 功能">
                     📱 QR

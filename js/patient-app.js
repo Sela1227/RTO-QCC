@@ -1427,16 +1427,16 @@ const PatientApp = {
     
     ASSESSMENT_STORAGE_KEY: 'sela_assessment_records',
     
-    // 評估項目定義
+    // 評估項目定義（疼痛使用 0-10 量表）
     SYMPTOM_ITEMS: [
-        { id: 'nausea', name: '噁心/嘔吐', icon: '🤢' },
-        { id: 'fatigue', name: '疲勞', icon: '😴' },
-        { id: 'oral', name: '口腔黏膜炎', icon: '👄' },
-        { id: 'skin', name: '皮膚反應', icon: '🔴' },
-        { id: 'swallow', name: '吞嚥困難', icon: '😣' },
-        { id: 'appetite', name: '食慾下降', icon: '🍽️' },
-        { id: 'diarrhea', name: '腹瀉', icon: '💩' },
-        { id: 'pain', name: '疼痛', icon: '😖' }
+        { id: 'nausea', name: '噁心/嘔吐', icon: '🤢', scale: 3 },
+        { id: 'fatigue', name: '疲勞', icon: '😴', scale: 3 },
+        { id: 'oral', name: '口腔黏膜炎', icon: '👄', scale: 3 },
+        { id: 'skin', name: '皮膚反應', icon: '🔴', scale: 3 },
+        { id: 'swallow', name: '吞嚥困難', icon: '😣', scale: 3 },
+        { id: 'appetite', name: '食慾下降', icon: '🍽️', scale: 3 },
+        { id: 'diarrhea', name: '腹瀉', icon: '💩', scale: 3 },
+        { id: 'pain', name: '疼痛', icon: '😖', scale: 10 }  // 0-10 量表
     ],
     
     /**
@@ -1445,6 +1445,50 @@ const PatientApp = {
     showAssessmentForm(editId = null) {
         const records = this.getAssessmentRecords();
         const existingRecord = editId ? records.find(r => r.id == editId) : null;
+        
+        // 生成症狀表單 HTML
+        const symptomsHtml = this.SYMPTOM_ITEMS.map(item => {
+            const currentLevel = existingRecord?.symptoms[item.id] ?? 0;
+            
+            // 疼痛使用 0-10 滑桿
+            if (item.id === 'pain') {
+                return `
+                    <div class="symptom-item symptom-pain-item" data-symptom="${item.id}">
+                        <div class="symptom-item-header">
+                            <span class="symptom-name">${item.icon} ${item.name}</span>
+                            <span class="pain-display" id="pain-display">${currentLevel}/10</span>
+                        </div>
+                        <div class="pain-slider-container">
+                            <input type="range" 
+                                   id="pain-slider-input" 
+                                   class="pain-slider-input"
+                                   min="0" max="10" 
+                                   value="${currentLevel}"
+                                   oninput="document.getElementById('pain-display').textContent = this.value + '/10'">
+                            <div class="pain-scale-labels">
+                                <span>0 無痛</span>
+                                <span>10 劇痛</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // 其他症狀使用 0-3 按鈕
+            return `
+                <div class="symptom-item" data-symptom="${item.id}">
+                    <div class="symptom-item-header">
+                        <span class="symptom-name">${item.icon} ${item.name}</span>
+                    </div>
+                    <div class="severity-buttons">
+                        <button class="severity-btn ${currentLevel === 0 ? 'active' : ''}" data-level="0" title="無">無</button>
+                        <button class="severity-btn ${currentLevel === 1 ? 'active' : ''}" data-level="1" title="輕微">輕</button>
+                        <button class="severity-btn ${currentLevel === 2 ? 'active' : ''}" data-level="2" title="中等">中</button>
+                        <button class="severity-btn ${currentLevel === 3 ? 'active' : ''}" data-level="3" title="嚴重">重</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
         
         const modal = document.createElement('div');
         modal.className = 'assessment-modal';
@@ -1455,22 +1499,7 @@ const PatientApp = {
                     請點選每個症狀的嚴重程度
                 </p>
                 
-                ${this.SYMPTOM_ITEMS.map(item => {
-                    const currentLevel = existingRecord?.symptoms[item.id] ?? 0;
-                    return `
-                        <div class="symptom-item" data-symptom="${item.id}">
-                            <div class="symptom-item-header">
-                                <span class="symptom-name">${item.icon} ${item.name}</span>
-                            </div>
-                            <div class="severity-buttons">
-                                <button class="severity-btn ${currentLevel === 0 ? 'active' : ''}" data-level="0" title="無">無</button>
-                                <button class="severity-btn ${currentLevel === 1 ? 'active' : ''}" data-level="1" title="輕微">輕</button>
-                                <button class="severity-btn ${currentLevel === 2 ? 'active' : ''}" data-level="2" title="中等">中</button>
-                                <button class="severity-btn ${currentLevel === 3 ? 'active' : ''}" data-level="3" title="嚴重">重</button>
-                            </div>
-                        </div>
-                    `;
-                }).join('')}
+                ${symptomsHtml}
                 
                 <div class="assessment-modal-buttons">
                     <button class="btn btn-outline" onclick="this.closest('.assessment-modal').remove()">取消</button>
@@ -1481,7 +1510,7 @@ const PatientApp = {
         
         document.body.appendChild(modal);
         
-        // 綁定嚴重程度按鈕事件
+        // 綁定嚴重程度按鈕事件（僅限 0-3 量表）
         modal.querySelectorAll('.severity-btn').forEach(btn => {
             btn.onclick = () => {
                 const parent = btn.closest('.symptom-item');
@@ -1503,13 +1532,22 @@ const PatientApp = {
         const symptoms = {};
         let hasSymptom = false;
         
-        modal.querySelectorAll('.symptom-item').forEach(item => {
+        // 收集 0-3 量表症狀
+        modal.querySelectorAll('.symptom-item:not(.symptom-pain-item)').forEach(item => {
             const symptomId = item.dataset.symptom;
             const activeBtn = item.querySelector('.severity-btn.active');
             const level = activeBtn ? parseInt(activeBtn.dataset.level) : 0;
             symptoms[symptomId] = level;
             if (level > 0) hasSymptom = true;
         });
+        
+        // 收集疼痛 0-10 量表
+        const painSlider = modal.querySelector('#pain-slider-input');
+        if (painSlider) {
+            const painLevel = parseInt(painSlider.value);
+            symptoms['pain'] = painLevel;
+            if (painLevel > 0) hasSymptom = true;
+        }
         
         const records = this.getAssessmentRecords();
         const now = new Date();
@@ -1580,6 +1618,11 @@ const PatientApp = {
                 .filter(item => r.symptoms[item.id] > 0)
                 .map(item => {
                     const level = r.symptoms[item.id];
+                    // 疼痛使用 0-10 顯示
+                    if (item.id === 'pain') {
+                        const painClass = level <= 3 ? 'severity-1' : (level <= 6 ? 'severity-2' : 'severity-3');
+                        return `<span class="symptom-tag ${painClass}">${item.icon} ${level}/10</span>`;
+                    }
                     return `<span class="symptom-tag severity-${level}">${item.icon} ${item.name}</span>`;
                 })
                 .join('');

@@ -1545,6 +1545,71 @@ body {
     background: #D97B7B;
 }
 
+/* 疼痛 0-10 量表（病人端） */
+.symptom-pain-item {
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.symptom-pain-item .symptom-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-sm);
+}
+
+.pain-display {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--primary);
+}
+
+.pain-slider-container {
+    padding: 0 var(--space-sm);
+}
+
+.pain-slider-input {
+    width: 100%;
+    height: 10px;
+    border-radius: 5px;
+    background: linear-gradient(to right, 
+        #6BBF8A 0%, #6BBF8A 30%, 
+        #E4B95A 30%, #E4B95A 60%, 
+        #D97B7B 60%, #D97B7B 100%);
+    -webkit-appearance: none;
+    appearance: none;
+    cursor: pointer;
+}
+
+.pain-slider-input::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: white;
+    border: 3px solid var(--primary);
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+.pain-slider-input::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: white;
+    border: 3px solid var(--primary);
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+.pain-scale-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 4px;
+    font-size: 11px;
+    color: var(--text-hint);
+}
+
 .assessment-modal-buttons {
     display: flex;
     gap: 12px;

@@ -4,24 +4,44 @@
  */
 
 const SideEffect = {
-    // 症狀定義
+    // 症狀定義（疼痛使用 0-10 量表，其他使用 0-3）
     SYMPTOMS: {
-        'N': { code: 'N', name: '噁心嘔吐', icon: '🤢' },
-        'F': { code: 'F', name: '疲勞', icon: '😴' },
-        'O': { code: 'O', name: '口腔黏膜炎', icon: '👄' },
-        'S': { code: 'S', name: '皮膚反應', icon: '🔴' },
-        'W': { code: 'W', name: '吞嚥困難', icon: '😣' },
-        'A': { code: 'A', name: '食慾下降', icon: '🍽️' },
-        'D': { code: 'D', name: '腹瀉', icon: '💩' },
-        'P': { code: 'P', name: '疼痛', icon: '😖' }
+        'N': { code: 'N', name: '噁心嘔吐', icon: '🤢', scale: 3 },
+        'F': { code: 'F', name: '疲勞', icon: '😴', scale: 3 },
+        'O': { code: 'O', name: '口腔黏膜炎', icon: '👄', scale: 3 },
+        'S': { code: 'S', name: '皮膚反應', icon: '🔴', scale: 3 },
+        'W': { code: 'W', name: '吞嚥困難', icon: '😣', scale: 3 },
+        'A': { code: 'A', name: '食慾下降', icon: '🍽️', scale: 3 },
+        'D': { code: 'D', name: '腹瀉', icon: '💩', scale: 3 },
+        'P': { code: 'P', name: '疼痛', icon: '😖', scale: 10 }  // 0-10 量表
     },
     
-    // 嚴重程度定義
+    // 嚴重程度定義（0-3 量表）
     SEVERITY: {
         0: { level: 0, name: '無', class: 'normal' },
         1: { level: 1, name: '輕微', class: 'mild' },
         2: { level: 2, name: '中等', class: 'moderate' },
         3: { level: 3, name: '嚴重', class: 'severe' }
+    },
+    
+    /**
+     * 取得疼痛等級 class
+     */
+    getPainClass(level) {
+        if (level === 0) return 'normal';
+        if (level <= 3) return 'mild';
+        if (level <= 6) return 'moderate';
+        return 'severe';
+    },
+    
+    /**
+     * 取得疼痛等級名稱
+     */
+    getPainName(level) {
+        if (level === 0) return '無';
+        if (level <= 3) return '輕微';
+        if (level <= 6) return '中等';
+        return '嚴重';
     },
     
     /**
@@ -85,9 +105,14 @@ const SideEffect = {
         return symptoms
             .filter(s => s.level > 0)
             .map(s => {
-                const symptom = this.SYMPTOMS[s.code] || { name: s.code, icon: '❓' };
-                const severity = this.SEVERITY[s.level] || { name: s.level };
-                return `${symptom.icon} ${symptom.name}(${severity.name})`;
+                const symptom = this.SYMPTOMS[s.code] || { name: s.code, icon: '❓', scale: 3 };
+                // 疼痛使用 0-10，其他使用 0-3
+                if (s.code === 'P') {
+                    return `${symptom.icon} ${symptom.name}(${s.level}/10)`;
+                } else {
+                    const severity = this.SEVERITY[s.level] || { name: s.level };
+                    return `${symptom.icon} ${symptom.name}(${severity.name})`;
+                }
             })
             .join('、');
     },
@@ -103,19 +128,36 @@ const SideEffect = {
         return symptoms
             .filter(s => s.level > 0)
             .map(s => {
-                const symptom = this.SYMPTOMS[s.code] || { name: s.code, icon: '❓' };
-                const severity = this.SEVERITY[s.level] || { name: s.level, class: 'unknown' };
-                return `<span class="side-effect-tag ${severity.class}">${symptom.icon} ${symptom.name}</span>`;
+                const symptom = this.SYMPTOMS[s.code] || { name: s.code, icon: '❓', scale: 3 };
+                // 疼痛使用 0-10 量表
+                if (s.code === 'P') {
+                    const painClass = this.getPainClass(s.level);
+                    return `<span class="side-effect-tag ${painClass}">${symptom.icon} ${s.level}/10</span>`;
+                } else {
+                    const severity = this.SEVERITY[s.level] || { name: s.level, class: 'unknown' };
+                    return `<span class="side-effect-tag ${severity.class}">${symptom.icon} ${symptom.name}</span>`;
+                }
             })
             .join('');
     },
     
     /**
-     * 取得最嚴重的症狀等級
+     * 取得最嚴重的症狀等級（標準化為 0-3）
      */
     getMaxSeverity(symptoms) {
         if (!symptoms || symptoms.length === 0) return 0;
-        return Math.max(...symptoms.map(s => s.level || 0));
+        
+        let maxLevel = 0;
+        symptoms.forEach(s => {
+            if (s.code === 'P') {
+                // 疼痛 0-10 轉換為 0-3
+                const normalized = s.level === 0 ? 0 : (s.level <= 3 ? 1 : (s.level <= 6 ? 2 : 3));
+                maxLevel = Math.max(maxLevel, normalized);
+            } else {
+                maxLevel = Math.max(maxLevel, s.level || 0);
+            }
+        });
+        return maxLevel;
     },
     
     /**
@@ -229,6 +271,33 @@ const SideEffect = {
         
         const symptomsHtml = Object.entries(this.SYMPTOMS).map(([code, info]) => {
             const currentLevel = symptomLevels[code];
+            
+            // 疼痛使用 0-10 量表
+            if (code === 'P') {
+                return `
+                    <div class="symptom-form-item symptom-pain">
+                        <div class="symptom-form-label">
+                            <span>${info.icon}</span>
+                            <span>${info.name}</span>
+                        </div>
+                        <div class="pain-scale">
+                            <input type="range" 
+                                   id="pain-slider" 
+                                   min="0" max="10" 
+                                   value="${currentLevel}"
+                                   class="pain-slider"
+                                   oninput="document.getElementById('pain-value').textContent = this.value">
+                            <div class="pain-labels">
+                                <span>0</span>
+                                <span id="pain-value" class="pain-current">${currentLevel}</span>
+                                <span>10</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // 其他症狀使用 0-3 量表
             return `
                 <div class="symptom-form-item">
                     <div class="symptom-form-label">
@@ -304,11 +373,19 @@ const SideEffect = {
         
         // 收集症狀資料
         const symptoms = [];
+        
+        // 收集 0-3 量表症狀
         document.querySelectorAll('.severity-select-btn.active').forEach(btn => {
             const code = btn.dataset.code;
             const level = parseInt(btn.dataset.level);
             symptoms.push({ code, level });
         });
+        
+        // 收集疼痛 0-10 量表
+        const painSlider = document.getElementById('pain-slider');
+        if (painSlider) {
+            symptoms.push({ code: 'P', level: parseInt(painSlider.value) });
+        }
         
         try {
             if (recordId) {
