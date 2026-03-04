@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1a1a2e">
     <title>彰濱秀傳放射腫瘤科病人體重自我回報系統</title>
-    <link rel="stylesheet" href="css/patient.css?v=2.0">
+    <link rel="stylesheet" href="css/patient.css?v=2.1">
     <link rel="manifest" href="manifest.json">
 </head>
 <body>
@@ -36,7 +36,10 @@
             <header class="header">
                 <div class="header-title">
                     <span class="hospital-icon">🏥</span>
-                    體重回報
+                    <div class="header-text">
+                        <span class="header-main">彰濱秀傳放射腫瘤科</span>
+                        <span class="header-sub">病人體重自我回報系統</span>
+                    </div>
                 </div>
                 <button class="btn-icon" id="btn-settings">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -226,6 +229,53 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- ===== 副作用自我評估頁籤 ===== -->
+                <div id="tab-sideeffect" class="tab-panel">
+                    <div class="sideeffect-content">
+                        <h2 class="section-title">📋 副作用自我評估</h2>
+                        <p class="sideeffect-hint">記錄您的症狀，幫助醫護人員了解您的狀況</p>
+                        
+                        <!-- 新增評估按鈕 -->
+                        <button class="btn btn-primary btn-lg btn-block" id="btn-new-assessment" style="margin-bottom: 20px;">
+                            ➕ 新增今日評估
+                        </button>
+                        
+                        <!-- 評估記錄列表 -->
+                        <div class="assessment-records-section">
+                            <div class="section-header">
+                                <h3>📊 評估記錄</h3>
+                                <span class="record-count" id="assessment-record-count">0 筆</span>
+                            </div>
+                            <div class="assessment-records-list" id="assessment-records-list">
+                                <div class="empty-hint">尚無評估記錄<br>點擊上方按鈕開始記錄</div>
+                            </div>
+                        </div>
+                        
+                        <!-- 評估項目說明 -->
+                        <div class="assessment-legend">
+                            <h3>📖 嚴重程度說明</h3>
+                            <div class="legend-items">
+                                <div class="legend-item">
+                                    <span class="severity-dot severity-0"></span>
+                                    <span>無症狀</span>
+                                </div>
+                                <div class="legend-item">
+                                    <span class="severity-dot severity-1"></span>
+                                    <span>輕微 - 不影響日常</span>
+                                </div>
+                                <div class="legend-item">
+                                    <span class="severity-dot severity-2"></span>
+                                    <span>中等 - 稍微影響日常</span>
+                                </div>
+                                <div class="legend-item">
+                                    <span class="severity-dot severity-3"></span>
+                                    <span>嚴重 - 明顯影響日常</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- 底部分頁導航 -->
@@ -234,13 +284,17 @@
                     <span class="tab-icon">⚖️</span>
                     <span class="tab-label">體重</span>
                 </button>
-                <button class="tab-btn" data-tab="education">
-                    <span class="tab-icon">📚</span>
-                    <span class="tab-label">衛教</span>
+                <button class="tab-btn" data-tab="sideeffect">
+                    <span class="tab-icon">📋</span>
+                    <span class="tab-label">副作用</span>
                 </button>
                 <button class="tab-btn" data-tab="nutrition">
                     <span class="tab-icon">🍱</span>
-                    <span class="tab-label">營養諮詢</span>
+                    <span class="tab-label">飲食</span>
+                </button>
+                <button class="tab-btn" data-tab="education">
+                    <span class="tab-icon">📚</span>
+                    <span class="tab-label">衛教</span>
                 </button>
             </nav>
         </div>
@@ -379,7 +433,7 @@
                     </div>
                     
                     <div class="settings-footer">
-                        <p>彰濱秀傳放射腫瘤科<br>病人體重自我回報系統 v2.0</p>
+                        <p>彰濱秀傳放射腫瘤科<br>病人體重自我回報系統 v2.1</p>
                     </div>
                 </div>
             </div>
@@ -405,6 +459,6 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     
     <!-- 應用程式 -->
-    <script src="js/patient-app.js?v=2.0"></script>
+    <script src="js/patient-app.js?v=2.1"></script>
 </body>
 </html>

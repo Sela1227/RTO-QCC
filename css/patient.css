@@ -116,12 +116,26 @@ body {
     display: flex;
     align-items: center;
     gap: var(--space-sm);
-    font-size: 18px;
+}
+
+.header-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.header-main {
+    font-size: 14px;
     font-weight: 600;
+    color: var(--text);
+}
+
+.header-sub {
+    font-size: 11px;
+    color: var(--text-secondary);
 }
 
 .hospital-icon {
-    font-size: 24px;
+    font-size: 28px;
 }
 
 /* === 病人資訊卡 === */
@@ -1270,5 +1284,257 @@ body {
 }
 
 .note-input-buttons .btn {
+    flex: 1;
+}
+
+/* === 副作用自我評估 === */
+.sideeffect-content {
+    padding: var(--space-md);
+}
+
+.sideeffect-hint {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin-bottom: var(--space-lg);
+}
+
+.assessment-records-section {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+    margin-bottom: var(--space-lg);
+}
+
+.assessment-records-section .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-md);
+}
+
+.assessment-records-section h3 {
+    font-size: 15px;
+    margin: 0;
+}
+
+.assessment-records-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.assessment-records-list .empty-hint {
+    text-align: center;
+    color: var(--text-hint);
+    padding: var(--space-xl);
+    line-height: 1.6;
+}
+
+.assessment-record-item {
+    background: var(--bg);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    margin-bottom: var(--space-sm);
+}
+
+.assessment-record-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-sm);
+}
+
+.assessment-record-date {
+    font-weight: 500;
+    color: var(--text);
+}
+
+.assessment-record-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.assessment-record-symptoms {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.symptom-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    background: var(--bg-card);
+}
+
+.symptom-tag.severity-0 {
+    opacity: 0.5;
+}
+
+.symptom-tag.severity-1 {
+    background: rgba(107, 191, 138, 0.2);
+    color: #6BBF8A;
+}
+
+.symptom-tag.severity-2 {
+    background: rgba(228, 185, 90, 0.2);
+    color: #E4B95A;
+}
+
+.symptom-tag.severity-3 {
+    background: rgba(217, 123, 123, 0.2);
+    color: #D97B7B;
+}
+
+/* 嚴重程度說明 */
+.assessment-legend {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+}
+
+.assessment-legend h3 {
+    font-size: 14px;
+    margin-bottom: var(--space-md);
+    color: var(--text);
+}
+
+.legend-items {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.severity-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+}
+
+.severity-dot.severity-0 {
+    background: var(--text-hint);
+}
+
+.severity-dot.severity-1 {
+    background: #6BBF8A;
+}
+
+.severity-dot.severity-2 {
+    background: #E4B95A;
+}
+
+.severity-dot.severity-3 {
+    background: #D97B7B;
+}
+
+/* 評估表單 Modal */
+.assessment-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    z-index: 10000;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.assessment-modal-content {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: var(--space-xl);
+    width: 100%;
+    max-width: 400px;
+    margin: 20px 0;
+}
+
+.assessment-modal-content h3 {
+    margin-bottom: var(--space-lg);
+    text-align: center;
+}
+
+.symptom-item {
+    background: var(--bg);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    margin-bottom: var(--space-sm);
+}
+
+.symptom-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-sm);
+}
+
+.symptom-name {
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.severity-buttons {
+    display: flex;
+    gap: 6px;
+}
+
+.severity-btn {
+    width: 36px;
+    height: 36px;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-hint);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.severity-btn:hover {
+    border-color: var(--primary);
+}
+
+.severity-btn.active {
+    border-color: transparent;
+    color: white;
+}
+
+.severity-btn.active[data-level="0"] {
+    background: var(--text-hint);
+}
+
+.severity-btn.active[data-level="1"] {
+    background: #6BBF8A;
+}
+
+.severity-btn.active[data-level="2"] {
+    background: #E4B95A;
+}
+
+.severity-btn.active[data-level="3"] {
+    background: #D97B7B;
+}
+
+.assessment-modal-buttons {
+    display: flex;
+    gap: 12px;
+    margin-top: var(--space-lg);
+}
+
+.assessment-modal-buttons .btn {
     flex: 1;
 }

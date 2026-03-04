@@ -96,6 +96,9 @@ const PatientApp = {
         document.getElementById('btn-take-photo').onclick = () => this.takePhoto();
         document.getElementById('btn-choose-photo').onclick = () => this.choosePhoto();
         document.getElementById('food-photo-input').onchange = (e) => this.handlePhotoSelected(e);
+        
+        // 副作用評估
+        document.getElementById('btn-new-assessment').onclick = () => this.showAssessmentForm();
     },
     
     /**
@@ -115,6 +118,11 @@ const PatientApp = {
         // 切換到營養諮詢時刷新列表
         if (tabName === 'nutrition') {
             this.renderFoodRecords();
+        }
+        
+        // 切換到副作用頁籤時刷新列表
+        if (tabName === 'sideeffect') {
+            this.renderAssessmentRecords();
         }
     },
     
@@ -1375,6 +1383,199 @@ const PatientApp = {
         records = records.filter(r => r.id != id);
         localStorage.setItem(this.FOOD_STORAGE_KEY, JSON.stringify(records));
         this.renderFoodRecords();
+        this.showToast('已刪除', 'success');
+    },
+    
+    // ========== 副作用自我評估功能 ==========
+    
+    ASSESSMENT_STORAGE_KEY: 'sela_assessment_records',
+    
+    // 評估項目定義
+    SYMPTOM_ITEMS: [
+        { id: 'nausea', name: '噁心/嘔吐', icon: '🤢' },
+        { id: 'fatigue', name: '疲勞', icon: '😴' },
+        { id: 'oral', name: '口腔黏膜炎', icon: '👄' },
+        { id: 'skin', name: '皮膚反應', icon: '🔴' },
+        { id: 'swallow', name: '吞嚥困難', icon: '😣' },
+        { id: 'appetite', name: '食慾下降', icon: '🍽️' },
+        { id: 'diarrhea', name: '腹瀉', icon: '💩' },
+        { id: 'pain', name: '疼痛', icon: '😖' }
+    ],
+    
+    /**
+     * 顯示評估表單
+     */
+    showAssessmentForm(editId = null) {
+        const records = this.getAssessmentRecords();
+        const existingRecord = editId ? records.find(r => r.id == editId) : null;
+        
+        const modal = document.createElement('div');
+        modal.className = 'assessment-modal';
+        modal.innerHTML = `
+            <div class="assessment-modal-content">
+                <h3>${editId ? '編輯評估' : '📋 今日副作用評估'}</h3>
+                <p style="text-align: center; color: var(--text-secondary); font-size: 13px; margin-bottom: 16px;">
+                    請點選每個症狀的嚴重程度
+                </p>
+                
+                ${this.SYMPTOM_ITEMS.map(item => {
+                    const currentLevel = existingRecord?.symptoms[item.id] ?? 0;
+                    return `
+                        <div class="symptom-item" data-symptom="${item.id}">
+                            <div class="symptom-item-header">
+                                <span class="symptom-name">${item.icon} ${item.name}</span>
+                            </div>
+                            <div class="severity-buttons">
+                                <button class="severity-btn ${currentLevel === 0 ? 'active' : ''}" data-level="0" title="無">無</button>
+                                <button class="severity-btn ${currentLevel === 1 ? 'active' : ''}" data-level="1" title="輕微">輕</button>
+                                <button class="severity-btn ${currentLevel === 2 ? 'active' : ''}" data-level="2" title="中等">中</button>
+                                <button class="severity-btn ${currentLevel === 3 ? 'active' : ''}" data-level="3" title="嚴重">重</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+                
+                <div class="assessment-modal-buttons">
+                    <button class="btn btn-outline" onclick="this.closest('.assessment-modal').remove()">取消</button>
+                    <button class="btn btn-primary" id="btn-save-assessment">儲存</button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // 綁定嚴重程度按鈕事件
+        modal.querySelectorAll('.severity-btn').forEach(btn => {
+            btn.onclick = () => {
+                const parent = btn.closest('.symptom-item');
+                parent.querySelectorAll('.severity-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            };
+        });
+        
+        // 儲存按鈕
+        document.getElementById('btn-save-assessment').onclick = () => {
+            this.saveAssessment(modal, editId);
+        };
+    },
+    
+    /**
+     * 儲存評估
+     */
+    saveAssessment(modal, editId) {
+        const symptoms = {};
+        let hasSymptom = false;
+        
+        modal.querySelectorAll('.symptom-item').forEach(item => {
+            const symptomId = item.dataset.symptom;
+            const activeBtn = item.querySelector('.severity-btn.active');
+            const level = activeBtn ? parseInt(activeBtn.dataset.level) : 0;
+            symptoms[symptomId] = level;
+            if (level > 0) hasSymptom = true;
+        });
+        
+        const records = this.getAssessmentRecords();
+        const now = new Date();
+        
+        if (editId) {
+            // 編輯現有記錄
+            const record = records.find(r => r.id == editId);
+            if (record) {
+                record.symptoms = symptoms;
+                record.updatedAt = now.toISOString();
+            }
+        } else {
+            // 新增記錄
+            records.push({
+                id: Date.now(),
+                date: now.toISOString().split('T')[0],
+                time: now.toTimeString().substring(0, 5),
+                symptoms: symptoms,
+                createdAt: now.toISOString()
+            });
+        }
+        
+        // 最多保留 100 筆
+        while (records.length > 100) {
+            records.shift();
+        }
+        
+        localStorage.setItem(this.ASSESSMENT_STORAGE_KEY, JSON.stringify(records));
+        modal.remove();
+        this.renderAssessmentRecords();
+        this.showToast(editId ? '評估已更新' : '評估已記錄', 'success');
+    },
+    
+    /**
+     * 取得評估記錄
+     */
+    getAssessmentRecords() {
+        try {
+            return JSON.parse(localStorage.getItem(this.ASSESSMENT_STORAGE_KEY) || '[]');
+        } catch {
+            return [];
+        }
+    },
+    
+    /**
+     * 渲染評估記錄列表
+     */
+    renderAssessmentRecords() {
+        const container = document.getElementById('assessment-records-list');
+        const countEl = document.getElementById('assessment-record-count');
+        const records = this.getAssessmentRecords();
+        
+        countEl.textContent = `${records.length} 筆`;
+        
+        if (records.length === 0) {
+            container.innerHTML = '<div class="empty-hint">尚無評估記錄<br>點擊上方按鈕開始記錄</div>';
+            return;
+        }
+        
+        // 按日期倒序
+        const sorted = [...records].sort((a, b) => 
+            new Date(b.createdAt || `${b.date}T${b.time}`) - new Date(a.createdAt || `${a.date}T${a.time}`)
+        );
+        
+        container.innerHTML = sorted.map(r => {
+            // 生成症狀標籤
+            const symptomTags = this.SYMPTOM_ITEMS
+                .filter(item => r.symptoms[item.id] > 0)
+                .map(item => {
+                    const level = r.symptoms[item.id];
+                    return `<span class="symptom-tag severity-${level}">${item.icon} ${item.name}</span>`;
+                })
+                .join('');
+            
+            const noSymptoms = !symptomTags ? '<span class="symptom-tag severity-0">無明顯症狀</span>' : '';
+            
+            return `
+                <div class="assessment-record-item" data-id="${r.id}">
+                    <div class="assessment-record-header">
+                        <span class="assessment-record-date">${this.formatDate(r.date)} ${r.time}</span>
+                        <div class="assessment-record-actions">
+                            <button class="btn-mini" onclick="PatientApp.showAssessmentForm('${r.id}')" title="編輯">✎</button>
+                            <button class="btn-mini btn-mini-danger" onclick="PatientApp.deleteAssessment('${r.id}')" title="刪除">✕</button>
+                        </div>
+                    </div>
+                    <div class="assessment-record-symptoms">
+                        ${symptomTags}${noSymptoms}
+                    </div>
+                </div>
+            `;
+        }).join('');
+    },
+    
+    /**
+     * 刪除評估記錄
+     */
+    deleteAssessment(id) {
+        if (!confirm('確定要刪除這筆評估記錄嗎？')) return;
+        
+        let records = this.getAssessmentRecords();
+        records = records.filter(r => r.id != id);
+        localStorage.setItem(this.ASSESSMENT_STORAGE_KEY, JSON.stringify(records));
+        this.renderAssessmentRecords();
         this.showToast('已刪除', 'success');
     }
 };
