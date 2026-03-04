@@ -493,10 +493,10 @@ const PatientApp = {
             <div class="chart-container">
                 <canvas id="weight-chart"></canvas>
             </div>
-            <div class="chart-legend" style="display: flex; justify-content: center; gap: 16px; margin-top: 12px; font-size: 12px;">
-                <span style="color: #6BBF8A;">━ 基準 ${baseline} kg</span>
-                <span style="color: #E4B95A;">╴╴ -3% SDM (${sdmLine.toFixed(1)} kg)</span>
-                <span style="color: #D97B7B;">╴╴ -5% 營養師 (${nutLine.toFixed(1)} kg)</span>
+            <div class="chart-legend">
+                <span class="legend-item" style="color: #6BBF8A;">━ 基準 ${baseline}kg</span>
+                <span class="legend-item" style="color: #E4B95A;">╴ -3% ${sdmLine.toFixed(1)}kg</span>
+                <span class="legend-item" style="color: #D97B7B;">╴ -5% ${nutLine.toFixed(1)}kg</span>
             </div>
         `;
         
@@ -645,45 +645,82 @@ const PatientApp = {
         if (rate <= this.data.nutrition_threshold) {
             banner.style.display = 'flex';
             banner.className = 'alert-banner';
-            message.textContent = `您的體重已下降 ${Math.abs(rate).toFixed(1)}%，建議儘快回診諮詢`;
+            message.textContent = `體重下降 ${Math.abs(rate).toFixed(1)}%，建議回診諮詢營養師`;
         } else if (rate <= this.data.sdm_threshold) {
             banner.style.display = 'flex';
             banner.className = 'alert-banner warning';
-            message.textContent = `您的體重已下降 ${Math.abs(rate).toFixed(1)}%，請注意飲食攝取`;
+            message.textContent = `體重下降 ${Math.abs(rate).toFixed(1)}%，建議與醫護討論飲食`;
         } else {
             banner.style.display = 'none';
         }
     },
     
     /**
-     * 生成回傳 QR Code
+     * 生成回傳 QR Code（包含體重和副作用評估）
      */
     generateQRCode() {
-        if (!this.data || this.data.records.length === 0) {
-            this.showToast('尚無體重記錄可回傳', 'error');
+        const weightRecords = this.data?.records || [];
+        const assessmentRecords = this.getAssessmentRecords();
+        
+        if (weightRecords.length === 0 && assessmentRecords.length === 0) {
+            this.showToast('尚無資料可回傳', 'error');
             return;
         }
         
-        // 準備資料（精簡格式）
-        // 格式：S|病歷號|療程開始|MMDD:體重,MMDD:體重,...
-        const records = this.data.records.map(r => {
-            const d = new Date(r.date);
-            const mm = String(d.getMonth() + 1).padStart(2, '0');
-            const dd = String(d.getDate()).padStart(2, '0');
-            return `${mm}${dd}:${r.weight}`;
-        });
+        // === 準備體重資料 ===
+        // 格式：MMDD:體重,MMDD:體重,...
+        const weightData = weightRecords
+            .slice(-45) // 最多 45 筆
+            .map(r => {
+                const d = new Date(r.date);
+                const mm = String(d.getMonth() + 1).padStart(2, '0');
+                const dd = String(d.getDate()).padStart(2, '0');
+                return `${mm}${dd}:${r.weight}`;
+            })
+            .join(',');
         
-        // 限制最多 30 筆（確保 QR Code 容量足夠）
-        const limitedRecords = records.slice(-30);
+        // === 準備副作用評估資料 ===
+        // 格式：MMDD:症狀碼嚴重度,...
+        // 症狀碼：N(噁心)F(疲勞)O(口腔)S(皮膚)W(吞嚥)A(食慾)D(腹瀉)P(疼痛)
+        const symptomCodes = {
+            nausea: 'N', fatigue: 'F', oral: 'O', skin: 'S',
+            swallow: 'W', appetite: 'A', diarrhea: 'D', pain: 'P'
+        };
         
-        const payload = `S|${this.data.patient_id}|${this.data.treatment_start}|${limitedRecords.join(',')}`;
+        const assessmentData = assessmentRecords
+            .slice(-45) // 最多 45 筆
+            .map(r => {
+                const d = new Date(r.date);
+                const mm = String(d.getMonth() + 1).padStart(2, '0');
+                const dd = String(d.getDate()).padStart(2, '0');
+                
+                // 只記錄有症狀的項目
+                const symptoms = Object.entries(r.symptoms)
+                    .filter(([_, level]) => level > 0)
+                    .map(([id, level]) => `${symptomCodes[id] || id[0].toUpperCase()}${level}`)
+                    .join('');
+                
+                return symptoms ? `${mm}${dd}:${symptoms}` : null;
+            })
+            .filter(Boolean)
+            .join(',');
+        
+        // === 組合 payload ===
+        // 格式：S|病歷號|開始日期|體重資料|副作用資料
+        let payload = `S|${this.data.patient_id}|${this.data.treatment_start}`;
+        payload += `|${weightData}`;
+        payload += `|${assessmentData}`;
         
         // 使用 QR Server API 生成 QR Code
         const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(payload)}`;
         
         // 顯示 QR Code
         this.showScreen('qr-display-screen');
-        document.getElementById('qr-info').textContent = `共 ${limitedRecords.length} 筆體重記錄`;
+        
+        const infoLines = [];
+        if (weightRecords.length > 0) infoLines.push(`體重 ${Math.min(weightRecords.length, 45)} 筆`);
+        if (assessmentRecords.length > 0) infoLines.push(`副作用評估 ${Math.min(assessmentRecords.length, 45)} 筆`);
+        document.getElementById('qr-info').textContent = infoLines.join('、');
         
         const container = document.getElementById('qr-canvas-container');
         container.innerHTML = `<img src="${qrUrl}" alt="QR Code" style="display: block;">`;

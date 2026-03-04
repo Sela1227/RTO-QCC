@@ -1,6 +1,6 @@
 /**
  * 彰濱放腫體重監控預防系統 - 主程式
- * v5.1 Web 版
+ * v5.3 Web 版
  */
 
 const App = {
@@ -1121,7 +1121,7 @@ const App = {
         const recordsStr = weightRecords
             .filter(r => r.weight) // 過濾無法量測的
             .sort((a, b) => new Date(a.measure_date) - new Date(b.measure_date))
-            .slice(-30) // 最多30筆
+            .slice(-45) // 最多45筆
             .map(r => {
                 const d = new Date(r.measure_date);
                 const mm = String(d.getMonth() + 1).padStart(2, '0');
@@ -1369,21 +1369,56 @@ const App = {
      */
     async processPatientQRData(text, treatmentId) {
         try {
-            let pid, ts, records = [];
+            let pid, ts, weightRecords = [], assessmentRecords = [];
             
-            // 檢查是否為新的精簡格式：S|病歷號|療程開始|MMDD:體重,MMDD:體重,...
+            // 檢查是否為新的精簡格式：S|病歷號|療程開始|體重資料|副作用資料
             if (text.startsWith('S|')) {
                 const parts = text.split('|');
                 if (parts.length >= 4) {
                     pid = parts[1];
                     ts = parts[2];
-                    // 解析體重記錄
-                    const recordStr = parts[3];
-                    if (recordStr) {
-                        records = recordStr.split(',').map(r => {
+                    
+                    // 解析體重記錄 (parts[3])
+                    const weightStr = parts[3];
+                    if (weightStr) {
+                        weightRecords = weightStr.split(',').map(r => {
                             const [mmdd, weight] = r.split(':');
                             return { mmdd, weight: parseFloat(weight) };
-                        });
+                        }).filter(r => r.weight);
+                    }
+                    
+                    // 解析副作用評估 (parts[4])
+                    // 格式：MMDD:症狀碼嚴重度,...
+                    // 例如：0301:N1F2P1,0305:N2F3
+                    const assessmentStr = parts[4];
+                    if (assessmentStr) {
+                        const symptomNames = {
+                            'N': '噁心嘔吐', 'F': '疲勞', 'O': '口腔黏膜炎', 'S': '皮膚反應',
+                            'W': '吞嚥困難', 'A': '食慾下降', 'D': '腹瀉', 'P': '疼痛'
+                        };
+                        const severityNames = ['無', '輕微', '中等', '嚴重'];
+                        
+                        assessmentRecords = assessmentStr.split(',').map(r => {
+                            const [mmdd, symptoms] = r.split(':');
+                            if (!mmdd || !symptoms) return null;
+                            
+                            // 解析症狀碼：N1F2P1 -> [{code:'N',level:1}, ...]
+                            const parsedSymptoms = [];
+                            for (let i = 0; i < symptoms.length; i += 2) {
+                                const code = symptoms[i];
+                                const level = parseInt(symptoms[i + 1]) || 0;
+                                if (code && level > 0) {
+                                    parsedSymptoms.push({
+                                        code,
+                                        name: symptomNames[code] || code,
+                                        level,
+                                        levelName: severityNames[level] || level
+                                    });
+                                }
+                            }
+                            
+                            return { mmdd, symptoms: parsedSymptoms };
+                        }).filter(Boolean);
                     }
                 } else {
                     showToast('QR Code 格式不正確', 'error');
@@ -1398,7 +1433,7 @@ const App = {
                 }
                 pid = data.pid;
                 ts = data.ts;
-                records = (data.r || []).map(([mmdd, weight]) => ({ mmdd, weight }));
+                weightRecords = (data.r || []).map(([mmdd, weight]) => ({ mmdd, weight }));
             }
             
             const treatment = await Treatment.getById(treatmentId);
@@ -1421,27 +1456,54 @@ const App = {
             const existingDates = new Set(existingWeights.map(w => w.measure_date));
             
             // 匯入體重記錄
-            let addedCount = 0;
-            let skippedCount = 0;
+            let weightAdded = 0;
+            let weightSkipped = 0;
             const currentYear = new Date().getFullYear();
             
-            for (const { mmdd, weight } of records) {
-                // 轉換日期格式 MMDD -> YYYY-MM-DD
+            for (const { mmdd, weight } of weightRecords) {
                 const mm = mmdd.substring(0, 2);
                 const dd = mmdd.substring(2, 4);
                 const measureDate = `${currentYear}-${mm}-${dd}`;
                 
-                // 檢查是否已存在
                 if (existingDates.has(measureDate)) {
-                    skippedCount++;
+                    weightSkipped++;
                     continue;
                 }
                 
-                // 新增記錄（使用正確的參數格式）
                 await Weight.create(treatmentId, weight, measureDate);
-                
-                addedCount++;
+                weightAdded++;
                 existingDates.add(measureDate);
+            }
+            
+            // 匯入副作用評估（附加到體重記錄的 note 欄位）
+            let assessmentAdded = 0;
+            
+            for (const { mmdd, symptoms } of assessmentRecords) {
+                const mm = mmdd.substring(0, 2);
+                const dd = mmdd.substring(2, 4);
+                const measureDate = `${currentYear}-${mm}-${dd}`;
+                
+                // 找到對應日期的體重記錄
+                const allWeights = await Weight.getByTreatment(treatmentId);
+                const weightRecord = allWeights.find(w => w.measure_date === measureDate);
+                
+                if (weightRecord) {
+                    // 更新體重記錄，附加副作用資訊
+                    const sideEffectsText = symptoms.map(s => `${s.name}(${s.levelName})`).join('、');
+                    const existingNote = weightRecord.note || '';
+                    
+                    // 避免重複添加
+                    if (!existingNote.includes('副作用：')) {
+                        weightRecord.note = existingNote 
+                            ? `${existingNote}\n副作用：${sideEffectsText}`
+                            : `副作用：${sideEffectsText}`;
+                        weightRecord.side_effects = symptoms;
+                        
+                        // 使用 DB.update 直接更新
+                        await DB.update('weight_records', weightRecord);
+                        assessmentAdded++;
+                    }
+                }
             }
             
             closeModal();
@@ -1457,13 +1519,19 @@ const App = {
                             <span><strong>${patient.name}</strong></span>
                         </div>
                         <div class="detail-row">
-                            <span>新增</span>
-                            <span><strong>${addedCount}</strong> 筆</span>
+                            <span>體重新增</span>
+                            <span><strong>${weightAdded}</strong> 筆</span>
                         </div>
                         <div class="detail-row">
-                            <span>跳過（已存在）</span>
-                            <span>${skippedCount} 筆</span>
+                            <span>體重跳過（已存在）</span>
+                            <span>${weightSkipped} 筆</span>
                         </div>
+                        ${assessmentRecords.length > 0 ? `
+                        <div class="detail-row">
+                            <span>副作用評估</span>
+                            <span><strong>${assessmentAdded}</strong> 筆</span>
+                        </div>
+                        ` : ''}
                     </div>
                 </div>
             `;
