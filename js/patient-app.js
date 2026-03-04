@@ -286,17 +286,40 @@ const PatientApp = {
      */
     renderChart() {
         const canvas = document.getElementById('weight-chart');
+        const chartSection = canvas?.closest('.chart-section');
         const records = this.data.records || [];
         
         // 銷毀舊圖表
         if (this.chart) {
             this.chart.destroy();
+            this.chart = null;
         }
         
         if (records.length < 2) {
-            // 資料不足，不顯示圖表
+            // 資料不足，顯示提示
+            if (chartSection) {
+                chartSection.innerHTML = `
+                    <h2>體重趨勢</h2>
+                    <div class="chart-container" style="display: flex; align-items: center; justify-content: center; color: var(--text-hint);">
+                        需要至少 2 筆記錄才能顯示圖表
+                    </div>
+                `;
+            }
             return;
         }
+        
+        // 確保 canvas 存在
+        if (chartSection && !document.getElementById('weight-chart')) {
+            chartSection.innerHTML = `
+                <h2>體重趨勢</h2>
+                <div class="chart-container">
+                    <canvas id="weight-chart"></canvas>
+                </div>
+            `;
+        }
+        
+        const chartCanvas = document.getElementById('weight-chart');
+        if (!chartCanvas) return;
         
         // 按日期排序
         const sorted = [...records].sort((a, b) => 
@@ -309,7 +332,7 @@ const PatientApp = {
         const sdmLine = baseline * (1 + this.data.sdm_threshold / 100);
         const nutLine = baseline * (1 + this.data.nutrition_threshold / 100);
         
-        this.chart = new Chart(canvas, {
+        this.chart = new Chart(chartCanvas, {
             type: 'line',
             data: {
                 labels: labels,

@@ -1,6 +1,6 @@
 /**
  * 彰濱放腫體重監控預防系統 - 主程式
- * v4.6.6 Web 版
+ * v4.6.7 Web 版
  */
 
 const App = {
@@ -1247,7 +1247,8 @@ const App = {
                     
                     // 設定 timeout，條碼槍掃描通常很快完成
                     timeout = setTimeout(() => {
-                        if (buffer && buffer.includes('{') && buffer.includes('}')) {
+                        // 檢查是否為有效格式（新格式 S|... 或舊格式 JSON）
+                        if (buffer && (buffer.startsWith('S|') || (buffer.includes('{') && buffer.includes('}')))) {
                             this.processPatientQRData(buffer, treatmentId);
                         }
                     }, 300);
@@ -1379,18 +1380,8 @@ const App = {
                     continue;
                 }
                 
-                // 計算變化率
-                const changeRate = treatment.baseline_weight 
-                    ? ((weight - treatment.baseline_weight) / treatment.baseline_weight) * 100
-                    : null;
-                
-                // 新增記錄
-                await Weight.create({
-                    treatment_id: treatmentId,
-                    weight: weight,
-                    measure_date: measureDate,
-                    change_rate: changeRate
-                });
+                // 新增記錄（使用正確的參數格式）
+                await Weight.create(treatmentId, weight, measureDate);
                 
                 addedCount++;
                 existingDates.add(measureDate);
