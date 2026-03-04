@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1a1a2e">
     <title>體重追蹤 - 病人端</title>
-    <link rel="stylesheet" href="css/patient.css?v=1.0">
+    <link rel="stylesheet" href="css/patient.css?v=1.1">
     <link rel="manifest" href="manifest.json">
 </head>
 <body>
@@ -47,10 +47,17 @@
 
             <!-- 病人資訊卡 -->
             <div class="patient-info-card">
-                <div class="patient-name" id="display-name">王大明</div>
-                <div class="patient-details">
-                    <span>病歷號：<strong id="display-pid">1234567</strong></span>
-                    <span>基準體重：<strong id="display-baseline">68.5</strong> kg</span>
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <div class="patient-name" id="display-name">王大明</div>
+                        <div class="patient-details">
+                            <span>病歷號：<strong id="display-pid">1234567</strong></span>
+                            <span>基準體重：<strong id="display-baseline">68.5</strong> kg</span>
+                        </div>
+                    </div>
+                    <button class="btn btn-outline btn-sm" id="btn-switch-patient" style="padding: 6px 10px; font-size: 12px;">
+                        🔄 切換
+                    </button>
                 </div>
             </div>
 
@@ -245,8 +252,22 @@
                         </button>
                     </div>
                     
+                    <!-- 加到主畫面 -->
+                    <div class="settings-section" id="install-section">
+                        <h3>📱 加到主畫面</h3>
+                        <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
+                            將此網頁加到手機主畫面，下次可以像 APP 一樣直接開啟。
+                        </p>
+                        <button class="btn btn-primary btn-block" id="btn-install">
+                            加到主畫面
+                        </button>
+                        <div id="install-instructions" style="display: none; margin-top: 12px; padding: 12px; background: var(--bg); border-radius: 8px; font-size: 13px;">
+                            <!-- iOS/Android 說明會動態填入 -->
+                        </div>
+                    </div>
+                    
                     <div class="settings-footer">
-                        <p>體重追蹤 病人端 v1.0</p>
+                        <p>體重追蹤 病人端 v1.1</p>
                     </div>
                 </div>
             </div>
@@ -272,6 +293,6 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     
     <!-- 應用程式 -->
-    <script src="js/patient-app.js?v=1.0"></script>
+    <script src="js/patient-app.js?v=1.1"></script>
 </body>
 </html>

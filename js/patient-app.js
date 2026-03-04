@@ -1,6 +1,6 @@
 /**
  * 體重追蹤 - 病人端應用程式
- * v1.0
+ * v1.1
  */
 
 const PatientApp = {
@@ -77,6 +77,13 @@ const PatientApp = {
         document.getElementById('btn-rescan').onclick = () => this.startScan('init');
         document.getElementById('btn-clear-data').onclick = () => this.clearData();
         
+        // 切換病人
+        document.getElementById('btn-switch-patient').onclick = () => this.startScan('init');
+        
+        // 加到主畫面
+        document.getElementById('btn-install').onclick = () => this.handleInstall();
+        this.setupInstallPrompt();
+        
         // 掃描返回
         document.getElementById('btn-scanner-back').onclick = () => this.stopScan();
     },
@@ -115,7 +122,20 @@ const PatientApp = {
      * 開始掃描
      */
     async startScan(mode) {
+        // 先停止之前的掃描器（如果有）
+        if (this.scanner) {
+            try {
+                await this.scanner.stop();
+                this.scanner.clear();
+            } catch (e) {}
+            this.scanner = null;
+        }
+        
         this.showScreen('scanner-screen');
+        
+        // 清空掃描容器
+        const container = document.getElementById('scanner-container');
+        container.innerHTML = '';
         
         try {
             this.scanner = new Html5Qrcode('scanner-container');
@@ -195,6 +215,19 @@ const PatientApp = {
                     baselineWeight = data.bw;
                 } else {
                     this.showToast('QR Code 格式不正確', 'error');
+                    return;
+                }
+            }
+            
+            // 檢查是否已有其他病人的資料
+            if (this.data && this.data.patient_id !== patientId) {
+                const confirmed = confirm(
+                    `目前已有 ${this.data.name} 的資料。\n\n` +
+                    `確定要切換到 ${name} 嗎？\n\n` +
+                    `（原有的體重記錄將被清除）`
+                );
+                if (!confirmed) {
+                    this.showScreen('main-screen');
                     return;
                 }
             }
@@ -747,6 +780,82 @@ const PatientApp = {
         document.getElementById('confirm-cancel').onclick = () => {
             modal.style.display = 'none';
         };
+    },
+    
+    /**
+     * 設定安裝提示
+     */
+    setupInstallPrompt() {
+        const installSection = document.getElementById('install-section');
+        const installBtn = document.getElementById('btn-install');
+        const instructions = document.getElementById('install-instructions');
+        
+        // 檢查是否已經是 PWA 模式（已安裝）
+        if (window.matchMedia('(display-mode: standalone)').matches || 
+            window.navigator.standalone === true) {
+            // 已經是 APP 模式，隱藏安裝區塊
+            if (installSection) installSection.style.display = 'none';
+            return;
+        }
+        
+        // 檢測平台
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        const isAndroid = /Android/.test(navigator.userAgent);
+        
+        if (isIOS) {
+            // iOS Safari：顯示操作說明
+            instructions.innerHTML = `
+                <strong>iOS 安裝步驟：</strong><br>
+                1. 點擊 Safari 底部的 <strong>分享按鈕</strong> 
+                   <span style="display: inline-block; width: 20px; height: 20px; border: 1px solid currentColor; border-radius: 4px; text-align: center; line-height: 18px;">↑</span><br>
+                2. 向下滑動，選擇 <strong>「加入主畫面」</strong><br>
+                3. 點擊右上角的 <strong>「新增」</strong>
+            `;
+            installBtn.textContent = '查看安裝說明';
+            installBtn.onclick = () => {
+                instructions.style.display = instructions.style.display === 'none' ? 'block' : 'none';
+            };
+        } else if (isAndroid) {
+            // Android Chrome：嘗試捕獲 beforeinstallprompt
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                this.deferredPrompt = e;
+                installBtn.style.display = 'block';
+            });
+            
+            // 如果沒有捕獲到事件，顯示手動說明
+            setTimeout(() => {
+                if (!this.deferredPrompt) {
+                    instructions.innerHTML = `
+                        <strong>Android 安裝步驟：</strong><br>
+                        1. 點擊瀏覽器右上角的 <strong>選單（⋮）</strong><br>
+                        2. 選擇 <strong>「加到主畫面」</strong> 或 <strong>「安裝應用程式」</strong>
+                    `;
+                    installBtn.textContent = '查看安裝說明';
+                    installBtn.onclick = () => {
+                        instructions.style.display = instructions.style.display === 'none' ? 'block' : 'none';
+                    };
+                }
+            }, 2000);
+        } else {
+            // 桌面或其他：隱藏安裝區塊
+            if (installSection) installSection.style.display = 'none';
+        }
+    },
+    
+    /**
+     * 處理安裝按鈕點擊
+     */
+    async handleInstall() {
+        if (this.deferredPrompt) {
+            // Android：觸發安裝提示
+            this.deferredPrompt.prompt();
+            const { outcome } = await this.deferredPrompt.userChoice;
+            if (outcome === 'accepted') {
+                this.showToast('已加到主畫面！', 'success');
+            }
+            this.deferredPrompt = null;
+        }
     }
 };
 

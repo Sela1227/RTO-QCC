@@ -1,6 +1,6 @@
 /**
  * 彰濱放腫體重監控預防系統 - 主程式
- * v4.6.7 Web 版
+ * v4.71 Web 版
  */
 
 const App = {
@@ -673,11 +673,8 @@ const App = {
                 <button class="btn btn-primary btn-sm" onclick="Weight.showForm(${treatment.id})">
                     記錄體重
                 </button>
-                <button class="btn btn-outline btn-sm" onclick="App.showPatientQRCode(${treatment.id})" title="生成病人填報 QR Code">
+                <button class="btn btn-outline btn-sm" onclick="App.showQRMenu(${treatment.id})" title="QR Code 功能">
                     📱 QR
-                </button>
-                <button class="btn btn-outline btn-sm" onclick="App.showImportPatientWeight(${treatment.id})" title="匯入病人填報">
-                    📥 匯入
                 </button>
                 <button class="btn btn-outline btn-sm" onclick="Intervention.showList(${treatment.id})">
                     介入記錄
@@ -1071,6 +1068,42 @@ const App = {
                 }
             }
         });
+    },
+    
+    /**
+     * 顯示 QR Code 選單
+     */
+    async showQRMenu(treatmentId) {
+        const treatment = await Treatment.getById(treatmentId);
+        const patient = await Patient.getById(treatment.patient_id);
+        
+        const html = `
+            <div style="text-align: center;">
+                <div style="background: var(--bg); padding: 12px; border-radius: 8px; margin-bottom: 20px;">
+                    <strong>${patient.medical_id}</strong> ${patient.name}
+                </div>
+                
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <button class="btn btn-primary" onclick="closeModal(); App.showPatientQRCode(${treatmentId})">
+                        📤 產生 QR Code 給病人
+                        <div style="font-size: 12px; font-weight: normal; margin-top: 4px; opacity: 0.8;">
+                            讓病人掃描後可在手機記錄體重
+                        </div>
+                    </button>
+                    
+                    <button class="btn btn-outline" onclick="closeModal(); App.showImportPatientWeight(${treatmentId})">
+                        📥 掃描病人回傳的 QR Code
+                        <div style="font-size: 12px; font-weight: normal; margin-top: 4px; opacity: 0.8;">
+                            匯入病人在手機記錄的體重資料
+                        </div>
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        openModal('QR Code 功能', html, [
+            { text: '取消', class: 'btn-outline' }
+        ]);
     },
     
     /**
