@@ -1,6 +1,6 @@
 /**
  * 彰濱放腫體重監控預防系統 - 主程式
- * v4.6 Web 版
+ * v4.6.1 Web 版
  */
 
 const App = {
@@ -1099,7 +1099,7 @@ const App = {
                     <strong>${patient.medical_id}</strong> ${patient.name}
                 </div>
                 <div id="patient-qr-container" style="background: white; padding: 16px; border-radius: 8px; display: inline-block;">
-                    <!-- QR Code 將在這裡生成 -->
+                    <canvas id="patient-qr-canvas"></canvas>
                 </div>
                 <p style="color: var(--text-secondary); font-size: 13px; margin-top: 12px;">
                     請病人用手機掃描此 QR Code
@@ -1121,16 +1121,16 @@ const App = {
         
         // 生成 QR Code
         setTimeout(() => {
-            const container = document.getElementById('patient-qr-container');
-            if (container && typeof QRCode !== 'undefined') {
-                QRCode.toCanvas(JSON.stringify(payload), {
+            const canvas = document.getElementById('patient-qr-canvas');
+            if (canvas && typeof QRCode !== 'undefined') {
+                QRCode.toCanvas(canvas, JSON.stringify(payload), {
                     width: 200,
                     margin: 2,
                     color: { dark: '#000000', light: '#ffffff' }
-                }, (err, canvas) => {
-                    if (!err && canvas) {
-                        container.innerHTML = '';
-                        container.appendChild(canvas);
+                }, (err) => {
+                    if (err) {
+                        console.error('QR Code 生成失敗', err);
+                        showToast('QR Code 生成失敗', 'error');
                     }
                 });
             }
