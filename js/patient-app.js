@@ -192,10 +192,28 @@ const PatientApp = {
         
         try {
             let patientId, name, treatmentStart, baselineWeight;
+            let dataText = text;
+            
+            // 如果掃到的是完整 URL，提取 d 參數
+            if (text.startsWith('http://') || text.startsWith('https://')) {
+                try {
+                    const url = new URL(text);
+                    const dParam = url.searchParams.get('d');
+                    if (dParam) {
+                        dataText = dParam;
+                    } else {
+                        this.showToast('QR Code 格式不正確', 'error');
+                        return;
+                    }
+                } catch (e) {
+                    this.showToast('QR Code 格式不正確', 'error');
+                    return;
+                }
+            }
             
             // 檢查是否為新的精簡格式：I|病歷號|姓名|開始日期|基準體重
-            if (text.startsWith('I|')) {
-                const parts = text.split('|');
+            if (dataText.startsWith('I|')) {
+                const parts = dataText.split('|');
                 if (parts.length >= 5) {
                     patientId = parts[1];
                     name = parts[2];
@@ -207,7 +225,7 @@ const PatientApp = {
                 }
             } else {
                 // 舊的 JSON 格式（向後相容）
-                const data = JSON.parse(text);
+                const data = JSON.parse(dataText);
                 if (data.t === 'init' && data.v === 1) {
                     patientId = data.pid;
                     name = data.name;
