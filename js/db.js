@@ -264,45 +264,60 @@ const Settings = {
 };
 
 /**
- * 匯出所有資料（備份）
+ * 匯出所有資料（完整備份）
  */
 async function exportAllData() {
     const data = {
         version: DB_VERSION,
         exported_at: new Date().toISOString(),
+        // 病人與療程
         patients: await DB.getAll('patients'),
         treatments: await DB.getAll('treatments'),
+        // 體重記錄
         weight_records: await DB.getAll('weight_records'),
+        // 副作用評估
+        side_effects: await DB.getAll('side_effects'),
+        // 介入記錄
         interventions: await DB.getAll('interventions'),
+        // 所有設定
         settings: await DB.getAll('settings')
     };
     return data;
 }
 
 /**
- * 匯入資料（還原）
+ * 匯入資料（完整還原）
  */
 async function importAllData(data) {
-    // 清空現有資料
+    // 清空所有現有資料
     await DB.clear('patients');
     await DB.clear('treatments');
     await DB.clear('weight_records');
+    await DB.clear('side_effects');
     await DB.clear('interventions');
     await DB.clear('settings');
     
-    // 匯入新資料
+    // 匯入病人
     for (const patient of (data.patients || [])) {
         await DB.update('patients', patient);
     }
+    // 匯入療程
     for (const treatment of (data.treatments || [])) {
         await DB.update('treatments', treatment);
     }
+    // 匯入體重記錄
     for (const record of (data.weight_records || [])) {
         await DB.update('weight_records', record);
     }
+    // 匯入副作用評估
+    for (const sideEffect of (data.side_effects || [])) {
+        await DB.update('side_effects', sideEffect);
+    }
+    // 匯入介入記錄
     for (const intervention of (data.interventions || [])) {
         await DB.update('interventions', intervention);
     }
+    // 匯入設定
     for (const setting of (data.settings || [])) {
         await DB.update('settings', setting);
     }

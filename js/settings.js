@@ -150,26 +150,35 @@ const SettingsUI = {
                 <!-- 資料管理 -->
                 <div class="settings-panel" id="settings-data" style="display: none;">
                     <div style="display: flex; flex-direction: column; gap: 12px;">
-                        <button class="btn btn-outline" onclick="SettingsUI.exportData()">
-                            匯出備份 (JSON)
+                        <div style="background: var(--bg); padding: 12px; border-radius: 8px; margin-bottom: 8px;">
+                            <div style="font-weight: 500; margin-bottom: 8px;">💾 完整備份說明</div>
+                            <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.6;">
+                                備份包含所有資料：病人、療程、體重記錄、副作用評估、介入記錄、系統設定（癌別、人員、警示規則等）
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" onclick="SettingsUI.exportData()">
+                            💾 匯出完整備份
                         </button>
                         <button class="btn btn-outline" onclick="document.getElementById('import-file').click()">
-                            匯入還原 (JSON)
+                            📂 匯入還原（覆蓋所有資料）
                         </button>
                         <input type="file" id="import-file" accept=".json" style="display: none;" 
                                onchange="SettingsUI.importData(this.files[0])">
+                        <p style="font-size: 12px; color: var(--text-hint); margin: 0;">
+                            ⚠️ 匯入還原會清除現有資料，以備份檔案完全取代
+                        </p>
                         <hr style="border: none; border-top: 1px solid var(--border); margin: 8px 0;">
-                        <button class="btn btn-primary" onclick="document.getElementById('sync-file').click()">
+                        <button class="btn btn-outline" onclick="document.getElementById('sync-file').click()">
                             📥 同步資料（只新增不覆蓋）
                         </button>
                         <input type="file" id="sync-file" accept=".json" style="display: none;" 
                                onchange="SettingsUI.syncData(this.files[0])">
                         <p style="font-size: 12px; color: var(--text-hint); margin: 0;">
-                            從網芳選擇備份檔，新增本地沒有的資料
+                            從備份檔匯入，只新增本地沒有的資料，不會覆蓋現有記錄
                         </p>
                         <hr style="border: none; border-top: 1px solid var(--border); margin: 8px 0;">
                         <button class="btn btn-danger" onclick="SettingsUI.clearAllData()">
-                            清除所有資料
+                            🗑️ 清除所有資料
                         </button>
                         <button class="btn btn-outline" onclick="SettingsUI.resetToDemo()">
                             還原測試資料
@@ -442,7 +451,49 @@ const SettingsUI = {
     
     async exportData() {
         const data = await exportAllData();
-        const filename = `weight_backup_${today()}.json`;
+        
+        // 顯示備份摘要
+        const summaryHtml = `
+            <div style="text-align: center; padding: 16px 0;">
+                <div style="font-size: 36px; margin-bottom: 12px;">💾</div>
+                <h3 style="margin-bottom: 16px;">備份摘要</h3>
+                <div style="background: var(--bg); padding: 16px; border-radius: 8px; text-align: left;">
+                    <div class="detail-row">
+                        <span>病人數</span>
+                        <strong>${data.patients?.length || 0}</strong>
+                    </div>
+                    <div class="detail-row">
+                        <span>療程數</span>
+                        <strong>${data.treatments?.length || 0}</strong>
+                    </div>
+                    <div class="detail-row">
+                        <span>體重記錄</span>
+                        <strong>${data.weight_records?.length || 0}</strong>
+                    </div>
+                    <div class="detail-row">
+                        <span>副作用評估</span>
+                        <strong>${data.side_effects?.length || 0}</strong>
+                    </div>
+                    <div class="detail-row">
+                        <span>介入記錄</span>
+                        <strong>${data.interventions?.length || 0}</strong>
+                    </div>
+                    <div class="detail-row">
+                        <span>設定項目</span>
+                        <strong>${data.settings?.length || 0}</strong>
+                    </div>
+                </div>
+                <p style="margin-top: 16px; font-size: 13px; color: var(--text-secondary);">
+                    備份檔案將自動下載
+                </p>
+            </div>
+        `;
+        
+        openModal('完整備份', summaryHtml, [
+            { text: '確定', class: 'btn-primary' }
+        ]);
+        
+        const filename = `SELA_完整備份_${today()}.json`;
         downloadJSON(data, filename);
         
         // 記錄備份時間
@@ -458,12 +509,28 @@ const SettingsUI = {
         try {
             const data = await readJSONFile(file);
             
-            if (!confirm(`即將匯入備份，這將覆蓋所有現有資料。\n\n病人數: ${data.patients?.length || 0}\n療程數: ${data.treatments?.length || 0}\n\n確定繼續？`)) {
+            const confirmMsg = `即將匯入備份，這將覆蓋所有現有資料。
+
+備份資訊：
+• 備份時間：${data.exported_at ? new Date(data.exported_at).toLocaleString('zh-TW') : '未知'}
+• 資料庫版本：${data.version || '未知'}
+
+資料內容：
+• 病人數：${data.patients?.length || 0}
+• 療程數：${data.treatments?.length || 0}
+• 體重記錄：${data.weight_records?.length || 0}
+• 副作用評估：${data.side_effects?.length || 0}
+• 介入記錄：${data.interventions?.length || 0}
+• 設定項目：${data.settings?.length || 0}
+
+確定要還原嗎？`;
+            
+            if (!confirm(confirmMsg)) {
                 return;
             }
             
             await importAllData(data);
-            showToast('資料已還原');
+            showToast('資料已完整還原');
             closeModal();
             App.refresh();
         } catch (e) {
@@ -484,6 +551,7 @@ const SettingsUI = {
             const localPatients = await DB.getAll('patients');
             const localTreatments = await DB.getAll('treatments');
             const localWeights = await DB.getAll('weight_records');
+            const localSideEffects = await DB.getAll('side_effects');
             const localInterventions = await DB.getAll('interventions');
             
             // 建立本地索引（用業務鍵）
@@ -512,6 +580,19 @@ const SettingsUI = {
                 }
             }
             
+            // 副作用索引：病歷號 + 療程開始日期 + 評估日期
+            const localSideEffectIndex = new Set();
+            for (const se of localSideEffects) {
+                const treatment = localTreatments.find(t => t.id === se.treatment_id);
+                if (treatment) {
+                    const patient = localPatients.find(p => p.id === treatment.patient_id);
+                    if (patient) {
+                        const key = `${patient.medical_id}_${treatment.treatment_start}_${se.assess_date}`;
+                        localSideEffectIndex.add(key);
+                    }
+                }
+            }
+            
             // 介入索引：病歷號 + 療程開始日期 + 類型 + 建立日期
             const localInterventionIndex = new Set();
             for (const i of localInterventions) {
@@ -531,6 +612,7 @@ const SettingsUI = {
                 patient: { added: 0, skipped: 0 },
                 treatment: { added: 0, skipped: 0 },
                 weight: { added: 0, skipped: 0 },
+                sideEffect: { added: 0, skipped: 0 },
                 intervention: { added: 0, skipped: 0 }
             };
             
@@ -538,6 +620,7 @@ const SettingsUI = {
             const importPatients = importData.patients || [];
             const importTreatments = importData.treatments || [];
             const importWeights = importData.weight_records || [];
+            const importSideEffects = importData.side_effects || [];
             const importInterventions = importData.interventions || [];
             
             // ID 對應表（匯入ID → 本地ID）
@@ -610,7 +693,31 @@ const SettingsUI = {
                 }
             }
             
-            // 4. 同步介入記錄
+            // 4. 同步副作用評估
+            for (const se of importSideEffects) {
+                const importTreatment = importTreatments.find(t => t.id === se.treatment_id);
+                if (!importTreatment) continue;
+                
+                const importPatient = importPatients.find(p => p.id === importTreatment.patient_id);
+                if (!importPatient) continue;
+                
+                const key = `${importPatient.medical_id}_${importTreatment.treatment_start}_${se.assess_date}`;
+                
+                if (localSideEffectIndex.has(key)) {
+                    stats.sideEffect.skipped++;
+                } else {
+                    const newSideEffect = { ...se };
+                    delete newSideEffect.id;
+                    newSideEffect.treatment_id = treatmentIdMap.get(se.treatment_id);
+                    if (newSideEffect.treatment_id) {
+                        await DB.add('side_effects', newSideEffect);
+                        localSideEffectIndex.add(key);
+                        stats.sideEffect.added++;
+                    }
+                }
+            }
+            
+            // 5. 同步介入記錄
             for (const i of importInterventions) {
                 const importTreatment = importTreatments.find(t => t.id === i.treatment_id);
                 if (!importTreatment) continue;
@@ -652,6 +759,10 @@ const SettingsUI = {
                         <div class="detail-row">
                             <span>體重</span>
                             <span>新增 <strong>${stats.weight.added}</strong> / 跳過 ${stats.weight.skipped}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span>副作用</span>
+                            <span>新增 <strong>${stats.sideEffect.added}</strong> / 跳過 ${stats.sideEffect.skipped}</span>
                         </div>
                         <div class="detail-row">
                             <span>介入</span>
