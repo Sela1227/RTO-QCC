@@ -14,18 +14,54 @@ const SettingsUI = {
         const patientAppUrl = await Settings.get('patient_app_url', '');
         
         const html = `
-            <div class="settings-tabs" style="display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;">
-                <button class="tab active" data-settings-tab="cancer">癌別</button>
-                <button class="tab" data-settings-tab="staff">人員</button>
-                <button class="tab" data-settings-tab="alert">警示</button>
-                <button class="tab" data-settings-tab="pause">暫停原因</button>
-                <button class="tab" data-settings-tab="patient">病人端</button>
-                <button class="tab" data-settings-tab="data">資料</button>
+            <div class="settings-tabs-container">
+                <div class="settings-tabs-group">
+                    <div class="settings-tabs-label">基本設定</div>
+                    <div class="settings-tabs-row">
+                        <button class="settings-tab active" data-settings-tab="cancer">
+                            <span class="settings-tab-icon">🏥</span>
+                            <span class="settings-tab-text">癌別</span>
+                        </button>
+                        <button class="settings-tab" data-settings-tab="staff">
+                            <span class="settings-tab-icon">👤</span>
+                            <span class="settings-tab-text">人員</span>
+                        </button>
+                        <button class="settings-tab" data-settings-tab="alert">
+                            <span class="settings-tab-icon">⚠️</span>
+                            <span class="settings-tab-text">警示</span>
+                        </button>
+                        <button class="settings-tab" data-settings-tab="pause">
+                            <span class="settings-tab-icon">⏸️</span>
+                            <span class="settings-tab-text">暫停</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="settings-tabs-group">
+                    <div class="settings-tabs-label">資料管理</div>
+                    <div class="settings-tabs-row">
+                        <button class="settings-tab" data-settings-tab="patient">
+                            <span class="settings-tab-icon">📱</span>
+                            <span class="settings-tab-text">病人端</span>
+                        </button>
+                        <button class="settings-tab" data-settings-tab="backup">
+                            <span class="settings-tab-icon">💾</span>
+                            <span class="settings-tab-text">備份</span>
+                        </button>
+                        <button class="settings-tab" data-settings-tab="patientdata">
+                            <span class="settings-tab-icon">👥</span>
+                            <span class="settings-tab-text">病人資料</span>
+                        </button>
+                    </div>
+                </div>
             </div>
             
             <div class="settings-content" style="min-height: 280px;">
                 <!-- 癌別設定 -->
                 <div class="settings-panel active" id="settings-cancer">
+                    <div class="settings-panel-header">
+                        <span class="settings-panel-title">癌別管理</span>
+                        <span class="settings-panel-desc">設定系統中可選的癌症類型</span>
+                    </div>
                     <div class="settings-list" id="cancer-list">
                         ${cancerTypes.map((c, i) => `
                             <div class="settings-item" data-index="${i}">
@@ -40,12 +76,16 @@ const SettingsUI = {
                         `).join('')}
                     </div>
                     <button class="btn btn-outline btn-sm" style="margin-top: 12px;" onclick="SettingsUI.addCancerType()">
-                        + 新增
+                        + 新增癌別
                     </button>
                 </div>
                 
                 <!-- 人員設定 -->
                 <div class="settings-panel" id="settings-staff" style="display: none;">
+                    <div class="settings-panel-header">
+                        <span class="settings-panel-title">人員管理</span>
+                        <span class="settings-panel-desc">設定可選擇的執行人員名單</span>
+                    </div>
                     <div class="settings-list" id="staff-list">
                         ${staffList.map((s, i) => `
                             <div class="settings-item" data-index="${i}">
@@ -60,15 +100,16 @@ const SettingsUI = {
                         `).join('')}
                     </div>
                     <button class="btn btn-outline btn-sm" style="margin-top: 12px;" onclick="SettingsUI.addStaff()">
-                        + 新增
+                        + 新增人員
                     </button>
                 </div>
                 
                 <!-- 警示設定 -->
                 <div class="settings-panel" id="settings-alert" style="display: none;">
-                    <p style="color: var(--text-secondary); font-size: 12px; margin-bottom: 12px;">
-                        體重下降達閾值時自動觸發介入提醒
-                    </p>
+                    <div class="settings-panel-header">
+                        <span class="settings-panel-title">警示規則</span>
+                        <span class="settings-panel-desc">體重下降達閾值時自動觸發介入提醒</span>
+                    </div>
                     <div class="settings-list" id="alert-list">
                         ${alertRules.map((r, i) => {
                             const label = r.cancer_type === 'default' ? '預設規則' : 
@@ -99,9 +140,10 @@ const SettingsUI = {
                 
                 <!-- 暫停原因設定 -->
                 <div class="settings-panel" id="settings-pause" style="display: none;">
-                    <p style="color: var(--text-secondary); font-size: 12px; margin-bottom: 12px;">
-                        暫停療程時可快速選擇的原因
-                    </p>
+                    <div class="settings-panel-header">
+                        <span class="settings-panel-title">暫停原因</span>
+                        <span class="settings-panel-desc">暫停療程時可快速選擇的原因</span>
+                    </div>
                     <div class="settings-list" id="pause-list">
                         ${pauseReasons.map((r, i) => `
                             <div class="settings-item" data-index="${i}">
@@ -116,29 +158,28 @@ const SettingsUI = {
                         `).join('')}
                     </div>
                     <button class="btn btn-outline btn-sm" style="margin-top: 12px;" onclick="SettingsUI.addPauseReason()">
-                        + 新增
+                        + 新增原因
                     </button>
                 </div>
                 
                 <!-- 病人端設定 -->
                 <div class="settings-panel" id="settings-patient" style="display: none;">
+                    <div class="settings-panel-header">
+                        <span class="settings-panel-title">病人端網址</span>
+                        <span class="settings-panel-desc">部署病人端網頁後填入網址，QR Code 會包含此網址</span>
+                    </div>
                     <div style="display: flex; flex-direction: column; gap: 12px;">
                         <div>
-                            <label style="display: block; margin-bottom: 6px; font-weight: 500;">病人端網址</label>
                             <input type="text" class="form-input" id="patient-app-url" 
                                    value="${patientAppUrl}"
                                    placeholder="例如：https://example.com/patient.html">
-                            <p style="font-size: 12px; color: var(--text-hint); margin-top: 4px;">
-                                部署病人端網頁後，填入網址。QR Code 會包含此網址讓病人掃描後直接開啟。
-                            </p>
                         </div>
                         <button class="btn btn-primary" onclick="SettingsUI.savePatientAppUrl()">
                             儲存設定
                         </button>
-                        <hr style="border: none; border-top: 1px solid var(--border); margin: 8px 0;">
-                        <div>
-                            <label style="display: block; margin-bottom: 6px; font-weight: 500;">部署說明</label>
-                            <ol style="font-size: 13px; color: var(--text-secondary); margin: 0; padding-left: 20px; line-height: 1.8;">
+                        <div class="settings-info-box">
+                            <div class="settings-info-title">📋 部署說明</div>
+                            <ol class="settings-info-list">
                                 <li>將 <code>patient.html</code> 上傳到網頁伺服器</li>
                                 <li>複製網頁網址填入上方欄位</li>
                                 <li>病人掃描 QR Code 後即可開啟填報頁面</li>
@@ -147,45 +188,98 @@ const SettingsUI = {
                     </div>
                 </div>
                 
-                <!-- 資料管理 -->
-                <div class="settings-panel" id="settings-data" style="display: none;">
-                    <div style="display: flex; flex-direction: column; gap: 12px;">
-                        <div style="background: var(--bg); padding: 12px; border-radius: 8px; margin-bottom: 8px;">
-                            <div style="font-weight: 500; margin-bottom: 8px;">💾 完整備份說明</div>
-                            <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.6;">
-                                備份包含所有資料：病人、療程、體重記錄、副作用評估、介入記錄、系統設定（癌別、人員、警示規則等）
-                            </div>
-                        </div>
+                <!-- 完整備份 -->
+                <div class="settings-panel" id="settings-backup" style="display: none;">
+                    <div class="settings-panel-header">
+                        <span class="settings-panel-title">完整備份與還原</span>
+                        <span class="settings-panel-desc">包含所有資料：病人、療程、體重、副作用、介入、設定</span>
+                    </div>
+                    <div class="settings-btn-group">
                         <button class="btn btn-primary" onclick="SettingsUI.exportData()">
-                            💾 匯出完整備份
+                            <span class="btn-icon">💾</span> 匯出完整備份
                         </button>
                         <button class="btn btn-outline" onclick="document.getElementById('import-file').click()">
-                            📂 匯入還原（覆蓋所有資料）
+                            <span class="btn-icon">📂</span> 匯入還原
                         </button>
                         <input type="file" id="import-file" accept=".json" style="display: none;" 
                                onchange="SettingsUI.importData(this.files[0])">
-                        <p style="font-size: 12px; color: var(--text-hint); margin: 0;">
-                            ⚠️ 匯入還原會清除現有資料，以備份檔案完全取代
-                        </p>
-                        <hr style="border: none; border-top: 1px solid var(--border); margin: 8px 0;">
+                    </div>
+                    <div class="settings-warning">
+                        ⚠️ 匯入還原會清除現有資料，以備份檔案完全取代
+                    </div>
+                    
+                    <div class="settings-divider"></div>
+                    
+                    <div class="settings-panel-header">
+                        <span class="settings-panel-title">同步資料</span>
+                        <span class="settings-panel-desc">從備份檔匯入，只新增本地沒有的資料</span>
+                    </div>
+                    <div class="settings-btn-group">
                         <button class="btn btn-outline" onclick="document.getElementById('sync-file').click()">
-                            📥 同步資料（只新增不覆蓋）
+                            <span class="btn-icon">📥</span> 同步資料（只新增不覆蓋）
                         </button>
                         <input type="file" id="sync-file" accept=".json" style="display: none;" 
                                onchange="SettingsUI.syncData(this.files[0])">
-                        <p style="font-size: 12px; color: var(--text-hint); margin: 0;">
-                            從備份檔匯入，只新增本地沒有的資料，不會覆蓋現有記錄
-                        </p>
-                        <hr style="border: none; border-top: 1px solid var(--border); margin: 8px 0;">
+                    </div>
+                    
+                    <div class="settings-divider"></div>
+                    
+                    <div class="settings-panel-header">
+                        <span class="settings-panel-title">重置資料</span>
+                        <span class="settings-panel-desc">清除或重置系統資料</span>
+                    </div>
+                    <div class="settings-btn-group">
                         <button class="btn btn-danger" onclick="SettingsUI.clearAllData()">
-                            🗑️ 清除所有資料
+                            <span class="btn-icon">🗑️</span> 清除所有資料
                         </button>
                         <button class="btn btn-outline" onclick="SettingsUI.resetToDemo()">
                             還原測試資料
                         </button>
-                        <p style="font-size: 12px; color: var(--text-hint); margin: 0;">
-                            清除所有資料並載入測試用的範例病人
-                        </p>
+                    </div>
+                </div>
+                
+                <!-- 病人資料匯出入 -->
+                <div class="settings-panel" id="settings-patientdata" style="display: none;">
+                    <div class="settings-panel-header">
+                        <span class="settings-panel-title">匯出病人資料</span>
+                        <span class="settings-panel-desc">只匯出病人相關資料（不含系統設定）</span>
+                    </div>
+                    <div class="settings-btn-group">
+                        <button class="btn btn-primary" onclick="SettingsUI.exportPatientData()">
+                            <span class="btn-icon">👥</span> 匯出病人資料
+                        </button>
+                    </div>
+                    <div class="settings-info-box">
+                        <div class="settings-info-title">📋 匯出內容</div>
+                        <ul class="settings-info-list" style="list-style: disc;">
+                            <li>病人基本資料</li>
+                            <li>療程資料</li>
+                            <li>體重記錄</li>
+                            <li>副作用評估</li>
+                            <li>介入記錄</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="settings-divider"></div>
+                    
+                    <div class="settings-panel-header">
+                        <span class="settings-panel-title">匯入病人資料</span>
+                        <span class="settings-panel-desc">從檔案匯入病人資料</span>
+                    </div>
+                    <div class="settings-btn-group">
+                        <button class="btn btn-outline" onclick="document.getElementById('import-patient-file').click()">
+                            <span class="btn-icon">📂</span> 匯入病人資料（覆蓋）
+                        </button>
+                        <input type="file" id="import-patient-file" accept=".json" style="display: none;" 
+                               onchange="SettingsUI.importPatientData(this.files[0])">
+                        <button class="btn btn-outline" onclick="document.getElementById('sync-patient-file').click()">
+                            <span class="btn-icon">📥</span> 同步病人資料（只新增）
+                        </button>
+                        <input type="file" id="sync-patient-file" accept=".json" style="display: none;" 
+                               onchange="SettingsUI.syncPatientData(this.files[0])">
+                    </div>
+                    <div class="settings-warning">
+                        ⚠️ 「覆蓋」會清除現有病人資料；「只新增」不會影響現有資料
                     </div>
                 </div>
             </div>
@@ -536,6 +630,289 @@ const SettingsUI = {
         } catch (e) {
             showToast('匯入失敗: ' + e.message, 'error');
         }
+    },
+    
+    /**
+     * 匯出病人資料（不含設定）
+     */
+    async exportPatientData() {
+        const data = await exportPatientData();
+        
+        // 顯示摘要
+        const summaryHtml = `
+            <div style="text-align: center; padding: 16px 0;">
+                <div style="font-size: 36px; margin-bottom: 12px;">👥</div>
+                <h3 style="margin-bottom: 16px;">病人資料摘要</h3>
+                <div style="background: var(--bg); padding: 16px; border-radius: 8px; text-align: left;">
+                    <div class="detail-row">
+                        <span>病人數</span>
+                        <strong>${data.patients?.length || 0}</strong>
+                    </div>
+                    <div class="detail-row">
+                        <span>療程數</span>
+                        <strong>${data.treatments?.length || 0}</strong>
+                    </div>
+                    <div class="detail-row">
+                        <span>體重記錄</span>
+                        <strong>${data.weight_records?.length || 0}</strong>
+                    </div>
+                    <div class="detail-row">
+                        <span>副作用評估</span>
+                        <strong>${data.side_effects?.length || 0}</strong>
+                    </div>
+                    <div class="detail-row">
+                        <span>介入記錄</span>
+                        <strong>${data.interventions?.length || 0}</strong>
+                    </div>
+                </div>
+                <p style="margin-top: 16px; font-size: 13px; color: var(--text-secondary);">
+                    不含系統設定（癌別、人員、警示規則等）
+                </p>
+            </div>
+        `;
+        
+        openModal('病人資料匯出', summaryHtml, [
+            { text: '確定', class: 'btn-primary' }
+        ]);
+        
+        const filename = `SELA_病人資料_${today()}.json`;
+        downloadJSON(data, filename);
+        
+        showToast('病人資料已下載');
+    },
+    
+    /**
+     * 匯入病人資料（覆蓋）
+     */
+    async importPatientData(file) {
+        if (!file) return;
+        
+        try {
+            const data = await readJSONFile(file);
+            
+            const confirmMsg = `即將匯入病人資料，這將覆蓋現有的病人資料（不影響系統設定）。
+
+資料內容：
+• 病人數：${data.patients?.length || 0}
+• 療程數：${data.treatments?.length || 0}
+• 體重記錄：${data.weight_records?.length || 0}
+• 副作用評估：${data.side_effects?.length || 0}
+• 介入記錄：${data.interventions?.length || 0}
+
+確定要匯入嗎？`;
+            
+            if (!confirm(confirmMsg)) {
+                return;
+            }
+            
+            await importPatientData(data);
+            showToast('病人資料已還原');
+            closeModal();
+            App.refresh();
+        } catch (e) {
+            showToast('匯入失敗: ' + e.message, 'error');
+        }
+        
+        // 清除 input
+        document.getElementById('import-patient-file').value = '';
+    },
+    
+    /**
+     * 同步病人資料（只新增不覆蓋）
+     */
+    async syncPatientData(file) {
+        if (!file) return;
+        
+        try {
+            const importData = await readJSONFile(file);
+            
+            // 取得本地資料
+            const localPatients = await DB.getAll('patients');
+            const localTreatments = await DB.getAll('treatments');
+            const localWeights = await DB.getAll('weight_records');
+            const localSideEffects = await DB.getAll('side_effects');
+            const localInterventions = await DB.getAll('interventions');
+            
+            // 建立本地索引
+            const localPatientIndex = new Set(localPatients.map(p => p.medical_id));
+            
+            const localTreatmentIndex = new Map();
+            for (const t of localTreatments) {
+                const patient = localPatients.find(p => p.id === t.patient_id);
+                if (patient) {
+                    const key = `${patient.medical_id}_${t.treatment_start}_${t.cancer_type}`;
+                    localTreatmentIndex.set(key, t);
+                }
+            }
+            
+            const localWeightIndex = new Set();
+            for (const w of localWeights) {
+                const treatment = localTreatments.find(t => t.id === w.treatment_id);
+                if (treatment) {
+                    const patient = localPatients.find(p => p.id === treatment.patient_id);
+                    if (patient) {
+                        localWeightIndex.add(`${patient.medical_id}_${treatment.treatment_start}_${w.measure_date}`);
+                    }
+                }
+            }
+            
+            const localSideEffectIndex = new Set();
+            for (const se of localSideEffects) {
+                const treatment = localTreatments.find(t => t.id === se.treatment_id);
+                if (treatment) {
+                    const patient = localPatients.find(p => p.id === treatment.patient_id);
+                    if (patient) {
+                        localSideEffectIndex.add(`${patient.medical_id}_${treatment.treatment_start}_${se.assess_date}`);
+                    }
+                }
+            }
+            
+            const localInterventionIndex = new Set();
+            for (const i of localInterventions) {
+                const treatment = localTreatments.find(t => t.id === i.treatment_id);
+                if (treatment) {
+                    const patient = localPatients.find(p => p.id === treatment.patient_id);
+                    if (patient) {
+                        const createdDate = i.created_at ? i.created_at.split('T')[0] : '';
+                        localInterventionIndex.add(`${patient.medical_id}_${treatment.treatment_start}_${i.type}_${createdDate}`);
+                    }
+                }
+            }
+            
+            // 統計
+            const stats = { patient: { added: 0, skipped: 0 }, treatment: { added: 0, skipped: 0 }, 
+                          weight: { added: 0, skipped: 0 }, sideEffect: { added: 0, skipped: 0 },
+                          intervention: { added: 0, skipped: 0 } };
+            
+            const importPatients = importData.patients || [];
+            const importTreatments = importData.treatments || [];
+            const importWeights = importData.weight_records || [];
+            const importSideEffects = importData.side_effects || [];
+            const importInterventions = importData.interventions || [];
+            
+            const patientIdMap = new Map();
+            const treatmentIdMap = new Map();
+            
+            // 同步病人
+            for (const p of importPatients) {
+                if (localPatientIndex.has(p.medical_id)) {
+                    const localPatient = localPatients.find(lp => lp.medical_id === p.medical_id);
+                    patientIdMap.set(p.id, localPatient.id);
+                    stats.patient.skipped++;
+                } else {
+                    const newPatient = { ...p };
+                    delete newPatient.id;
+                    const newId = await DB.add('patients', newPatient);
+                    patientIdMap.set(p.id, newId);
+                    localPatientIndex.add(p.medical_id);
+                    stats.patient.added++;
+                }
+            }
+            
+            // 同步療程
+            for (const t of importTreatments) {
+                const importPatient = importPatients.find(p => p.id === t.patient_id);
+                if (!importPatient) continue;
+                const key = `${importPatient.medical_id}_${t.treatment_start}_${t.cancer_type}`;
+                if (localTreatmentIndex.has(key)) {
+                    treatmentIdMap.set(t.id, localTreatmentIndex.get(key).id);
+                    stats.treatment.skipped++;
+                } else {
+                    const newTreatment = { ...t };
+                    delete newTreatment.id;
+                    newTreatment.patient_id = patientIdMap.get(t.patient_id);
+                    const newId = await DB.add('treatments', newTreatment);
+                    treatmentIdMap.set(t.id, newId);
+                    stats.treatment.added++;
+                }
+            }
+            
+            // 同步體重
+            for (const w of importWeights) {
+                const importTreatment = importTreatments.find(t => t.id === w.treatment_id);
+                if (!importTreatment) continue;
+                const importPatient = importPatients.find(p => p.id === importTreatment.patient_id);
+                if (!importPatient) continue;
+                const key = `${importPatient.medical_id}_${importTreatment.treatment_start}_${w.measure_date}`;
+                if (localWeightIndex.has(key)) {
+                    stats.weight.skipped++;
+                } else {
+                    const newWeight = { ...w };
+                    delete newWeight.id;
+                    newWeight.treatment_id = treatmentIdMap.get(w.treatment_id);
+                    if (newWeight.treatment_id) {
+                        await DB.add('weight_records', newWeight);
+                        stats.weight.added++;
+                    }
+                }
+            }
+            
+            // 同步副作用
+            for (const se of importSideEffects) {
+                const importTreatment = importTreatments.find(t => t.id === se.treatment_id);
+                if (!importTreatment) continue;
+                const importPatient = importPatients.find(p => p.id === importTreatment.patient_id);
+                if (!importPatient) continue;
+                const key = `${importPatient.medical_id}_${importTreatment.treatment_start}_${se.assess_date}`;
+                if (localSideEffectIndex.has(key)) {
+                    stats.sideEffect.skipped++;
+                } else {
+                    const newSideEffect = { ...se };
+                    delete newSideEffect.id;
+                    newSideEffect.treatment_id = treatmentIdMap.get(se.treatment_id);
+                    if (newSideEffect.treatment_id) {
+                        await DB.add('side_effects', newSideEffect);
+                        stats.sideEffect.added++;
+                    }
+                }
+            }
+            
+            // 同步介入
+            for (const i of importInterventions) {
+                const importTreatment = importTreatments.find(t => t.id === i.treatment_id);
+                if (!importTreatment) continue;
+                const importPatient = importPatients.find(p => p.id === importTreatment.patient_id);
+                if (!importPatient) continue;
+                const createdDate = i.created_at ? i.created_at.split('T')[0] : '';
+                const key = `${importPatient.medical_id}_${importTreatment.treatment_start}_${i.type}_${createdDate}`;
+                if (localInterventionIndex.has(key)) {
+                    stats.intervention.skipped++;
+                } else {
+                    const newIntervention = { ...i };
+                    delete newIntervention.id;
+                    newIntervention.treatment_id = treatmentIdMap.get(i.treatment_id);
+                    if (newIntervention.treatment_id) {
+                        await DB.add('interventions', newIntervention);
+                        stats.intervention.added++;
+                    }
+                }
+            }
+            
+            // 顯示結果
+            const resultHtml = `
+                <div style="text-align: center; padding: 16px 0;">
+                    <div style="font-size: 36px; margin-bottom: 12px;">✅</div>
+                    <h3 style="margin-bottom: 16px;">同步完成</h3>
+                    <div style="background: var(--bg); padding: 16px; border-radius: 8px; text-align: left;">
+                        <div class="detail-row"><span>病人</span><span>新增 <strong>${stats.patient.added}</strong> / 跳過 ${stats.patient.skipped}</span></div>
+                        <div class="detail-row"><span>療程</span><span>新增 <strong>${stats.treatment.added}</strong> / 跳過 ${stats.treatment.skipped}</span></div>
+                        <div class="detail-row"><span>體重</span><span>新增 <strong>${stats.weight.added}</strong> / 跳過 ${stats.weight.skipped}</span></div>
+                        <div class="detail-row"><span>副作用</span><span>新增 <strong>${stats.sideEffect.added}</strong> / 跳過 ${stats.sideEffect.skipped}</span></div>
+                        <div class="detail-row"><span>介入</span><span>新增 <strong>${stats.intervention.added}</strong> / 跳過 ${stats.intervention.skipped}</span></div>
+                    </div>
+                </div>
+            `;
+            
+            closeModal();
+            openModal('同步結果', resultHtml, [{ text: '確定', class: 'btn-primary' }]);
+            App.refresh();
+            
+        } catch (e) {
+            console.error('同步失敗:', e);
+            showToast('同步失敗: ' + e.message, 'error');
+        }
+        
+        document.getElementById('sync-patient-file').value = '';
     },
     
     /**

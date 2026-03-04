@@ -270,6 +270,7 @@ async function exportAllData() {
     const data = {
         version: DB_VERSION,
         exported_at: new Date().toISOString(),
+        type: 'full_backup',
         // 病人與療程
         patients: await DB.getAll('patients'),
         treatments: await DB.getAll('treatments'),
@@ -281,6 +282,27 @@ async function exportAllData() {
         interventions: await DB.getAll('interventions'),
         // 所有設定
         settings: await DB.getAll('settings')
+    };
+    return data;
+}
+
+/**
+ * 匯出病人資料（不含設定）
+ */
+async function exportPatientData() {
+    const data = {
+        version: DB_VERSION,
+        exported_at: new Date().toISOString(),
+        type: 'patient_data',
+        // 病人與療程
+        patients: await DB.getAll('patients'),
+        treatments: await DB.getAll('treatments'),
+        // 體重記錄
+        weight_records: await DB.getAll('weight_records'),
+        // 副作用評估
+        side_effects: await DB.getAll('side_effects'),
+        // 介入記錄
+        interventions: await DB.getAll('interventions')
     };
     return data;
 }
@@ -320,6 +342,41 @@ async function importAllData(data) {
     // 匯入設定
     for (const setting of (data.settings || [])) {
         await DB.update('settings', setting);
+    }
+    
+    return true;
+}
+
+/**
+ * 匯入病人資料（覆蓋，不含設定）
+ */
+async function importPatientData(data) {
+    // 只清空病人相關資料
+    await DB.clear('patients');
+    await DB.clear('treatments');
+    await DB.clear('weight_records');
+    await DB.clear('side_effects');
+    await DB.clear('interventions');
+    
+    // 匯入病人
+    for (const patient of (data.patients || [])) {
+        await DB.update('patients', patient);
+    }
+    // 匯入療程
+    for (const treatment of (data.treatments || [])) {
+        await DB.update('treatments', treatment);
+    }
+    // 匯入體重記錄
+    for (const record of (data.weight_records || [])) {
+        await DB.update('weight_records', record);
+    }
+    // 匯入副作用評估
+    for (const sideEffect of (data.side_effects || [])) {
+        await DB.update('side_effects', sideEffect);
+    }
+    // 匯入介入記錄
+    for (const intervention of (data.interventions || [])) {
+        await DB.update('interventions', intervention);
     }
     
     return true;
