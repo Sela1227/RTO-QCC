@@ -6,8 +6,8 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1a1a2e">
-    <title>體重追蹤 - 病人端</title>
-    <link rel="stylesheet" href="css/patient.css?v=1.3">
+    <title>彰濱秀傳放射腫瘤科病人體重自我回報系統</title>
+    <link rel="stylesheet" href="css/patient.css?v=2.0">
     <link rel="manifest" href="manifest.json">
 </head>
 <body>
@@ -15,8 +15,9 @@
         <!-- 未初始化狀態 -->
         <div id="init-screen" class="screen">
             <div class="init-container">
-                <div class="init-icon">📱</div>
-                <h1>體重追蹤</h1>
+                <div class="init-icon">🏥</div>
+                <h1>體重自我回報系統</h1>
+                <p class="init-subtitle">彰濱秀傳放射腫瘤科</p>
                 <p>請掃描醫護人員提供的<br>QR Code 來開始使用</p>
                 <button class="btn btn-primary btn-lg" id="btn-scan-init">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -35,7 +36,7 @@
             <header class="header">
                 <div class="header-title">
                     <span class="hospital-icon">🏥</span>
-                    體重追蹤
+                    體重回報
                 </div>
                 <button class="btn-icon" id="btn-settings">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -61,88 +62,187 @@
                 </div>
             </div>
 
-            <!-- 警示區 -->
-            <div id="alert-banner" class="alert-banner" style="display: none;">
-                <div class="alert-icon">⚠️</div>
-                <div class="alert-content">
-                    <div class="alert-title">體重變化警示</div>
-                    <div class="alert-message" id="alert-message"></div>
+            <!-- 分頁內容區 -->
+            <div class="tab-content">
+                <!-- ===== 體重頁籤 ===== -->
+                <div id="tab-weight" class="tab-panel active">
+                    <!-- 警示區 -->
+                    <div id="alert-banner" class="alert-banner" style="display: none;">
+                        <div class="alert-icon">⚠️</div>
+                        <div class="alert-content">
+                            <div class="alert-title">體重變化警示</div>
+                            <div class="alert-message" id="alert-message"></div>
+                        </div>
+                    </div>
+
+                    <!-- 警示說明 -->
+                    <div class="alert-legend">
+                        <div class="alert-legend-item warning">
+                            <span class="legend-dot"></span>
+                            <span>-3%：SDM 自我健康管理</span>
+                        </div>
+                        <div class="alert-legend-item danger">
+                            <span class="legend-dot"></span>
+                            <span>-5%：建議會診營養師</span>
+                        </div>
+                    </div>
+
+                    <!-- 今日輸入區 -->
+                    <div class="input-section">
+                        <h2>記錄體重</h2>
+                        <div class="weight-input-group">
+                            <input type="number" 
+                                   id="weight-input" 
+                                   class="weight-input" 
+                                   placeholder="0.0"
+                                   step="0.1"
+                                   min="20"
+                                   max="200"
+                                   inputmode="decimal">
+                            <span class="weight-unit">kg</span>
+                        </div>
+                        <div class="input-date">
+                            <label>日期：</label>
+                            <input type="date" id="record-date" class="date-input">
+                        </div>
+                        <button class="btn btn-primary btn-block" id="btn-record">
+                            記錄體重
+                        </button>
+                    </div>
+
+                    <!-- 歷史記錄 -->
+                    <div class="history-section">
+                        <div class="section-header">
+                            <h2>歷史記錄</h2>
+                            <span class="record-count" id="record-count">0 筆</span>
+                        </div>
+                        <div class="history-list" id="history-list">
+                            <!-- 動態生成 -->
+                        </div>
+                    </div>
+
+                    <!-- 趨勢圖 -->
+                    <div class="chart-section">
+                        <h2>體重趨勢</h2>
+                        <div class="chart-container">
+                            <canvas id="weight-chart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- 體重頁操作 -->
+                    <div class="tab-actions">
+                        <button class="btn btn-outline" id="btn-reminder">
+                            ⏰ 提醒設定
+                        </button>
+                        <button class="btn btn-primary" id="btn-generate-qr">
+                            📤 回傳給醫護
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ===== 衛教頁籤 ===== -->
+                <div id="tab-education" class="tab-panel">
+                    <div class="education-content">
+                        <h2 class="section-title">📚 放療期間營養衛教</h2>
+                        
+                        <div class="edu-card">
+                            <h3>🍽️ 飲食原則</h3>
+                            <ul>
+                                <li>少量多餐，每天 5-6 餐</li>
+                                <li>選擇高蛋白、高熱量食物</li>
+                                <li>避免太燙、太辣、太酸的食物</li>
+                                <li>細嚼慢嚥，幫助消化</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="edu-card">
+                            <h3>💪 高蛋白食物推薦</h3>
+                            <ul>
+                                <li>蛋、豆腐、豆漿</li>
+                                <li>雞肉、魚肉</li>
+                                <li>牛奶、優格</li>
+                                <li>營養補充品（如安素）</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="edu-card">
+                            <h3>⚠️ 體重下降時</h3>
+                            <ul>
+                                <li>增加餐間點心（如蒸蛋、布丁）</li>
+                                <li>飲品可加入奶粉增加熱量</li>
+                                <li>可使用市售營養補充品</li>
+                                <li>如持續下降，請告知醫護人員</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="edu-card">
+                            <h3>🤢 噁心嘔吐時</h3>
+                            <ul>
+                                <li>避免油膩、油炸食物</li>
+                                <li>嘗試冷食或室溫食物</li>
+                                <li>進食後不要立即躺下</li>
+                                <li>可嘗試薑茶或酸梅</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="edu-card">
+                            <h3>😣 口腔黏膜炎時</h3>
+                            <ul>
+                                <li>選擇軟質、滑順的食物</li>
+                                <li>避免酸、辣、過鹹食物</li>
+                                <li>可用吸管喝飲品</li>
+                                <li>保持口腔清潔</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===== 營養諮詢頁籤 ===== -->
+                <div id="tab-nutrition" class="tab-panel">
+                    <div class="nutrition-content">
+                        <h2 class="section-title">🍱 飲食記錄</h2>
+                        <p class="nutrition-hint">拍下您的餐點照片，回診時可與營養師討論</p>
+                        
+                        <!-- 拍照區 -->
+                        <div class="photo-upload-section">
+                            <input type="file" id="food-photo-input" accept="image/*" capture="environment" style="display: none;">
+                            <button class="btn btn-primary btn-lg photo-btn" id="btn-take-photo">
+                                📷 拍攝餐點
+                            </button>
+                            <button class="btn btn-outline photo-btn" id="btn-choose-photo">
+                                🖼️ 從相簿選擇
+                            </button>
+                        </div>
+                        
+                        <!-- 照片記錄列表 -->
+                        <div class="food-records-section">
+                            <div class="section-header">
+                                <h3>📋 餐點記錄</h3>
+                                <span class="record-count" id="food-record-count">0 筆</span>
+                            </div>
+                            <div class="food-records-list" id="food-records-list">
+                                <div class="empty-hint">尚無餐點記錄<br>點擊上方按鈕開始記錄</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- 警示說明 -->
-            <div class="alert-legend">
-                <div class="alert-legend-item warning">
-                    <span class="legend-dot"></span>
-                    <span>-3%：SDM 自我健康管理</span>
-                </div>
-                <div class="alert-legend-item danger">
-                    <span class="legend-dot"></span>
-                    <span>-5%：建議會診營養師</span>
-                </div>
-            </div>
-
-            <!-- 今日輸入區 -->
-            <div class="input-section">
-                <h2>記錄體重</h2>
-                <div class="weight-input-group">
-                    <input type="number" 
-                           id="weight-input" 
-                           class="weight-input" 
-                           placeholder="0.0"
-                           step="0.1"
-                           min="20"
-                           max="200"
-                           inputmode="decimal">
-                    <span class="weight-unit">kg</span>
-                </div>
-                <div class="input-date">
-                    <label>日期：</label>
-                    <input type="date" id="record-date" class="date-input">
-                </div>
-                <button class="btn btn-primary btn-block" id="btn-record">
-                    記錄體重
+            <!-- 底部分頁導航 -->
+            <nav class="bottom-tabs">
+                <button class="tab-btn active" data-tab="weight">
+                    <span class="tab-icon">⚖️</span>
+                    <span class="tab-label">體重</span>
                 </button>
-            </div>
-
-            <!-- 歷史記錄 -->
-            <div class="history-section">
-                <div class="section-header">
-                    <h2>歷史記錄</h2>
-                    <span class="record-count" id="record-count">0 筆</span>
-                </div>
-                <div class="history-list" id="history-list">
-                    <!-- 動態生成 -->
-                </div>
-            </div>
-
-            <!-- 趨勢圖 -->
-            <div class="chart-section">
-                <h2>體重趨勢</h2>
-                <div class="chart-container">
-                    <canvas id="weight-chart"></canvas>
-                </div>
-            </div>
-
-            <!-- 底部操作 -->
-            <div class="bottom-actions">
-                <button class="btn btn-outline" id="btn-reminder">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <polyline points="12 6 12 12 16 14"></polyline>
-                    </svg>
-                    提醒設定
+                <button class="tab-btn" data-tab="education">
+                    <span class="tab-icon">📚</span>
+                    <span class="tab-label">衛教</span>
                 </button>
-                <button class="btn btn-primary" id="btn-generate-qr">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="3" width="7" height="7"></rect>
-                        <rect x="14" y="3" width="7" height="7"></rect>
-                        <rect x="3" y="14" width="7" height="7"></rect>
-                        <rect x="14" y="14" width="7" height="7"></rect>
-                    </svg>
-                    回傳給醫護
+                <button class="tab-btn" data-tab="nutrition">
+                    <span class="tab-icon">🍱</span>
+                    <span class="tab-label">營養諮詢</span>
                 </button>
-            </div>
+            </nav>
         </div>
 
         <!-- 掃描器畫面 -->
@@ -279,7 +379,7 @@
                     </div>
                     
                     <div class="settings-footer">
-                        <p>體重追蹤 病人端 v1.3</p>
+                        <p>彰濱秀傳放射腫瘤科<br>病人體重自我回報系統 v2.0</p>
                     </div>
                 </div>
             </div>
@@ -305,6 +405,6 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     
     <!-- 應用程式 -->
-    <script src="js/patient-app.js?v=1.3"></script>
+    <script src="js/patient-app.js?v=2.0"></script>
 </body>
 </html>

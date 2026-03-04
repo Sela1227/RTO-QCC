@@ -91,6 +91,12 @@ body {
     line-height: 1.6;
 }
 
+.init-subtitle {
+    font-size: 14px;
+    color: var(--primary);
+    margin-bottom: var(--space-sm) !important;
+}
+
 .init-hint {
     font-size: 13px;
     color: var(--text-hint);
@@ -941,5 +947,328 @@ body {
 }
 
 .install-modal-buttons .btn {
+    flex: 1;
+}
+
+/* === 底部分頁導航 === */
+.bottom-tabs {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    background: var(--bg-card);
+    border-top: 1px solid var(--border);
+    padding: 8px 0;
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+    z-index: 100;
+}
+
+.tab-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 8px;
+    background: none;
+    border: none;
+    color: var(--text-hint);
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.tab-btn.active {
+    color: var(--primary);
+}
+
+.tab-icon {
+    font-size: 20px;
+}
+
+.tab-label {
+    font-size: 11px;
+}
+
+/* === 分頁內容 === */
+.tab-content {
+    padding-bottom: 80px; /* 為底部導航留空間 */
+}
+
+.tab-panel {
+    display: none;
+}
+
+.tab-panel.active {
+    display: block;
+}
+
+.tab-actions {
+    display: flex;
+    gap: 12px;
+    padding: var(--space-md);
+    margin-top: var(--space-md);
+}
+
+.tab-actions .btn {
+    flex: 1;
+}
+
+/* === 衛教頁籤 === */
+.education-content {
+    padding: var(--space-md);
+}
+
+.section-title {
+    font-size: 18px;
+    margin-bottom: var(--space-lg);
+    color: var(--text);
+}
+
+.edu-card {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+    margin-bottom: var(--space-md);
+}
+
+.edu-card h3 {
+    font-size: 15px;
+    margin-bottom: var(--space-md);
+    color: var(--text);
+}
+
+.edu-card ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.edu-card li {
+    position: relative;
+    padding-left: 20px;
+    margin-bottom: 8px;
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.edu-card li::before {
+    content: '•';
+    position: absolute;
+    left: 0;
+    color: var(--primary);
+}
+
+/* === 營養諮詢頁籤 === */
+.nutrition-content {
+    padding: var(--space-md);
+}
+
+.nutrition-hint {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin-bottom: var(--space-lg);
+}
+
+.photo-upload-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: var(--space-xl);
+}
+
+.photo-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 16px;
+    font-size: 16px;
+}
+
+.food-records-section {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+}
+
+.food-records-section .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-md);
+}
+
+.food-records-section h3 {
+    font-size: 15px;
+    margin: 0;
+}
+
+.food-records-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.food-records-list .empty-hint {
+    text-align: center;
+    color: var(--text-hint);
+    padding: var(--space-xl);
+    line-height: 1.6;
+}
+
+.food-record-item {
+    display: flex;
+    gap: 12px;
+    padding: var(--space-md);
+    background: var(--bg);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-sm);
+}
+
+.food-record-item img {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: var(--radius-sm);
+}
+
+.food-record-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.food-record-date {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 4px;
+}
+
+.food-record-time {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.food-record-note {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+.food-record-actions {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+}
+
+.food-record-actions .btn-mini {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--text-hint);
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.food-record-actions .btn-mini:hover {
+    background: var(--bg-card);
+    color: var(--text);
+}
+
+.food-record-actions .btn-mini-danger:hover {
+    background: rgba(217, 123, 123, 0.2);
+    color: var(--danger);
+}
+
+/* 照片預覽 Modal */
+.photo-preview-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    padding: 20px;
+}
+
+.photo-preview-modal img {
+    max-width: 100%;
+    max-height: 70vh;
+    object-fit: contain;
+    border-radius: var(--radius-md);
+}
+
+.photo-preview-actions {
+    margin-top: 20px;
+    display: flex;
+    gap: 12px;
+}
+
+/* 新增備註輸入 */
+.note-input-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    padding: 20px;
+}
+
+.note-input-content {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: var(--space-xl);
+    width: 100%;
+    max-width: 320px;
+}
+
+.note-input-content h3 {
+    margin-bottom: var(--space-md);
+}
+
+.note-input-content input,
+.note-input-content textarea {
+    width: 100%;
+    padding: var(--space-md);
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text);
+    font-size: 14px;
+    margin-bottom: var(--space-md);
+}
+
+.note-input-content textarea {
+    min-height: 80px;
+    resize: vertical;
+}
+
+.note-input-buttons {
+    display: flex;
+    gap: 12px;
+}
+
+.note-input-buttons .btn {
     flex: 1;
 }

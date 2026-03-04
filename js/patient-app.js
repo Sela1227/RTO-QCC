@@ -86,6 +86,36 @@ const PatientApp = {
         
         // 掃描返回
         document.getElementById('btn-scanner-back').onclick = () => this.stopScan();
+        
+        // 分頁籤切換
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.onclick = () => this.switchTab(btn.dataset.tab);
+        });
+        
+        // 食物照片
+        document.getElementById('btn-take-photo').onclick = () => this.takePhoto();
+        document.getElementById('btn-choose-photo').onclick = () => this.choosePhoto();
+        document.getElementById('food-photo-input').onchange = (e) => this.handlePhotoSelected(e);
+    },
+    
+    /**
+     * 切換分頁籤
+     */
+    switchTab(tabName) {
+        // 更新按鈕狀態
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.tab === tabName);
+        });
+        
+        // 更新內容顯示
+        document.querySelectorAll('.tab-panel').forEach(panel => {
+            panel.classList.toggle('active', panel.id === `tab-${tabName}`);
+        });
+        
+        // 切換到營養諮詢時刷新列表
+        if (tabName === 'nutrition') {
+            this.renderFoodRecords();
+        }
     },
     
     /**
@@ -301,14 +331,20 @@ const PatientApp = {
                 return;
             }
             
-            // 檢查是否已有其他病人的資料
+            // 檢查是否已有其他病人的資料（需要四碼確認）
             if (this.data && this.data.patient_id !== patientId) {
-                const confirmed = confirm(
+                const code = Math.floor(1000 + Math.random() * 9000).toString();
+                const input = prompt(
                     `目前已有 ${this.data.name} 的資料。\n\n` +
-                    `確定要切換到 ${name} 嗎？\n\n` +
-                    `（原有的體重記錄將被清除）`
+                    `確定要切換到 ${name} 嗎？\n` +
+                    `（原有的體重記錄將被清除）\n\n` +
+                    `請輸入 ${code} 確認：`
                 );
-                if (!confirmed) {
+                
+                if (input !== code) {
+                    if (input !== null) {
+                        this.showToast('確認碼不正確', 'error');
+                    }
                     this.showScreen('main-screen');
                     return;
                 }
@@ -1103,6 +1139,243 @@ const PatientApp = {
             }
             this.deferredPrompt = null;
         }
+    },
+    
+    // ========== 食物照片功能 ==========
+    
+    FOOD_STORAGE_KEY: 'sela_food_records',
+    
+    /**
+     * 拍攝照片
+     */
+    takePhoto() {
+        const input = document.getElementById('food-photo-input');
+        input.setAttribute('capture', 'environment');
+        input.click();
+    },
+    
+    /**
+     * 從相簿選擇
+     */
+    choosePhoto() {
+        const input = document.getElementById('food-photo-input');
+        input.removeAttribute('capture');
+        input.click();
+    },
+    
+    /**
+     * 處理選擇的照片
+     */
+    async handlePhotoSelected(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        // 檢查檔案類型
+        if (!file.type.startsWith('image/')) {
+            this.showToast('請選擇圖片檔案', 'error');
+            return;
+        }
+        
+        // 顯示預覽並讓用戶添加備註
+        this.showPhotoPreview(file);
+        
+        // 清空 input 以便下次選擇同一檔案也能觸發
+        e.target.value = '';
+    },
+    
+    /**
+     * 顯示照片預覽
+     */
+    showPhotoPreview(file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const imageData = e.target.result;
+            
+            const modal = document.createElement('div');
+            modal.className = 'note-input-modal';
+            modal.innerHTML = `
+                <div class="note-input-content">
+                    <h3>📷 新增餐點記錄</h3>
+                    <img src="${imageData}" style="width: 100%; max-height: 200px; object-fit: cover; border-radius: 8px; margin-bottom: 12px;">
+                    <input type="text" id="food-note-input" placeholder="餐點說明（選填，如：早餐）" maxlength="50">
+                    <div class="note-input-buttons">
+                        <button class="btn btn-outline" onclick="this.closest('.note-input-modal').remove()">取消</button>
+                        <button class="btn btn-primary" id="btn-save-food">儲存</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            
+            document.getElementById('btn-save-food').onclick = () => {
+                const note = document.getElementById('food-note-input').value.trim();
+                this.saveFoodRecord(imageData, note);
+                modal.remove();
+            };
+        };
+        reader.readAsDataURL(file);
+    },
+    
+    /**
+     * 儲存食物記錄
+     */
+    saveFoodRecord(imageData, note) {
+        // 壓縮圖片
+        this.compressImage(imageData, (compressedData) => {
+            const records = this.getFoodRecords();
+            const now = new Date();
+            
+            records.push({
+                id: Date.now(),
+                date: now.toISOString().split('T')[0],
+                time: now.toTimeString().substring(0, 5),
+                image: compressedData,
+                note: note
+            });
+            
+            // 最多保留 50 筆
+            while (records.length > 50) {
+                records.shift();
+            }
+            
+            localStorage.setItem(this.FOOD_STORAGE_KEY, JSON.stringify(records));
+            this.renderFoodRecords();
+            this.showToast('餐點已記錄', 'success');
+        });
+    },
+    
+    /**
+     * 壓縮圖片
+     */
+    compressImage(dataUrl, callback) {
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const maxSize = 800;
+            let width = img.width;
+            let height = img.height;
+            
+            if (width > height && width > maxSize) {
+                height = (height * maxSize) / width;
+                width = maxSize;
+            } else if (height > maxSize) {
+                width = (width * maxSize) / height;
+                height = maxSize;
+            }
+            
+            canvas.width = width;
+            canvas.height = height;
+            
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            
+            callback(canvas.toDataURL('image/jpeg', 0.7));
+        };
+        img.src = dataUrl;
+    },
+    
+    /**
+     * 取得食物記錄
+     */
+    getFoodRecords() {
+        try {
+            return JSON.parse(localStorage.getItem(this.FOOD_STORAGE_KEY) || '[]');
+        } catch {
+            return [];
+        }
+    },
+    
+    /**
+     * 渲染食物記錄列表
+     */
+    renderFoodRecords() {
+        const container = document.getElementById('food-records-list');
+        const countEl = document.getElementById('food-record-count');
+        const records = this.getFoodRecords();
+        
+        countEl.textContent = `${records.length} 筆`;
+        
+        if (records.length === 0) {
+            container.innerHTML = '<div class="empty-hint">尚無餐點記錄<br>點擊上方按鈕開始記錄</div>';
+            return;
+        }
+        
+        // 按日期倒序
+        const sorted = [...records].sort((a, b) => {
+            const dateA = new Date(`${a.date}T${a.time}`);
+            const dateB = new Date(`${b.date}T${b.time}`);
+            return dateB - dateA;
+        });
+        
+        container.innerHTML = sorted.map(r => `
+            <div class="food-record-item" data-id="${r.id}">
+                <img src="${r.image}" alt="餐點照片" onclick="PatientApp.viewFoodPhoto('${r.id}')">
+                <div class="food-record-info">
+                    <div class="food-record-date">${this.formatDate(r.date)}</div>
+                    <div class="food-record-time">${r.time}</div>
+                    ${r.note ? `<div class="food-record-note">${r.note}</div>` : ''}
+                </div>
+                <div class="food-record-actions">
+                    <button class="btn-mini" onclick="PatientApp.editFoodNote('${r.id}')" title="編輯備註">✎</button>
+                    <button class="btn-mini btn-mini-danger" onclick="PatientApp.deleteFoodRecord('${r.id}')" title="刪除">✕</button>
+                </div>
+            </div>
+        `).join('');
+    },
+    
+    /**
+     * 查看食物照片
+     */
+    viewFoodPhoto(id) {
+        const records = this.getFoodRecords();
+        const record = records.find(r => r.id == id);
+        if (!record) return;
+        
+        const modal = document.createElement('div');
+        modal.className = 'photo-preview-modal';
+        modal.onclick = (e) => {
+            if (e.target === modal) modal.remove();
+        };
+        modal.innerHTML = `
+            <img src="${record.image}" alt="餐點照片">
+            <div style="margin-top: 12px; color: white; text-align: center;">
+                <div>${this.formatDate(record.date)} ${record.time}</div>
+                ${record.note ? `<div style="margin-top: 4px; opacity: 0.8;">${record.note}</div>` : ''}
+            </div>
+            <div class="photo-preview-actions">
+                <button class="btn btn-outline" onclick="this.closest('.photo-preview-modal').remove()">關閉</button>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    },
+    
+    /**
+     * 編輯食物備註
+     */
+    editFoodNote(id) {
+        const records = this.getFoodRecords();
+        const record = records.find(r => r.id == id);
+        if (!record) return;
+        
+        const newNote = prompt('編輯備註：', record.note || '');
+        if (newNote === null) return;
+        
+        record.note = newNote.trim();
+        localStorage.setItem(this.FOOD_STORAGE_KEY, JSON.stringify(records));
+        this.renderFoodRecords();
+        this.showToast('備註已更新', 'success');
+    },
+    
+    /**
+     * 刪除食物記錄
+     */
+    deleteFoodRecord(id) {
+        if (!confirm('確定要刪除這筆餐點記錄嗎？')) return;
+        
+        let records = this.getFoodRecords();
+        records = records.filter(r => r.id != id);
+        localStorage.setItem(this.FOOD_STORAGE_KEY, JSON.stringify(records));
+        this.renderFoodRecords();
+        this.showToast('已刪除', 'success');
     }
 };
 
