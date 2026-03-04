@@ -20,6 +20,15 @@ const PatientApp = {
         // 載入資料
         this.loadData();
         
+        // 檢查 URL 參數（從 QR Code 掃描來的）
+        const urlParams = new URLSearchParams(window.location.search);
+        const dataParam = urlParams.get('d');
+        
+        if (dataParam && !this.data) {
+            // 有 URL 參數且尚未初始化，自動處理
+            await this.handleScanResult(dataParam, 'url');
+        }
+        
         // 綁定事件
         this.bindEvents();
         
@@ -156,7 +165,10 @@ const PatientApp = {
      * 處理掃描結果
      */
     async handleScanResult(text, mode) {
-        await this.stopScan();
+        // 只有相機掃描模式才需要停止掃描
+        if (mode !== 'url') {
+            await this.stopScan();
+        }
         
         try {
             let patientId, name, treatmentStart, baselineWeight;

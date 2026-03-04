@@ -305,6 +305,13 @@ async function importAllData(data) {
  */
 async function initDefaultSettings() {
     const existing = await Settings.get('initialized');
+    
+    // 確保病人端網址有預設值（新舊用戶都適用）
+    const patientAppUrl = await Settings.get('patient_app_url');
+    if (!patientAppUrl) {
+        await Settings.set('patient_app_url', 'https://sela1227.github.io/RTO-QCC/patient.html');
+    }
+    
     if (existing) return;
     
     // 癌別
@@ -352,6 +359,9 @@ async function initDefaultSettings() {
         { code: 'patient_request', label: '病人要求' },
         { code: 'other', label: '其他（手填）' }
     ]);
+    
+    // 病人端網址
+    await Settings.set('patient_app_url', 'https://sela1227.github.io/RTO-QCC/patient.html');
     
     await Settings.set('initialized', true);
     console.log('預設設定已初始化');

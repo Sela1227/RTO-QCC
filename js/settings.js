@@ -11,6 +11,7 @@ const SettingsUI = {
         const staffList = await Settings.get('staff_list', []);
         const alertRules = await Settings.get('alert_rules', []);
         const pauseReasons = await Settings.get('pause_reasons', []);
+        const patientAppUrl = await Settings.get('patient_app_url', '');
         
         const html = `
             <div class="settings-tabs" style="display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;">
@@ -18,6 +19,7 @@ const SettingsUI = {
                 <button class="tab" data-settings-tab="staff">人員</button>
                 <button class="tab" data-settings-tab="alert">警示</button>
                 <button class="tab" data-settings-tab="pause">暫停原因</button>
+                <button class="tab" data-settings-tab="patient">病人端</button>
                 <button class="tab" data-settings-tab="data">資料</button>
             </div>
             
@@ -116,6 +118,33 @@ const SettingsUI = {
                     <button class="btn btn-outline btn-sm" style="margin-top: 12px;" onclick="SettingsUI.addPauseReason()">
                         + 新增
                     </button>
+                </div>
+                
+                <!-- 病人端設定 -->
+                <div class="settings-panel" id="settings-patient" style="display: none;">
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 6px; font-weight: 500;">病人端網址</label>
+                            <input type="text" class="form-input" id="patient-app-url" 
+                                   value="${patientAppUrl}"
+                                   placeholder="例如：https://example.com/patient.html">
+                            <p style="font-size: 12px; color: var(--text-hint); margin-top: 4px;">
+                                部署病人端網頁後，填入網址。QR Code 會包含此網址讓病人掃描後直接開啟。
+                            </p>
+                        </div>
+                        <button class="btn btn-primary" onclick="SettingsUI.savePatientAppUrl()">
+                            儲存設定
+                        </button>
+                        <hr style="border: none; border-top: 1px solid var(--border); margin: 8px 0;">
+                        <div>
+                            <label style="display: block; margin-bottom: 6px; font-weight: 500;">部署說明</label>
+                            <ol style="font-size: 13px; color: var(--text-secondary); margin: 0; padding-left: 20px; line-height: 1.8;">
+                                <li>將 <code>patient.html</code> 上傳到網頁伺服器</li>
+                                <li>複製網頁網址填入上方欄位</li>
+                                <li>病人掃描 QR Code 後即可開啟填報頁面</li>
+                            </ol>
+                        </div>
+                    </div>
                 </div>
                 
                 <!-- 資料管理 -->
@@ -646,6 +675,15 @@ const SettingsUI = {
         
         // 清除 input
         document.getElementById('sync-file').value = '';
+    },
+    
+    /**
+     * 儲存病人端網址設定
+     */
+    async savePatientAppUrl() {
+        const url = document.getElementById('patient-app-url').value.trim();
+        await Settings.set('patient_app_url', url);
+        showToast('病人端網址已儲存');
     },
     
     async clearAllData() {

@@ -1,6 +1,6 @@
 /**
  * 彰濱放腫體重監控預防系統 - 主程式
- * v4.6.4 Web 版
+ * v4.6.6 Web 版
  */
 
 const App = {
@@ -1079,13 +1079,24 @@ const App = {
     async showPatientQRCode(treatmentId) {
         const treatment = await Treatment.getById(treatmentId);
         const patient = await Patient.getById(treatment.patient_id);
+        const patientAppUrl = await Settings.get('patient_app_url', '');
         
         // 準備 QR Code 資料（精簡格式）
         // 格式：I|病歷號|姓名|開始日期|基準體重
-        const payload = `I|${patient.medical_id}|${patient.name}|${treatment.treatment_start}|${treatment.baseline_weight || 0}`;
+        const data = `I|${patient.medical_id}|${patient.name}|${treatment.treatment_start}|${treatment.baseline_weight || 0}`;
+        
+        // 如果有設定網址，QR Code 包含完整 URL；否則只包含資料
+        let qrContent;
+        if (patientAppUrl) {
+            // 有設定網址：QR Code 包含完整 URL，掃描後直接開啟
+            qrContent = `${patientAppUrl}?d=${encodeURIComponent(data)}`;
+        } else {
+            // 沒有設定網址：QR Code 只包含資料
+            qrContent = data;
+        }
         
         // 使用 QR Server API 生成 QR Code
-        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(payload)}`;
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrContent)}`;
         
         const html = `
             <div style="text-align: center;">
@@ -1095,12 +1106,18 @@ const App = {
                 <div id="patient-qr-container" style="background: white; padding: 16px; border-radius: 8px; display: inline-block;">
                     <img src="${qrUrl}" alt="QR Code" style="display: block; width: 200px; height: 200px;">
                 </div>
-                <p style="color: var(--text-secondary); font-size: 13px; margin-top: 12px;">
-                    請病人用手機掃描此 QR Code
-                </p>
-                <p style="color: var(--text-hint); font-size: 12px;">
-                    掃描後可在手機上記錄每日體重
-                </p>
+                ${patientAppUrl ? `
+                    <p style="color: var(--success); font-size: 13px; margin-top: 12px;">
+                        ✓ 掃描後會自動開啟填報網頁
+                    </p>
+                ` : `
+                    <p style="color: var(--warning); font-size: 13px; margin-top: 12px;">
+                        ⚠️ 尚未設定病人端網址
+                    </p>
+                    <p style="color: var(--text-hint); font-size: 12px;">
+                        請到設定 → 病人端 填入網址
+                    </p>
+                `}
             </div>
         `;
         
