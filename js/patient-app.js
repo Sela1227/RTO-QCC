@@ -123,40 +123,67 @@ const PatientApp = {
      */
     async startScan(mode) {
         // 先停止之前的掃描器（如果有）
-        if (this.scanner) {
-            try {
-                await this.scanner.stop();
-                this.scanner.clear();
-            } catch (e) {}
-            this.scanner = null;
-        }
+        await this.stopScannerOnly();
         
         this.showScreen('scanner-screen');
         
-        // 清空掃描容器
         const container = document.getElementById('scanner-container');
-        container.innerHTML = '';
+        if (!container) {
+            this.showToast('找不到掃描容器', 'error');
+            return;
+        }
         
-        try {
-            this.scanner = new Html5Qrcode('scanner-container');
+        // 清空並設定尺寸
+        container.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-hint);">正在啟動相機...</div>';
+        
+        // 延遲一下再初始化掃描器
+        setTimeout(async () => {
+            container.innerHTML = '';
             
-            await this.scanner.start(
-                { facingMode: 'environment' },
-                {
-                    fps: 10,
-                    qrbox: { width: 250, height: 250 }
-                },
-                (decodedText) => {
-                    this.handleScanResult(decodedText, mode);
-                },
-                (errorMessage) => {
-                    // 掃描中...
-                }
-            );
-        } catch (e) {
-            console.error('相機啟動失敗', e);
-            this.showToast('無法啟動相機', 'error');
-            this.stopScan();
+            try {
+                this.scanner = new Html5Qrcode('scanner-container');
+                
+                await this.scanner.start(
+                    { facingMode: 'environment' },
+                    {
+                        fps: 10,
+                        qrbox: { width: 250, height: 250 },
+                        aspectRatio: 1
+                    },
+                    (decodedText) => {
+                        this.handleScanResult(decodedText, mode);
+                    },
+                    (errorMessage) => {
+                        // 掃描中...忽略錯誤
+                    }
+                );
+            } catch (e) {
+                console.error('相機啟動失敗', e);
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 40px;">
+                        <p style="color: var(--danger); margin-bottom: 16px;">無法啟動相機</p>
+                        <p style="color: var(--text-hint); font-size: 13px; margin-bottom: 16px;">${e.message || '請確認已授予相機權限'}</p>
+                        <button class="btn btn-outline" onclick="PatientApp.startScan('${mode}')">重試</button>
+                    </div>
+                `;
+            }
+        }, 200);
+    },
+    
+    /**
+     * 只停止掃描器（不切換畫面）
+     */
+    async stopScannerOnly() {
+        if (this.scanner) {
+            try {
+                await this.scanner.stop();
+            } catch (e) {
+                // 可能已經停止了
+            }
+            try {
+                this.scanner.clear();
+            } catch (e) {}
+            this.scanner = null;
         }
     },
     
@@ -164,15 +191,7 @@ const PatientApp = {
      * 停止掃描
      */
     async stopScan() {
-        if (this.scanner) {
-            try {
-                await this.scanner.stop();
-                this.scanner.clear();
-            } catch (e) {
-                console.error('停止掃描失敗', e);
-            }
-            this.scanner = null;
-        }
+        await this.stopScannerOnly();
         
         if (this.data) {
             this.showScreen('main-screen');
@@ -185,9 +204,9 @@ const PatientApp = {
      * 處理掃描結果
      */
     async handleScanResult(text, mode) {
-        // 只有相機掃描模式才需要停止掃描
+        // 停止掃描器（不切換畫面）
         if (mode !== 'url') {
-            await this.stopScan();
+            await this.stopScannerOnly();
         }
         
         try {
@@ -270,6 +289,11 @@ const PatientApp = {
             this.showScreen('main-screen');
             this.render();
             this.showToast('設定成功！', 'success');
+            
+            // 提示加到主畫面（僅首次且在手機上）
+            setTimeout(() => {
+                this.promptAddToHomeScreen();
+            }, 1500);
         } catch (e) {
             console.error('解析失敗', e);
             this.showToast('無法解析 QR Code', 'error');
@@ -317,16 +341,22 @@ const PatientApp = {
             new Date(b.date) - new Date(a.date)
         );
         
-        container.innerHTML = sorted.map(r => {
+        container.innerHTML = sorted.map((r, index) => {
             const rate = this.calcRate(r.weight);
             const rateClass = this.getRateClass(rate);
             const dateStr = this.formatDate(r.date);
             
             return `
-                <div class="history-item">
-                    <span class="history-date">${dateStr}</span>
-                    <span class="history-weight">${r.weight} kg</span>
-                    <span class="history-rate ${rateClass}">${this.formatRate(rate)}</span>
+                <div class="history-item" data-date="${r.date}">
+                    <div class="history-main">
+                        <span class="history-date">${dateStr}</span>
+                        <span class="history-weight">${r.weight} kg</span>
+                        <span class="history-rate ${rateClass}">${this.formatRate(rate)}</span>
+                    </div>
+                    <div class="history-actions">
+                        <button class="btn-mini" onclick="PatientApp.editRecord('${r.date}')" title="編輯">✎</button>
+                        <button class="btn-mini btn-mini-danger" onclick="PatientApp.deleteRecord('${r.date}')" title="刪除">✕</button>
+                    </div>
                 </div>
             `;
         }).join('');
@@ -336,9 +366,11 @@ const PatientApp = {
      * 渲染圖表
      */
     renderChart() {
-        const canvas = document.getElementById('weight-chart');
-        const chartSection = canvas?.closest('.chart-section');
+        const chartSection = document.querySelector('.chart-section');
+        if (!chartSection) return;
+        
         const records = this.data.records || [];
+        const baseline = this.data.baseline_weight;
         
         // 銷毀舊圖表
         if (this.chart) {
@@ -346,103 +378,104 @@ const PatientApp = {
             this.chart = null;
         }
         
-        if (records.length < 2) {
-            // 資料不足，顯示提示
-            if (chartSection) {
-                chartSection.innerHTML = `
-                    <h2>體重趨勢</h2>
-                    <div class="chart-container" style="display: flex; align-items: center; justify-content: center; color: var(--text-hint);">
-                        需要至少 2 筆記錄才能顯示圖表
-                    </div>
-                `;
-            }
+        // 沒有基準體重，顯示提示
+        if (!baseline) {
+            chartSection.innerHTML = `
+                <h2>體重趨勢</h2>
+                <div class="chart-container" style="display: flex; align-items: center; justify-content: center; color: var(--text-hint);">
+                    尚無基準體重
+                </div>
+            `;
             return;
         }
         
-        // 確保 canvas 存在
-        if (chartSection && !document.getElementById('weight-chart')) {
-            chartSection.innerHTML = `
-                <h2>體重趨勢</h2>
-                <div class="chart-container">
-                    <canvas id="weight-chart"></canvas>
-                </div>
-            `;
-        }
+        // 重建 canvas（每次都重建以確保正確）
+        chartSection.innerHTML = `
+            <h2>體重趨勢</h2>
+            <div class="chart-container">
+                <canvas id="weight-chart"></canvas>
+            </div>
+        `;
         
         const chartCanvas = document.getElementById('weight-chart');
         if (!chartCanvas) return;
         
-        // 按日期排序
+        // 準備資料：基準體重 + 記錄
         const sorted = [...records].sort((a, b) => 
             new Date(a.date) - new Date(b.date)
         );
         
-        const labels = sorted.map(r => this.formatDate(r.date, 'short'));
-        const weights = sorted.map(r => r.weight);
-        const baseline = this.data.baseline_weight;
+        // 組合標籤和數據：基準 + 所有記錄
+        const labels = ['基準', ...sorted.map(r => this.formatDate(r.date, 'short'))];
+        const weights = [baseline, ...sorted.map(r => r.weight)];
+        
         const sdmLine = baseline * (1 + this.data.sdm_threshold / 100);
         const nutLine = baseline * (1 + this.data.nutrition_threshold / 100);
         
-        this.chart = new Chart(chartCanvas, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [
-                    {
-                        label: '體重',
-                        data: weights,
-                        borderColor: '#4A90D9',
-                        backgroundColor: 'rgba(74, 144, 217, 0.1)',
-                        borderWidth: 2,
-                        tension: 0.3,
-                        fill: true
-                    },
-                    {
-                        label: '基準',
-                        data: Array(labels.length).fill(baseline),
-                        borderColor: '#6BBF8A',
-                        borderWidth: 1,
-                        borderDash: [5, 5],
-                        pointRadius: 0
-                    },
-                    {
-                        label: '-3%',
-                        data: Array(labels.length).fill(sdmLine),
-                        borderColor: '#E4B95A',
-                        borderWidth: 1,
-                        borderDash: [3, 3],
-                        pointRadius: 0
-                    },
-                    {
-                        label: '-5%',
-                        data: Array(labels.length).fill(nutLine),
-                        borderColor: '#D97B7B',
-                        borderWidth: 1,
-                        borderDash: [3, 3],
-                        pointRadius: 0
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
-                    }
+        try {
+            this.chart = new Chart(chartCanvas, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: '體重',
+                            data: weights,
+                            borderColor: '#4A90D9',
+                            backgroundColor: 'rgba(74, 144, 217, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.3,
+                            fill: true
+                        },
+                        {
+                            label: '基準',
+                            data: Array(labels.length).fill(baseline),
+                            borderColor: '#6BBF8A',
+                            borderWidth: 1,
+                            borderDash: [5, 5],
+                            pointRadius: 0
+                        },
+                        {
+                            label: '-3%',
+                            data: Array(labels.length).fill(sdmLine),
+                            borderColor: '#E4B95A',
+                            borderWidth: 1,
+                            borderDash: [3, 3],
+                            pointRadius: 0
+                        },
+                        {
+                            label: '-5%',
+                            data: Array(labels.length).fill(nutLine),
+                            borderColor: '#D97B7B',
+                            borderWidth: 1,
+                            borderDash: [3, 3],
+                            pointRadius: 0
+                        }
+                    ]
                 },
-                scales: {
-                    x: {
-                        grid: { color: 'rgba(255,255,255,0.1)' },
-                        ticks: { color: '#a8a8b8', font: { size: 10 } }
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
                     },
-                    y: {
-                        grid: { color: 'rgba(255,255,255,0.1)' },
-                        ticks: { color: '#a8a8b8', font: { size: 10 } }
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            ticks: { color: '#a8a8b8', font: { size: 10 } }
+                        },
+                        y: {
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            ticks: { color: '#a8a8b8', font: { size: 10 } }
+                        }
                     }
                 }
-            }
-        });
+            });
+        } catch (e) {
+            console.error('圖表渲染失敗', e);
+        }
     },
     
     /**
@@ -703,15 +736,58 @@ const PatientApp = {
     },
     
     /**
-     * 清除資料
+     * 清除資料（需輸入隨機四碼確認）
      */
     clearData() {
-        this.showConfirm('確定要清除所有資料嗎？', () => {
+        // 生成隨機四碼
+        const code = Math.floor(1000 + Math.random() * 9000).toString();
+        const input = prompt(`確定要清除所有資料嗎？\n\n此操作無法復原！\n\n請輸入 ${code} 確認：`);
+        
+        if (input === code) {
             localStorage.removeItem(this.STORAGE_KEY);
             this.data = null;
             this.showScreen('init-screen');
             this.showToast('資料已清除', 'success');
-        });
+        } else if (input !== null) {
+            this.showToast('確認碼不正確', 'error');
+        }
+    },
+    
+    /**
+     * 編輯記錄
+     */
+    editRecord(date) {
+        const record = this.data.records.find(r => r.date === date);
+        if (!record) return;
+        
+        const newWeight = prompt(`編輯 ${this.formatDate(date)} 的體重記錄：`, record.weight);
+        if (newWeight === null) return;
+        
+        const weight = parseFloat(newWeight);
+        if (!weight || weight < 20 || weight > 200) {
+            this.showToast('請輸入有效的體重（20-200 kg）', 'error');
+            return;
+        }
+        
+        record.weight = weight;
+        this.saveData();
+        this.render();
+        this.showToast('記錄已更新', 'success');
+    },
+    
+    /**
+     * 刪除記錄
+     */
+    deleteRecord(date) {
+        const record = this.data.records.find(r => r.date === date);
+        if (!record) return;
+        
+        if (confirm(`確定要刪除 ${this.formatDate(date)} 的記錄（${record.weight} kg）嗎？`)) {
+            this.data.records = this.data.records.filter(r => r.date !== date);
+            this.saveData();
+            this.render();
+            this.showToast('記錄已刪除', 'success');
+        }
     },
     
     // === 工具函數 ===
@@ -798,6 +874,100 @@ const PatientApp = {
         document.getElementById('confirm-cancel').onclick = () => {
             modal.style.display = 'none';
         };
+    },
+    
+    /**
+     * 首次設定成功後提示加到主畫面
+     */
+    promptAddToHomeScreen() {
+        // 檢查是否已經是 PWA 模式或已經提示過
+        if (window.matchMedia('(display-mode: standalone)').matches || 
+            window.navigator.standalone === true ||
+            localStorage.getItem('install_prompted')) {
+            return;
+        }
+        
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        const isAndroid = /Android/.test(navigator.userAgent);
+        
+        if (!isIOS && !isAndroid) return;
+        
+        // 標記已提示
+        localStorage.setItem('install_prompted', '1');
+        
+        // 顯示安裝提示 Modal
+        this.showInstallModal();
+    },
+    
+    /**
+     * 顯示安裝提示 Modal
+     */
+    showInstallModal() {
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        
+        const modal = document.createElement('div');
+        modal.className = 'install-modal';
+        modal.innerHTML = `
+            <div class="install-modal-content">
+                <div class="install-modal-header">
+                    <span style="font-size: 32px;">📱</span>
+                    <h3>加到主畫面</h3>
+                </div>
+                <p>將此頁面加到主畫面，<br>下次可以像 APP 一樣直接開啟！</p>
+                ${isIOS ? `
+                    <div class="install-steps">
+                        <div class="install-step">
+                            <span class="step-icon">1</span>
+                            <span>點擊底部的 <strong>分享按鈕</strong> <span style="border: 1px solid; padding: 2px 6px; border-radius: 4px;">↑</span></span>
+                        </div>
+                        <div class="install-step">
+                            <span class="step-icon">2</span>
+                            <span>選擇 <strong>「加入主畫面」</strong></span>
+                        </div>
+                        <div class="install-step">
+                            <span class="step-icon">3</span>
+                            <span>點擊 <strong>「新增」</strong></span>
+                        </div>
+                    </div>
+                ` : `
+                    <div class="install-steps">
+                        <div class="install-step">
+                            <span class="step-icon">1</span>
+                            <span>點擊右上角的 <strong>選單 ⋮</strong></span>
+                        </div>
+                        <div class="install-step">
+                            <span class="step-icon">2</span>
+                            <span>選擇 <strong>「加到主畫面」</strong></span>
+                        </div>
+                    </div>
+                `}
+                <div class="install-modal-buttons">
+                    <button class="btn btn-outline" onclick="this.closest('.install-modal').remove()">稍後再說</button>
+                    <button class="btn btn-primary" onclick="PatientApp.handleInstallFromModal(this)">我知道了</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    },
+    
+    /**
+     * 從 Modal 處理安裝
+     */
+    handleInstallFromModal(btn) {
+        const modal = btn.closest('.install-modal');
+        
+        // Android 且有 deferredPrompt，直接安裝
+        if (this.deferredPrompt) {
+            this.deferredPrompt.prompt();
+            this.deferredPrompt.userChoice.then(result => {
+                if (result.outcome === 'accepted') {
+                    this.showToast('已加到主畫面！', 'success');
+                }
+                this.deferredPrompt = null;
+            });
+        }
+        
+        modal.remove();
     },
     
     /**
