@@ -273,6 +273,13 @@ const Weight = {
         const treatment = await Treatment.getById(treatmentId);
         const patient = await Patient.getById(treatment.patient_id);
         const records = await this.getByTreatment(treatmentId);
+        const sideEffects = await SideEffect.getByTreatment(treatmentId);
+        
+        // 建立副作用日期對照表
+        const sideEffectsByDate = {};
+        sideEffects.forEach(se => {
+            sideEffectsByDate[se.assess_date] = se;
+        });
         
         let listHtml = '';
         if (records.length === 0) {
@@ -287,10 +294,14 @@ const Weight = {
                     ? `<span class="${rateClass}" style="margin-left: 8px;">${formatChangeRate(r.change_rate)}</span>`
                     : '';
                 
+                // 檢查該日是否有副作用評估
+                const se = sideEffectsByDate[r.measure_date];
+                const seDisplay = se ? SideEffect.formatSymptomTags(se.symptoms) : '';
+                
                 return `
-                    <div class="detail-row">
+                    <div class="detail-row" style="flex-wrap: wrap;">
                         <span>${formatDate(r.measure_date)}</span>
-                        <span>
+                        <span style="flex: 1;">
                             ${weightDisplay}
                             ${rateDisplay}
                         </span>
@@ -308,9 +319,29 @@ const Weight = {
                                 </svg>
                             </button>
                         </span>
+                        ${seDisplay ? `<div style="width: 100%; margin-top: 4px; padding-left: 8px;">${seDisplay}</div>` : ''}
                     </div>
                 `;
             }).join('');
+        }
+        
+        // 檢查是否有不在體重記錄日期的副作用評估
+        const weightDates = new Set(records.map(r => r.measure_date));
+        const extraSideEffects = sideEffects.filter(se => !weightDates.has(se.assess_date));
+        
+        let extraSeHtml = '';
+        if (extraSideEffects.length > 0) {
+            extraSeHtml = `
+                <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border);">
+                    <div style="font-size: 14px; color: var(--text-secondary); margin-bottom: 8px;">📋 其他副作用評估記錄</div>
+                    ${extraSideEffects.map(se => `
+                        <div class="detail-row" style="flex-wrap: wrap;">
+                            <span>${formatDate(se.assess_date)}</span>
+                            <span style="flex: 1;">${SideEffect.formatSymptomTags(se.symptoms)}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
         }
         
         const html = `
@@ -322,6 +353,7 @@ const Weight = {
             </div>
             <div class="detail-section">
                 ${listHtml}
+                ${extraSeHtml}
             </div>
         `;
         

@@ -1469,3 +1469,34 @@ body {
         flex: 1 1 100%;
     }
 }
+
+/* === 副作用評估標籤 === */
+.side-effect-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    margin: 2px;
+    background: var(--bg);
+}
+
+.side-effect-tag.normal {
+    color: var(--text-hint);
+}
+
+.side-effect-tag.mild {
+    background: rgba(107, 191, 138, 0.15);
+    color: #6BBF8A;
+}
+
+.side-effect-tag.moderate {
+    background: rgba(228, 185, 90, 0.15);
+    color: #E4B95A;
+}
+
+.side-effect-tag.severe {
+    background: rgba(217, 123, 123, 0.15);
+    color: #D97B7B;
+}
