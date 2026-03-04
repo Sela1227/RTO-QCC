@@ -458,21 +458,19 @@ const PatientApp = {
         const container = document.getElementById('qr-canvas-container');
         container.innerHTML = '';
         
-        QRCode.toCanvas(JSON.stringify(payload), {
-            width: 256,
-            margin: 2,
-            color: {
-                dark: '#000000',
-                light: '#ffffff'
-            }
-        }, (err, canvas) => {
-            if (err) {
-                console.error('QR Code 生成失敗', err);
-                this.showToast('QR Code 生成失敗', 'error');
-                return;
-            }
-            container.appendChild(canvas);
-        });
+        try {
+            new QRCode(container, {
+                text: JSON.stringify(payload),
+                width: 256,
+                height: 256,
+                colorDark: '#000000',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.M
+            });
+        } catch (err) {
+            console.error('QR Code 生成失敗', err);
+            this.showToast('QR Code 生成失敗', 'error');
+        }
     },
     
     /**

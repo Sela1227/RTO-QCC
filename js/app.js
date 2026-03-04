@@ -1,6 +1,6 @@
 /**
  * 彰濱放腫體重監控預防系統 - 主程式
- * v4.6.1 Web 版
+ * v4.6.2 Web 版
  */
 
 const App = {
@@ -1099,7 +1099,6 @@ const App = {
                     <strong>${patient.medical_id}</strong> ${patient.name}
                 </div>
                 <div id="patient-qr-container" style="background: white; padding: 16px; border-radius: 8px; display: inline-block;">
-                    <canvas id="patient-qr-canvas"></canvas>
                 </div>
                 <p style="color: var(--text-secondary); font-size: 13px; margin-top: 12px;">
                     請病人用手機掃描此 QR Code
@@ -1119,20 +1118,24 @@ const App = {
             { text: '關閉', class: 'btn-primary' }
         ]);
         
-        // 生成 QR Code
+        // 生成 QR Code（使用 qrcodejs 庫）
         setTimeout(() => {
-            const canvas = document.getElementById('patient-qr-canvas');
-            if (canvas && typeof QRCode !== 'undefined') {
-                QRCode.toCanvas(canvas, JSON.stringify(payload), {
-                    width: 200,
-                    margin: 2,
-                    color: { dark: '#000000', light: '#ffffff' }
-                }, (err) => {
-                    if (err) {
-                        console.error('QR Code 生成失敗', err);
-                        showToast('QR Code 生成失敗', 'error');
-                    }
-                });
+            const container = document.getElementById('patient-qr-container');
+            if (container && typeof QRCode !== 'undefined') {
+                try {
+                    container.innerHTML = '';
+                    new QRCode(container, {
+                        text: JSON.stringify(payload),
+                        width: 200,
+                        height: 200,
+                        colorDark: '#000000',
+                        colorLight: '#ffffff',
+                        correctLevel: QRCode.CorrectLevel.M
+                    });
+                } catch (err) {
+                    console.error('QR Code 生成失敗', err);
+                    container.innerHTML = '<div style="color: red;">QR Code 生成失敗</div>';
+                }
             }
         }, 100);
     },
@@ -1141,68 +1144,66 @@ const App = {
      * 列印病人 QR Code
      */
     printPatientQRCode(patient, payload) {
-        const printWindow = window.open('', '_blank');
+        // 從已生成的 QR Code 取得圖片
+        const container = document.getElementById('patient-qr-container');
+        const img = container?.querySelector('img');
         
-        // 先生成 QR Code 圖片
-        QRCode.toDataURL(JSON.stringify(payload), {
-            width: 300,
-            margin: 2
-        }, (err, url) => {
-            if (err) {
-                showToast('QR Code 生成失敗', 'error');
-                return;
-            }
-            
-            printWindow.document.write(`
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>體重追蹤 QR Code - ${patient.name}</title>
-                    <style>
-                        body { 
-                            font-family: sans-serif; 
-                            text-align: center; 
-                            padding: 40px;
-                        }
-                        .title { font-size: 24px; margin-bottom: 20px; }
-                        .patient-info { font-size: 18px; margin-bottom: 30px; }
-                        .qr-code { margin-bottom: 30px; }
-                        .instructions { 
-                            font-size: 14px; 
-                            color: #666; 
-                            border: 1px solid #ddd;
-                            padding: 15px;
-                            border-radius: 8px;
-                            max-width: 300px;
-                            margin: 0 auto;
-                        }
-                        @media print {
-                            body { padding: 20px; }
-                        }
-                    </style>
-                </head>
-                <body>
-                    <div class="title">🏥 體重追蹤</div>
-                    <div class="patient-info">
-                        <strong>${patient.medical_id}</strong> ${patient.name}
-                    </div>
-                    <div class="qr-code">
-                        <img src="${url}" alt="QR Code">
-                    </div>
-                    <div class="instructions">
-                        <strong>使用說明</strong><br><br>
-                        1. 用手機相機掃描 QR Code<br>
-                        2. 開啟網頁後記錄體重<br>
-                        3. 回診時出示 QR Code 給醫護人員
-                    </div>
-                </body>
-                </html>
-            `);
-            printWindow.document.close();
-            printWindow.onload = () => {
-                printWindow.print();
-            };
-        });
+        if (!img || !img.src) {
+            showToast('請等待 QR Code 生成完成', 'error');
+            return;
+        }
+        
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>體重追蹤 QR Code - ${patient.name}</title>
+                <style>
+                    body { 
+                        font-family: sans-serif; 
+                        text-align: center; 
+                        padding: 40px;
+                    }
+                    .title { font-size: 24px; margin-bottom: 20px; }
+                    .patient-info { font-size: 18px; margin-bottom: 30px; }
+                    .qr-code { margin-bottom: 30px; }
+                    .qr-code img { width: 250px; height: 250px; }
+                    .instructions { 
+                        font-size: 14px; 
+                        color: #666; 
+                        border: 1px solid #ddd;
+                        padding: 15px;
+                        border-radius: 8px;
+                        max-width: 300px;
+                        margin: 0 auto;
+                    }
+                    @media print {
+                        body { padding: 20px; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="title">🏥 體重追蹤</div>
+                <div class="patient-info">
+                    <strong>${patient.medical_id}</strong> ${patient.name}
+                </div>
+                <div class="qr-code">
+                    <img src="${img.src}" alt="QR Code">
+                </div>
+                <div class="instructions">
+                    <strong>使用說明</strong><br><br>
+                    1. 用手機相機掃描 QR Code<br>
+                    2. 開啟網頁後記錄體重<br>
+                    3. 回診時出示 QR Code 給醫護人員
+                </div>
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
+        printWindow.onload = () => {
+            printWindow.print();
+        };
     },
     
     /**
