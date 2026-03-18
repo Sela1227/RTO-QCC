@@ -1,6 +1,6 @@
 /**
  * 彰濱放腫體重監控預防系統 - 主程式
- * v5.9.1 Web 版
+ * v5.9.2 Web 版
  */
 
 const App = {
@@ -1156,9 +1156,6 @@ const App = {
             qrContent = data;
         }
         
-        // 使用 QR Server API 生成 QR Code
-        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrContent)}`;
-        
         const recordInfo = weightRecords.length > 0 
             ? `<p style="color: var(--text-secondary); font-size: 12px; margin-top: 8px;">含 ${weightRecords.length} 筆既有體重記錄</p>`
             : '';
@@ -1170,7 +1167,7 @@ const App = {
                     ${recordInfo}
                 </div>
                 <div id="patient-qr-container" style="background: white; padding: 16px; border-radius: 8px; display: inline-block;">
-                    <img src="${qrUrl}" alt="QR Code" style="display: block; width: 200px; height: 200px;">
+                    <canvas id="patient-qr-canvas"></canvas>
                 </div>
                 ${patientAppUrl ? `
                     <p style="color: var(--success); font-size: 13px; margin-top: 12px;">
@@ -1191,16 +1188,40 @@ const App = {
             { 
                 text: '列印', 
                 class: 'btn-outline',
-                onClick: () => this.printPatientQRCode(patient, qrUrl)
+                closeOnClick: false,
+                onClick: () => this.printPatientQRCode(patient, qrContent)
             },
             { text: '關閉', class: 'btn-primary' }
         ]);
+        
+        // 使用 QRCode 庫生成 QR Code
+        setTimeout(() => {
+            const canvas = document.getElementById('patient-qr-canvas');
+            if (canvas && typeof QRCode !== 'undefined') {
+                QRCode.toCanvas(canvas, qrContent, {
+                    width: 200,
+                    margin: 2,
+                    errorCorrectionLevel: 'M'
+                }, (error) => {
+                    if (error) {
+                        console.error('QR Code 生成失敗:', error);
+                        // 回退到外部 API
+                        const container = document.getElementById('patient-qr-container');
+                        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrContent)}`;
+                        container.innerHTML = `<img src="${qrUrl}" alt="QR Code" style="display: block; width: 200px; height: 200px;">`;
+                    }
+                });
+            }
+        }, 100);
     },
     
     /**
      * 列印病人 QR Code
      */
-    printPatientQRCode(patient, qrUrl) {
+    printPatientQRCode(patient, qrContent) {
+        // 使用外部 API 生成 QR Code URL 用於列印
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(qrContent)}`;
+        
         const printWindow = window.open('', '_blank');
         printWindow.document.write(`
             <!DOCTYPE html>
@@ -1216,7 +1237,7 @@ const App = {
                     .title { font-size: 24px; margin-bottom: 20px; }
                     .patient-info { font-size: 18px; margin-bottom: 30px; }
                     .qr-code { margin-bottom: 30px; }
-                    .qr-code img { width: 250px; height: 250px; }
+                    .qr-code img, .qr-code canvas { width: 250px; height: 250px; }
                     .instructions { 
                         font-size: 14px; 
                         color: #666; 
@@ -1230,6 +1251,7 @@ const App = {
                         body { padding: 20px; }
                     }
                 </style>
+                <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"><\/script>
             </head>
             <body>
                 <div class="title">🏥 體重追蹤</div>
@@ -1237,7 +1259,7 @@ const App = {
                     <strong>${patient.medical_id}</strong> ${patient.name}
                 </div>
                 <div class="qr-code">
-                    <img src="${qrUrl}" alt="QR Code">
+                    <canvas id="print-qr-canvas"></canvas>
                 </div>
                 <div class="instructions">
                     <strong>使用說明</strong><br><br>
@@ -1245,13 +1267,24 @@ const App = {
                     2. 開啟網頁後記錄體重<br>
                     3. 回診時出示 QR Code 給醫護人員
                 </div>
+                <script>
+                    const canvas = document.getElementById('print-qr-canvas');
+                    QRCode.toCanvas(canvas, ${JSON.stringify(qrContent)}, {
+                        width: 250,
+                        margin: 2,
+                        errorCorrectionLevel: 'M'
+                    }, function(error) {
+                        if (error) {
+                            // 回退到圖片
+                            document.querySelector('.qr-code').innerHTML = '<img src="${qrUrl}" alt="QR Code">';
+                        }
+                        setTimeout(function() { window.print(); }, 500);
+                    });
+                <\/script>
             </body>
             </html>
         `);
         printWindow.document.close();
-        printWindow.onload = () => {
-            printWindow.print();
-        };
     },
     
     /**

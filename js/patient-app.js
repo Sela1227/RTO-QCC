@@ -711,9 +711,6 @@ const PatientApp = {
         payload += `|${weightData}`;
         payload += `|${assessmentData}`;
         
-        // 使用 QR Server API 生成 QR Code
-        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(payload)}`;
-        
         // 顯示 QR Code
         this.showScreen('qr-display-screen');
         
@@ -723,7 +720,28 @@ const PatientApp = {
         document.getElementById('qr-info').textContent = infoLines.join('、');
         
         const container = document.getElementById('qr-canvas-container');
-        container.innerHTML = `<img src="${qrUrl}" alt="QR Code" style="display: block;">`;
+        
+        // 使用本地 QRCode 庫生成
+        if (typeof QRCode !== 'undefined') {
+            container.innerHTML = '<canvas id="qr-canvas"></canvas>';
+            const canvas = document.getElementById('qr-canvas');
+            QRCode.toCanvas(canvas, payload, {
+                width: 256,
+                margin: 2,
+                errorCorrectionLevel: 'M'
+            }, (error) => {
+                if (error) {
+                    console.error('QR Code 生成失敗:', error);
+                    // 回退到外部 API
+                    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(payload)}`;
+                    container.innerHTML = `<img src="${qrUrl}" alt="QR Code" style="display: block;">`;
+                }
+            });
+        } else {
+            // 回退到外部 API
+            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(payload)}`;
+            container.innerHTML = `<img src="${qrUrl}" alt="QR Code" style="display: block;">`;
+        }
     },
     
     /**
