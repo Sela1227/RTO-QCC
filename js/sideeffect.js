@@ -195,7 +195,7 @@ const SideEffect = {
                         <div class="side-effect-record-header">
                             <span class="side-effect-date">${formatDate(r.assess_date)}</span>
                             <div class="side-effect-actions">
-                                <button class="btn-icon" onclick="SideEffect.showForm(${treatmentId}, ${r.id})" title="編輯">
+                                <button class="btn-icon" onclick="closeModal(); setTimeout(() => SideEffect.showForm(${treatmentId}, ${r.id}), 50)" title="編輯">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
@@ -235,12 +235,19 @@ const SideEffect = {
             </div>
         `;
         
+        // 保存 treatmentId 供按鈕使用
+        const tid = treatmentId;
+        
         openModal('副作用評估記錄', html, [
             { text: '關閉', class: 'btn-outline' },
             { 
                 text: '新增評估', 
                 class: 'btn-primary',
-                onClick: () => this.showForm(treatmentId)
+                closeOnClick: false,
+                onClick: () => {
+                    closeModal();
+                    setTimeout(() => SideEffect.showForm(tid), 50);
+                }
             }
         ]);
     },
