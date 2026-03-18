@@ -286,16 +286,43 @@ function validateRequired(fields) {
 }
 
 /**
- * 下載 JSON 檔案
+ * 下載 JSON 檔案（支援選擇儲存位置）
  */
-function downloadJSON(data, filename) {
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+async function downloadJSON(data, filename) {
+    const jsonString = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    
+    // 嘗試使用 File System Access API（允許選擇儲存位置）
+    if ('showSaveFilePicker' in window) {
+        try {
+            const handle = await window.showSaveFilePicker({
+                suggestedName: filename,
+                types: [{
+                    description: 'JSON 檔案',
+                    accept: { 'application/json': ['.json'] }
+                }]
+            });
+            const writable = await handle.createWritable();
+            await writable.write(blob);
+            await writable.close();
+            return true;
+        } catch (err) {
+            // 用戶取消或 API 不可用，使用傳統方式
+            if (err.name === 'AbortError') {
+                return false; // 用戶取消
+            }
+            console.log('File System Access API 不可用，使用傳統下載');
+        }
+    }
+    
+    // 傳統下載方式（回退方案）
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
+    return true;
 }
 
 /**

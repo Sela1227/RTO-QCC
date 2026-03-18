@@ -249,115 +249,138 @@ const SideEffect = {
      * 顯示副作用評估表單
      */
     async showForm(treatmentId, recordId = null) {
-        let existingRecord = null;
-        let assessDate = new Date().toISOString().split('T')[0];
-        let symptomLevels = {};
-        
-        // 初始化所有症狀為 0
-        Object.keys(this.SYMPTOMS).forEach(code => {
-            symptomLevels[code] = 0;
-        });
-        
-        // 如果是編輯，載入現有資料
-        if (recordId) {
-            existingRecord = await DB.getById('side_effects', recordId);
-            if (existingRecord) {
-                assessDate = existingRecord.assess_date;
-                existingRecord.symptoms.forEach(s => {
-                    symptomLevels[s.code] = s.level;
-                });
+        try {
+            if (!treatmentId) {
+                showToast('無效的療程 ID', 'error');
+                return;
             }
-        }
-        
-        const symptomsHtml = Object.entries(this.SYMPTOMS).map(([code, info]) => {
-            const currentLevel = symptomLevels[code];
             
-            // 疼痛使用 0-10 量表
-            if (code === 'P') {
-                return `
-                    <div class="symptom-form-item symptom-pain">
-                        <div class="symptom-form-label">
-                            <span>${info.icon}</span>
-                            <span>${info.name}</span>
-                        </div>
-                        <div class="pain-scale">
-                            <input type="range" 
-                                   id="pain-slider" 
-                                   min="0" max="10" 
-                                   value="${currentLevel}"
-                                   class="pain-slider"
-                                   oninput="document.getElementById('pain-value').textContent = this.value">
-                            <div class="pain-labels">
-                                <span>0</span>
-                                <span id="pain-value" class="pain-current">${currentLevel}</span>
-                                <span>10</span>
+            let existingRecord = null;
+            let assessDate = new Date().toISOString().split('T')[0];
+            let symptomLevels = {};
+            
+            // 初始化所有症狀為 0
+            Object.keys(this.SYMPTOMS).forEach(code => {
+                symptomLevels[code] = 0;
+            });
+            
+            // 如果是編輯，載入現有資料
+            if (recordId) {
+                existingRecord = await DB.getById('side_effects', recordId);
+                if (existingRecord) {
+                    assessDate = existingRecord.assess_date;
+                    existingRecord.symptoms.forEach(s => {
+                        symptomLevels[s.code] = s.level;
+                    });
+                }
+            }
+            
+            const symptomsHtml = Object.entries(this.SYMPTOMS).map(([code, info]) => {
+                const currentLevel = symptomLevels[code] || 0;
+                
+                // 疼痛使用 0-10 量表
+                if (code === 'P') {
+                    return `
+                        <div class="symptom-form-item symptom-pain">
+                            <div class="symptom-form-label">
+                                <span>${info.icon || '😖'}</span>
+                                <span>${info.name || '疼痛'}</span>
                             </div>
+                            <div class="pain-scale">
+                                <input type="range" 
+                                       id="pain-slider" 
+                                       min="0" max="10" 
+                                       value="${currentLevel}"
+                                       class="pain-slider"
+                                       oninput="document.getElementById('pain-value').textContent = this.value">
+                                <div class="pain-labels">
+                                    <span>0</span>
+                                    <span id="pain-value" class="pain-current">${currentLevel}</span>
+                                    <span>10</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // 其他症狀使用 0-3 量表
+                const severityButtons = [0, 1, 2, 3].map(level => {
+                    const severityInfo = this.SEVERITY[level] || { name: String(level) };
+                    return `
+                        <button type="button" 
+                                class="severity-select-btn ${currentLevel === level ? 'active' : ''}" 
+                                data-code="${code}" 
+                                data-level="${level}"
+                                title="${severityInfo.name}">
+                            ${level === 0 ? '無' : level}
+                        </button>
+                    `;
+                }).join('');
+                
+                return `
+                    <div class="symptom-form-item">
+                        <div class="symptom-form-label">
+                            <span>${info.icon || '❓'}</span>
+                            <span>${info.name || code}</span>
+                        </div>
+                        <div class="symptom-form-buttons">
+                            ${severityButtons}
                         </div>
                     </div>
                 `;
-            }
+            }).join('');
             
-            // 其他症狀使用 0-3 量表
-            return `
-                <div class="symptom-form-item">
-                    <div class="symptom-form-label">
-                        <span>${info.icon}</span>
-                        <span>${info.name}</span>
+            const html = `
+                <form id="side-effect-form">
+                    <div class="form-group">
+                        <label>評估日期</label>
+                        <input type="date" id="se-assess-date" value="${assessDate}" required>
                     </div>
-                    <div class="symptom-form-buttons">
-                        ${[0, 1, 2, 3].map(level => `
-                            <button type="button" 
-                                    class="severity-select-btn ${currentLevel === level ? 'active' : ''}" 
-                                    data-code="${code}" 
-                                    data-level="${level}"
-                                    title="${this.SEVERITY[level].name}">
-                                ${level === 0 ? '無' : level}
-                            </button>
-                        `).join('')}
+                    
+                    <div class="symptom-form-section">
+                        <div class="symptom-form-header">
+                            <span>症狀項目</span>
+                            <span style="font-size: 11px; color: var(--text-hint);">無 / 輕 / 中 / 重</span>
+                        </div>
+                        ${symptomsHtml}
                     </div>
-                </div>
+                </form>
             `;
-        }).join('');
-        
-        const html = `
-            <form id="side-effect-form">
-                <div class="form-group">
-                    <label>評估日期</label>
-                    <input type="date" id="se-assess-date" value="${assessDate}" required>
-                </div>
-                
-                <div class="symptom-form-section">
-                    <div class="symptom-form-header">
-                        <span>症狀項目</span>
-                        <span style="font-size: 11px; color: var(--text-hint);">無 / 輕 / 中 / 重</span>
-                    </div>
-                    ${symptomsHtml}
-                </div>
-            </form>
-        `;
-        
-        openModal(recordId ? '編輯副作用評估' : '新增副作用評估', html, [
-            { text: '取消', class: 'btn-outline' },
-            { 
-                text: '儲存', 
-                class: 'btn-primary',
-                onClick: () => this.saveForm(treatmentId, recordId)
-            }
-        ]);
-        
-        // 綁定按鈕事件
-        setTimeout(() => {
-            document.querySelectorAll('.severity-select-btn').forEach(btn => {
-                btn.onclick = () => {
-                    const code = btn.dataset.code;
-                    // 移除同組其他按鈕的 active
-                    document.querySelectorAll(`.severity-select-btn[data-code="${code}"]`).forEach(b => {
-                        b.classList.remove('active');
-                    });
-                    btn.classList.add('active');
-                };
-            });
-        }, 100);
+            
+            // 保存 treatmentId 供後續使用
+            const tid = treatmentId;
+            const rid = recordId;
+            
+            openModal(recordId ? '編輯副作用評估' : '新增副作用評估', html, [
+                { text: '取消', class: 'btn-outline' },
+                { 
+                    text: '儲存', 
+                    class: 'btn-primary',
+                    closeOnClick: false,
+                    onClick: async () => {
+                        await SideEffect.saveForm(tid, rid);
+                    }
+                }
+            ]);
+            
+            // 綁定按鈕事件
+            setTimeout(() => {
+                document.querySelectorAll('.severity-select-btn').forEach(btn => {
+                    btn.onclick = (e) => {
+                        e.preventDefault();
+                        const code = btn.dataset.code;
+                        // 移除同組其他按鈕的 active
+                        document.querySelectorAll(`.severity-select-btn[data-code="${code}"]`).forEach(b => {
+                            b.classList.remove('active');
+                        });
+                        btn.classList.add('active');
+                    };
+                });
+            }, 100);
+        } catch (e) {
+            console.error('顯示副作用表單失敗:', e);
+            showToast('開啟表單失敗: ' + e.message, 'error');
+        }
     },
     
     /**
