@@ -83,7 +83,7 @@ const DemoData = {
                 cancer_type: cancer.code,
                 cancer_type_label: cancer.label,
                 treatment_start: this.daysAgo(startDaysAgo),
-                base_weight: baseWeight,
+                baseline_weight: baseWeight,
                 status: status,
                 created_at: new Date().toISOString()
             };
