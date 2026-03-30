@@ -320,15 +320,20 @@ const App = {
     async updateStats() {
         const activeTreatments = await Treatment.getActive();
         const pausedTreatments = await Treatment.getPaused();
-        const pendingInterventions = await Intervention.getPending();
         
+        // 計算有待處理介入的人數（而非介入次數）
+        const pendingCount = activeTreatments.filter(t => 
+            t.pending_interventions?.length > 0
+        ).length;
+        
+        // 計算待輸體重的人數
         const overdueCount = activeTreatments.filter(t => 
             t.tracking_status?.status === 'overdue'
         ).length;
         
         document.getElementById('stat-active').textContent = activeTreatments.length;
         document.getElementById('stat-paused').textContent = pausedTreatments.length;
-        document.getElementById('stat-pending').textContent = pendingInterventions.length;
+        document.getElementById('stat-pending').textContent = pendingCount;
         document.getElementById('stat-overdue').textContent = overdueCount;
         
         // 檢查備份提醒

@@ -657,15 +657,18 @@ body {
 }
 
 .patient-card.alert-warning {
-    background: rgba(228, 185, 90, 0.08);
+    background: rgba(228, 185, 90, 0.12);
+    border-left: 3px solid var(--warning);
 }
 
 .patient-card.alert-danger {
-    background: rgba(217, 123, 123, 0.08);
+    background: rgba(217, 123, 123, 0.12);
+    border-left: 3px solid var(--danger);
 }
 
 .patient-card.alert-overdue {
-    background: rgba(147, 112, 219, 0.08);
+    background: rgba(147, 112, 219, 0.12);
+    border-left: 3px solid #9370DB;
 }
 
 .patient-card-header {

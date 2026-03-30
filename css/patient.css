@@ -1721,3 +1721,124 @@ body {
 .satisfaction-buttons-footer .btn {
     flex: 1;
 }
+
+/* ===== 導航 SVG 圖標 ===== */
+.tab-icon-svg {
+    display: block;
+    margin: 0 auto 4px;
+}
+
+/* ===== 滿意度 Tab 頁面樣式 ===== */
+.satisfaction-content {
+    padding: 16px;
+}
+
+.satisfaction-hint {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 13px;
+    margin-bottom: 20px;
+}
+
+.sat-question-card {
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+    box-shadow: var(--shadow-sm);
+}
+
+.sat-question-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background: var(--primary);
+    color: white;
+    border-radius: 50%;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.sat-question-text {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 12px;
+    line-height: 1.4;
+}
+
+.sat-rating-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.sat-rating-btn {
+    flex: 1;
+    min-width: 56px;
+    padding: 10px 6px;
+    background: var(--bg);
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+}
+
+.sat-rating-btn:active {
+    transform: scale(0.95);
+}
+
+.sat-rating-btn.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+}
+
+.sat-rating-num {
+    display: block;
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+
+.sat-rating-btn.active .sat-rating-num {
+    color: white;
+}
+
+.sat-rating-label {
+    display: block;
+    font-size: 10px;
+    color: var(--text-secondary);
+    line-height: 1.2;
+}
+
+.sat-rating-btn.active .sat-rating-label {
+    color: rgba(255,255,255,0.9);
+}
+
+.sat-na-btn {
+    flex: 0 0 auto;
+    min-width: 60px;
+    background: var(--bg-input);
+}
+
+.sat-na-btn.active {
+    background: var(--text-secondary);
+    border-color: var(--text-secondary);
+}
+
+.sat-feedback-input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    resize: vertical;
+    font-family: inherit;
+    background: var(--bg);
+}
+

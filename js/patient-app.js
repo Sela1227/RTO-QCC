@@ -124,6 +124,11 @@ const PatientApp = {
         if (tabName === 'sideeffect') {
             this.renderAssessmentRecords();
         }
+        
+        // 切換到滿意度頁籤時載入表單
+        if (tabName === 'satisfaction') {
+            this.renderSatisfactionTab();
+        }
     },
     
     /**
@@ -1459,14 +1464,14 @@ const PatientApp = {
     
     // 評估項目定義（疼痛使用 0-10 量表）
     SYMPTOM_ITEMS: [
-        { id: 'nausea', name: '噁心/嘔吐', icon: '🤢', scale: 3 },
-        { id: 'fatigue', name: '疲勞', icon: '😴', scale: 3 },
-        { id: 'oral', name: '口腔黏膜炎', icon: '👄', scale: 3 },
-        { id: 'skin', name: '皮膚反應', icon: '🔴', scale: 3 },
-        { id: 'swallow', name: '吞嚥困難', icon: '😣', scale: 3 },
-        { id: 'appetite', name: '食慾下降', icon: '🍽️', scale: 3 },
-        { id: 'diarrhea', name: '腹瀉', icon: '💩', scale: 3 },
-        { id: 'pain', name: '疼痛', icon: '😖', scale: 10 }  // 0-10 量表
+        { id: 'nausea', name: '噁心/嘔吐', icon: '', scale: 3 },
+        { id: 'fatigue', name: '疲勞', icon: '', scale: 3 },
+        { id: 'oral', name: '口腔黏膜炎', icon: '', scale: 3 },
+        { id: 'skin', name: '皮膚反應', icon: '', scale: 3 },
+        { id: 'swallow', name: '吞嚥困難', icon: '', scale: 3 },
+        { id: 'appetite', name: '食慾下降', icon: '', scale: 3 },
+        { id: 'diarrhea', name: '腹瀉', icon: '', scale: 3 },
+        { id: 'pain', name: '疼痛', icon: '', scale: 10 }  // 0-10 量表
     ],
     
     // CTCAE 嚴重程度定義（參考 CTCAE v5.0）
@@ -1504,7 +1509,7 @@ const PatientApp = {
                 return `
                     <div class="symptom-item symptom-pain-item" data-symptom="${item.id}">
                         <div class="symptom-item-header">
-                            <span class="symptom-name">${item.icon} ${item.name}</span>
+                            <span class="symptom-name">${item.name}</span>
                             <span class="pain-display" id="pain-display">${currentLevel}/10</span>
                         </div>
                         <div class="pain-slider-container">
@@ -1534,7 +1539,7 @@ const PatientApp = {
             return `
                 <div class="symptom-item" data-symptom="${item.id}">
                     <div class="symptom-item-header">
-                        <span class="symptom-name">${item.icon} ${item.name}</span>
+                        <span class="symptom-name">${item.name}</span>
                     </div>
                     <div class="severity-buttons">
                         <button class="severity-btn ${currentLevel === 0 ? 'active' : ''}" data-level="0" title="${getSeverityTitle(0)}">無</button>
@@ -1741,6 +1746,128 @@ const PatientApp = {
     /**
      * 顯示滿意度問卷
      */
+    /**
+     * 渲染滿意度 Tab 內容
+     */
+    renderSatisfactionTab() {
+        const container = document.getElementById('satisfaction-form-container');
+        const doneDiv = document.getElementById('satisfaction-done');
+        if (!container) return;
+        
+        // 檢查是否已提交
+        const existing = this.getSatisfactionData();
+        if (existing && existing.submitted) {
+            container.style.display = 'none';
+            doneDiv.style.display = 'block';
+            return;
+        }
+        
+        container.style.display = 'block';
+        doneDiv.style.display = 'none';
+        
+        const questionsHtml = this.SATISFACTION_QUESTIONS.map((q, index) => {
+            const ratingButtons = [1, 2, 3, 4, 5].map(level => {
+                const labels = ['非常不滿意', '不太滿意', '普通', '滿意', '非常滿意'];
+                const labels2 = ['沒有幫助', '有點幫助', '普通', '有幫助', '非常有幫助'];
+                const label = q.id === 'q2' ? labels2[level-1] : labels[level-1];
+                return `
+                    <button type="button" class="sat-rating-btn" data-question="${q.id}" data-value="${level}">
+                        <span class="sat-rating-num">${level}</span>
+                        <span class="sat-rating-label">${label}</span>
+                    </button>
+                `;
+            }).join('');
+            
+            // 營養師問題加上「未使用」選項
+            const naOption = q.type === 'rating_optional' ? `
+                <button type="button" class="sat-rating-btn sat-na-btn" data-question="${q.id}" data-value="0">
+                    <span class="sat-rating-num">-</span>
+                    <span class="sat-rating-label">未使用</span>
+                </button>
+            ` : '';
+            
+            return `
+                <div class="sat-question-card">
+                    <div class="sat-question-num">${index + 1}</div>
+                    <div class="sat-question-text">${q.text}</div>
+                    <div class="sat-rating-group">
+                        ${ratingButtons}
+                        ${naOption}
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        container.innerHTML = `
+            ${questionsHtml}
+            
+            <div class="sat-question-card">
+                <div class="sat-question-num">6</div>
+                <div class="sat-question-text">其他建議（選填）</div>
+                <textarea id="satisfaction-feedback-tab" class="sat-feedback-input" placeholder="請輸入您的建議..." rows="3"></textarea>
+            </div>
+            
+            <button class="btn btn-primary btn-lg btn-block" id="btn-submit-satisfaction-tab" style="margin-top: 16px;">
+                送出回饋
+            </button>
+        `;
+        
+        // 綁定按鈕事件
+        container.querySelectorAll('.sat-rating-btn').forEach(btn => {
+            btn.onclick = () => {
+                const question = btn.dataset.question;
+                container.querySelectorAll(`.sat-rating-btn[data-question="${question}"]`).forEach(b => {
+                    b.classList.remove('active');
+                });
+                btn.classList.add('active');
+            };
+        });
+        
+        // 送出按鈕
+        container.querySelector('#btn-submit-satisfaction-tab').onclick = () => {
+            this.submitSatisfactionTab(container);
+        };
+    },
+    
+    /**
+     * 送出滿意度問卷（Tab 版）
+     */
+    submitSatisfactionTab(container) {
+        const answers = {};
+        let allAnswered = true;
+        
+        this.SATISFACTION_QUESTIONS.forEach(q => {
+            const activeBtn = container.querySelector(`.sat-rating-btn.active[data-question="${q.id}"]`);
+            if (activeBtn) {
+                answers[q.id] = parseInt(activeBtn.dataset.value);
+            } else if (q.type !== 'rating_optional') {
+                allAnswered = false;
+            }
+        });
+        
+        if (!allAnswered) {
+            this.showToast('請回答所有問題', 'error');
+            return;
+        }
+        
+        const feedback = container.querySelector('#satisfaction-feedback-tab').value.trim();
+        
+        const data = {
+            submitted: true,
+            submittedAt: new Date().toISOString(),
+            answers,
+            feedback
+        };
+        
+        localStorage.setItem(this.SATISFACTION_STORAGE_KEY, JSON.stringify(data));
+        
+        // 顯示完成訊息
+        container.style.display = 'none';
+        document.getElementById('satisfaction-done').style.display = 'block';
+        
+        this.showToast('感謝您的回饋！', 'success');
+    },
+
     showSatisfactionForm() {
         const questionsHtml = this.SATISFACTION_QUESTIONS.map((q, index) => {
             const ratingButtons = [1, 2, 3, 4, 5].map(level => {
