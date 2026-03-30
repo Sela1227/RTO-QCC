@@ -11,7 +11,7 @@ const Dashboard = {
     stats: null,
     
     // 當前選中的 Tab
-    selectedTabs: ['overview'],
+    selectedTabs: ['all'],
     
     /**
      * 初始化儀表板
@@ -35,27 +35,49 @@ const Dashboard = {
     /**
      * Tab 選擇變更
      */
-    onTabChange() {
-        const checkboxes = document.querySelectorAll('.dashboard-tab-check input');
-        this.selectedTabs = [];
+    onTabChange(clickedValue) {
+        const container = document.querySelector('#page-dashboard .dashboard-tabs');
+        if (!container) return;
         
-        checkboxes.forEach(cb => {
-            const label = cb.closest('.dashboard-tab-check');
-            if (cb.checked) {
-                this.selectedTabs.push(cb.value);
-                label.classList.add('active');
-            } else {
-                label.classList.remove('active');
+        const checkboxes = container.querySelectorAll('input[type="checkbox"]');
+        const allCheckbox = container.querySelector('input[value="all"]');
+        const clickedCheckbox = event?.target;
+        
+        // 如果點擊「全部」
+        if (clickedCheckbox?.value === 'all' && clickedCheckbox.checked) {
+            // 取消其他所有選項
+            checkboxes.forEach(cb => {
+                if (cb.value !== 'all') {
+                    cb.checked = false;
+                    cb.closest('.dashboard-tab-check').classList.remove('active');
+                }
+            });
+            allCheckbox.closest('.dashboard-tab-check').classList.add('active');
+            this.selectedTabs = ['all'];
+        } else {
+            // 點擊其他選項時，取消「全部」
+            if (allCheckbox) {
+                allCheckbox.checked = false;
+                allCheckbox.closest('.dashboard-tab-check').classList.remove('active');
             }
-        });
-        
-        // 至少要選一個
-        if (this.selectedTabs.length === 0) {
-            this.selectedTabs = ['overview'];
-            const overviewCb = document.querySelector('.dashboard-tab-check input[value="overview"]');
-            if (overviewCb) {
-                overviewCb.checked = true;
-                overviewCb.closest('.dashboard-tab-check').classList.add('active');
+            
+            // 收集選中的項目
+            this.selectedTabs = [];
+            checkboxes.forEach(cb => {
+                const label = cb.closest('.dashboard-tab-check');
+                if (cb.checked && cb.value !== 'all') {
+                    this.selectedTabs.push(cb.value);
+                    label.classList.add('active');
+                } else if (cb.value !== 'all') {
+                    label.classList.remove('active');
+                }
+            });
+            
+            // 如果沒有選中任何項目，自動選「全部」
+            if (this.selectedTabs.length === 0) {
+                allCheckbox.checked = true;
+                allCheckbox.closest('.dashboard-tab-check').classList.add('active');
+                this.selectedTabs = ['all'];
             }
         }
         
@@ -595,8 +617,10 @@ const Dashboard = {
             { tab: 'satisfaction', icon: icons.star, iconClass: s.satisfactionStats?.overallAvg >= 4 ? 'green' : 'amber', value: s.satisfactionStats?.overallAvg?.toFixed(1) || '-', unit: s.satisfactionStats?.overallAvg ? '/5' : '', label: '整體滿意度', extra: s.satisfactionStats?.count ? `(${s.satisfactionStats.count}份)` : '' }
         ];
         
-        // 根據選中的 Tab 過濾 KPI
-        const filteredKpis = allKpis.filter(kpi => tabs.includes(kpi.tab));
+        // 根據選中的 Tab 過濾 KPI（'all' 顯示全部）
+        const filteredKpis = tabs.includes('all') 
+            ? allKpis 
+            : allKpis.filter(kpi => tabs.includes(kpi.tab));
         
         if (filteredKpis.length === 0) {
             container.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-hint);">請選擇至少一個統計分類</div>';
@@ -631,11 +655,12 @@ const Dashboard = {
         
         const s = this.stats;
         const tabs = this.selectedTabs;
+        const showAll = tabs.includes('all');
         
         let chartsHtml = '';
         
         // 總覽圖表：月度趨勢、癌別分布
-        if (tabs.includes('overview')) {
+        if (showAll || tabs.includes('overview')) {
             chartsHtml += `
                 <div class="chart-card">
                     <div class="chart-title">月度趨勢</div>
@@ -655,7 +680,7 @@ const Dashboard = {
         // 體重追蹤圖表（暫無額外圖表，可擴展）
         
         // 介入成效圖表
-        if (tabs.includes('intervention')) {
+        if (showAll || tabs.includes('intervention')) {
             chartsHtml += `
                 <div class="chart-card">
                     <div class="chart-title">介入類型</div>
@@ -708,7 +733,7 @@ const Dashboard = {
         }
         
         // 療程統計圖表
-        if (tabs.includes('treatment')) {
+        if (showAll || tabs.includes('treatment')) {
             // 暫停/終止原因統計
             if (s.statusReasonStats) {
                 const paused = s.statusReasonStats.paused;
@@ -766,7 +791,7 @@ const Dashboard = {
         }
         
         // 滿意度圖表
-        if (tabs.includes('satisfaction')) {
+        if (showAll || tabs.includes('satisfaction')) {
             if (s.satisfactionStats && s.satisfactionStats.count > 0) {
                 const avgScores = s.satisfactionStats.avgScores;
                 chartsHtml += `
@@ -820,11 +845,11 @@ const Dashboard = {
         
         // 延遲渲染圖表
         setTimeout(() => {
-            if (tabs.includes('overview')) {
+            if (showAll || tabs.includes('overview')) {
                 this.renderMonthlyChart(s.monthlyStats);
                 this.renderCancerChart(s.cancerStats);
             }
-            if (tabs.includes('intervention')) {
+            if (showAll || tabs.includes('intervention')) {
                 this.renderInterventionChart(s.interventionTypeStats);
             }
         }, 100);

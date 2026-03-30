@@ -15,6 +15,61 @@ const Report = {
         cancerType: 'all'
     },
     
+    // 當前選中的 Tab
+    selectedTabs: ['all'],
+    
+    /**
+     * Tab 選擇變更
+     */
+    onTabChange() {
+        const container = document.querySelector('#page-reports .dashboard-tabs');
+        if (!container) return;
+        
+        const checkboxes = container.querySelectorAll('input[type="checkbox"]');
+        const allCheckbox = container.querySelector('input[value="all"]');
+        const clickedCheckbox = event?.target;
+        
+        // 如果點擊「全部」
+        if (clickedCheckbox?.value === 'all' && clickedCheckbox.checked) {
+            // 取消其他所有選項
+            checkboxes.forEach(cb => {
+                if (cb.value !== 'all') {
+                    cb.checked = false;
+                    cb.closest('.dashboard-tab-check').classList.remove('active');
+                }
+            });
+            allCheckbox.closest('.dashboard-tab-check').classList.add('active');
+            this.selectedTabs = ['all'];
+        } else {
+            // 點擊其他選項時，取消「全部」
+            if (allCheckbox) {
+                allCheckbox.checked = false;
+                allCheckbox.closest('.dashboard-tab-check').classList.remove('active');
+            }
+            
+            // 收集選中的項目
+            this.selectedTabs = [];
+            checkboxes.forEach(cb => {
+                const label = cb.closest('.dashboard-tab-check');
+                if (cb.checked && cb.value !== 'all') {
+                    this.selectedTabs.push(cb.value);
+                    label.classList.add('active');
+                } else if (cb.value !== 'all') {
+                    label.classList.remove('active');
+                }
+            });
+            
+            // 如果沒有選中任何項目，自動選「全部」
+            if (this.selectedTabs.length === 0) {
+                allCheckbox.checked = true;
+                allCheckbox.closest('.dashboard-tab-check').classList.add('active');
+                this.selectedTabs = ['all'];
+            }
+        }
+        
+        this.refresh();
+    },
+    
     /**
      * 初始化篩選器
      */
@@ -384,6 +439,38 @@ const Report = {
         
         sideEffectStats.avgPainScore = painCount > 0 ? (totalPainScore / painCount).toFixed(1) : '-';
         
+        // 滿意度統計
+        let satisfactionStats = null;
+        const allSatisfaction = await DB.getAll('satisfaction');
+        const treatmentIds = filteredTreatments.map(t => t.id);
+        const filteredSatisfaction = allSatisfaction.filter(s => treatmentIds.includes(s.treatment_id));
+        
+        if (filteredSatisfaction.length > 0) {
+            let q1Sum = 0, q2Sum = 0, q2Count = 0, q3Sum = 0, q4Sum = 0, q5Sum = 0;
+            
+            filteredSatisfaction.forEach(s => {
+                q1Sum += s.q1 || 0;
+                if (s.q2 && s.q2 > 0) {
+                    q2Sum += s.q2;
+                    q2Count++;
+                }
+                q3Sum += s.q3 || 0;
+                q4Sum += s.q4 || 0;
+                q5Sum += s.q5 || 0;
+            });
+            
+            const count = filteredSatisfaction.length;
+            satisfactionStats = {
+                count,
+                q1Avg: count > 0 ? q1Sum / count : null,
+                q2Avg: q2Count > 0 ? q2Sum / q2Count : null,
+                q3Avg: count > 0 ? q3Sum / count : null,
+                q4Avg: count > 0 ? q4Sum / count : null,
+                q5Avg: count > 0 ? q5Sum / count : null,
+                overallAvg: count > 0 ? (q1Sum + q3Sum + q4Sum + q5Sum) / (count * 4) : null
+            };
+        }
+        
         // 時間區間顯示
         let periodLabel = '';
         switch (this.filters.period) {
@@ -423,7 +510,9 @@ const Report = {
             avgDuration,
             patientCount: new Set(filteredTreatments.map(t => t.patient_id)).size,
             // 副作用統計
-            sideEffectStats
+            sideEffectStats,
+            // 滿意度統計
+            satisfactionStats
         };
     },
     
@@ -433,6 +522,8 @@ const Report = {
     async render() {
         const container = document.getElementById('report-content');
         const stats = await this.getStats();
+        const tabs = this.selectedTabs;
+        const showAll = tabs.includes('all');
         
         // 癌別分布圖表資料
         const cancerLabels = Object.keys(stats.cancerDistribution);
@@ -442,13 +533,17 @@ const Report = {
         const weightLabels = Object.keys(stats.weightDistribution);
         const weightData = Object.values(stats.weightDistribution);
         
-        container.innerHTML = `
+        let html = `
             <div style="margin-bottom: 16px; color: var(--text-secondary);">
                 統計區間：${stats.periodLabel}
                 ${this.filters.cancerType !== 'all' ? ` · 癌別篩選中` : ''}
             </div>
-            
             <div class="report-grid">
+        `;
+        
+        // 總覽：療程統計、癌別分布
+        if (showAll || tabs.includes('overview')) {
+            html += `
                 <div class="report-card">
                     <div class="report-card-title">療程統計</div>
                     <div class="detail-row">
@@ -485,6 +580,18 @@ const Report = {
                 </div>
                 
                 <div class="report-card">
+                    <div class="report-card-title">癌別分布</div>
+                    <div class="chart-container">
+                        <canvas id="cancer-chart"></canvas>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // 體重追蹤：體重變化分布、體重統計
+        if (showAll || tabs.includes('weight')) {
+            html += `
+                <div class="report-card">
                     <div class="report-card-title">體重變化分布</div>
                     <div class="chart-container">
                         <canvas id="weight-chart"></canvas>
@@ -492,12 +599,39 @@ const Report = {
                 </div>
                 
                 <div class="report-card">
-                    <div class="report-card-title">癌別分布</div>
-                    <div class="chart-container">
-                        <canvas id="cancer-chart"></canvas>
+                    <div class="report-card-title">體重統計</div>
+                    <div class="detail-row">
+                        <span>平均基準體重</span>
+                        <strong>${stats.avgBaselineWeight} kg</strong>
+                    </div>
+                    <div class="detail-row">
+                        <span>平均變化率</span>
+                        <strong class="${parseFloat(stats.avgChangeRate) < -3 ? 'text-danger' : ''}">${stats.avgChangeRate}%</strong>
+                    </div>
+                    <div class="detail-row">
+                        <span>最大下降</span>
+                        <strong class="text-danger">${stats.minChangeRate}%</strong>
+                    </div>
+                    <div class="detail-row">
+                        <span>最大上升</span>
+                        <strong style="color: var(--success);">${stats.maxChangeRate}%</strong>
+                    </div>
+                    <hr style="margin: 8px 0; border: none; border-top: 1px solid var(--border);">
+                    <div class="detail-row">
+                        <span>體重記錄數</span>
+                        <strong>${stats.weightRecordCount}</strong>
+                    </div>
+                    <div class="detail-row">
+                        <span>平均每療程</span>
+                        <strong>${stats.totalTreatments > 0 ? (stats.weightRecordCount / stats.totalTreatments).toFixed(1) : 0} 筆</strong>
                     </div>
                 </div>
-                
+            `;
+        }
+        
+        // 介入成效：介入統計
+        if (showAll || tabs.includes('intervention')) {
+            html += `
                 <div class="report-card">
                     <div class="report-card-title">介入統計</div>
                     <div class="detail-row">
@@ -529,36 +663,12 @@ const Report = {
                         </div>
                     `).join('') || '<div style="color: var(--text-hint); font-size: 12px;">無資料</div>'}
                 </div>
-                
-                <div class="report-card">
-                    <div class="report-card-title">體重統計</div>
-                    <div class="detail-row">
-                        <span>平均基準體重</span>
-                        <strong>${stats.avgBaselineWeight} kg</strong>
-                    </div>
-                    <div class="detail-row">
-                        <span>平均變化率</span>
-                        <strong class="${parseFloat(stats.avgChangeRate) < -3 ? 'text-danger' : ''}">${stats.avgChangeRate}%</strong>
-                    </div>
-                    <div class="detail-row">
-                        <span>最大下降</span>
-                        <strong class="text-danger">${stats.minChangeRate}%</strong>
-                    </div>
-                    <div class="detail-row">
-                        <span>最大上升</span>
-                        <strong style="color: var(--success);">${stats.maxChangeRate}%</strong>
-                    </div>
-                    <hr style="margin: 8px 0; border: none; border-top: 1px solid var(--border);">
-                    <div class="detail-row">
-                        <span>體重記錄數</span>
-                        <strong>${stats.weightRecordCount}</strong>
-                    </div>
-                    <div class="detail-row">
-                        <span>平均每療程</span>
-                        <strong>${stats.totalTreatments > 0 ? (stats.weightRecordCount / stats.totalTreatments).toFixed(1) : 0} 筆</strong>
-                    </div>
-                </div>
-                
+            `;
+        }
+        
+        // 療程統計：年齡分布、副作用評估
+        if (showAll || tabs.includes('treatment')) {
+            html += `
                 <div class="report-card">
                     <div class="report-card-title">年齡分布</div>
                     ${Object.entries(stats.ageDistribution).length > 0 ? 
@@ -621,13 +731,69 @@ const Report = {
                         '<div style="color: var(--text-hint); font-size: 12px;">無資料</div>'
                     }
                 </div>
-            </div>
-        `;
+            `;
+        }
+        
+        // 滿意度（如果有滿意度資料）
+        if (showAll || tabs.includes('satisfaction')) {
+            if (stats.satisfactionStats) {
+                html += `
+                    <div class="report-card">
+                        <div class="report-card-title">滿意度統計</div>
+                        <div class="detail-row">
+                            <span>填寫份數</span>
+                            <strong>${stats.satisfactionStats.count}</strong>
+                        </div>
+                        <div class="detail-row">
+                            <span>整體滿意度</span>
+                            <strong>${stats.satisfactionStats.overallAvg?.toFixed(1) || '-'}/5</strong>
+                        </div>
+                        <hr style="margin: 8px 0; border: none; border-top: 1px solid var(--border);">
+                        <div class="report-card-title" style="font-size: 12px; margin-bottom: 4px;">各題平均</div>
+                        <div class="detail-row" style="font-size: 13px;">
+                            <span>科部服務</span>
+                            <strong>${stats.satisfactionStats.q1Avg?.toFixed(1) || '-'}</strong>
+                        </div>
+                        <div class="detail-row" style="font-size: 13px;">
+                            <span>營養師協助</span>
+                            <strong>${stats.satisfactionStats.q2Avg?.toFixed(1) || '-'}</strong>
+                        </div>
+                        <div class="detail-row" style="font-size: 13px;">
+                            <span>APP 操作</span>
+                            <strong>${stats.satisfactionStats.q3Avg?.toFixed(1) || '-'}</strong>
+                        </div>
+                        <div class="detail-row" style="font-size: 13px;">
+                            <span>療程說明</span>
+                            <strong>${stats.satisfactionStats.q4Avg?.toFixed(1) || '-'}</strong>
+                        </div>
+                        <div class="detail-row" style="font-size: 13px;">
+                            <span>推薦意願 (NPS)</span>
+                            <strong>${stats.satisfactionStats.q5Avg?.toFixed(1) || '-'}</strong>
+                        </div>
+                    </div>
+                `;
+            } else {
+                html += `
+                    <div class="report-card">
+                        <div class="report-card-title">滿意度統計</div>
+                        <div style="color: var(--text-hint); font-size: 12px; padding: 20px 0; text-align: center;">尚無滿意度資料</div>
+                    </div>
+                `;
+            }
+        }
+        
+        html += '</div>';
+        
+        container.innerHTML = html;
         
         // 渲染圖表
         setTimeout(() => {
-            this.renderWeightChart(weightLabels, weightData);
-            this.renderCancerChart(cancerLabels, cancerData);
+            if (showAll || tabs.includes('overview')) {
+                this.renderCancerChart(cancerLabels, cancerData);
+            }
+            if (showAll || tabs.includes('weight')) {
+                this.renderWeightChart(weightLabels, weightData);
+            }
         }, 100);
     },
     
