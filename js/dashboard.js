@@ -35,13 +35,13 @@ const Dashboard = {
     /**
      * Tab 選擇變更
      */
-    onTabChange(clickedValue) {
+    onTabChange(e) {
         const container = document.querySelector('#page-dashboard .dashboard-tabs');
         if (!container) return;
         
         const checkboxes = container.querySelectorAll('input[type="checkbox"]');
         const allCheckbox = container.querySelector('input[value="all"]');
-        const clickedCheckbox = event?.target;
+        const clickedCheckbox = e?.target || event?.target;
         
         // 如果點擊「全部」
         if (clickedCheckbox?.value === 'all' && clickedCheckbox.checked) {
