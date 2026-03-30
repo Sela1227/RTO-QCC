@@ -899,29 +899,30 @@ const Dashboard = {
             pdf.text('四、介入類型', 110, y);
             y += 5;
             
-            // 截取癌別分布圖
+            // 截取癌別分布圖 - 保持正方形比例
             const cancerCanvas = document.getElementById('chart-cancer');
             if (cancerCanvas) {
                 try {
                     const cancerImg = cancerCanvas.toDataURL('image/png');
-                    pdf.addImage(cancerImg, 'PNG', 15, y, 80, 55);
+                    // 使用正方形尺寸保持圓餅圖不變形
+                    pdf.addImage(cancerImg, 'PNG', 15, y, 70, 70);
                 } catch (e) {
                     console.warn('癌別分布圖截取失敗');
                 }
             }
             
-            // 截取介入類型圖
+            // 截取介入類型圖 - 保持正方形比例
             const interventionCanvas = document.getElementById('chart-intervention');
             if (interventionCanvas) {
                 try {
                     const interventionImg = interventionCanvas.toDataURL('image/png');
-                    pdf.addImage(interventionImg, 'PNG', 110, y, 80, 55);
+                    pdf.addImage(interventionImg, 'PNG', 110, y, 70, 70);
                 } catch (e) {
                     console.warn('介入類型圖截取失敗');
                 }
             }
             
-            y += 65;
+            y += 78;
             
             // 檢查是否需要換頁
             if (y > pageHeight - 60) {

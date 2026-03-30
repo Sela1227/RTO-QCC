@@ -1415,24 +1415,36 @@ const App = {
         ]);
         
         // 使用 QRCode 庫生成 QR Code
-        setTimeout(() => {
+        setTimeout(async () => {
             const canvas = document.getElementById('patient-qr-canvas');
-            if (canvas && typeof QRCode !== 'undefined') {
-                QRCode.toCanvas(canvas, qrContent, {
-                    width: 200,
-                    margin: 2,
-                    errorCorrectionLevel: 'M'
-                }, (error) => {
-                    if (error) {
-                        console.error('QR Code 生成失敗:', error);
-                        // 回退到外部 API
-                        const container = document.getElementById('patient-qr-container');
-                        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrContent)}`;
-                        container.innerHTML = `<img src="${qrUrl}" alt="QR Code" style="display: block; width: 200px; height: 200px;">`;
-                    }
-                });
+            const container = document.getElementById('patient-qr-container');
+            
+            if (!canvas || !container) {
+                console.error('找不到 QR Code 容器');
+                return;
             }
-        }, 100);
+            
+            // 檢查 QRCode 庫是否載入
+            if (typeof QRCode !== 'undefined' && QRCode.toCanvas) {
+                try {
+                    await QRCode.toCanvas(canvas, qrContent, {
+                        width: 200,
+                        margin: 2,
+                        errorCorrectionLevel: 'L' // 使用低糾錯等級減少資料量
+                    });
+                    console.log('QR Code 生成成功');
+                } catch (error) {
+                    console.error('QR Code 生成失敗:', error);
+                    // 回退到外部 API
+                    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrContent)}`;
+                    container.innerHTML = `<img src="${qrUrl}" alt="QR Code" style="display: block; width: 200px; height: 200px;" onerror="this.parentElement.innerHTML='<div style=\\'padding:40px;color:#999;\\'>QR Code 產生失敗</div>'">`;
+                }
+            } else {
+                console.warn('QRCode 庫未載入，使用外部 API');
+                const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrContent)}`;
+                container.innerHTML = `<img src="${qrUrl}" alt="QR Code" style="display: block; width: 200px; height: 200px;" onerror="this.parentElement.innerHTML='<div style=\\'padding:40px;color:#999;\\'>QR Code 產生失敗</div>'">`;
+            }
+        }, 200);
     },
     
     /**
