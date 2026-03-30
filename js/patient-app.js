@@ -874,7 +874,7 @@ const PatientApp = {
         
         new Notification('體重追蹤提醒', {
             body: '請記得量體重並記錄！',
-            icon: '🏥',
+            icon: '',
             tag: 'weight-reminder'
         });
     },
@@ -1080,7 +1080,7 @@ const PatientApp = {
         modal.innerHTML = `
             <div class="install-modal-content">
                 <div class="install-modal-header">
-                    <span style="font-size: 32px;">📱</span>
+                    <span style="font-size: 18px; font-weight: 600;">[APP]</span>
                     <h3>加到主畫面</h3>
                 </div>
                 <p>將此頁面加到主畫面，<br>下次可以像 APP 一樣直接開啟！</p>
@@ -1550,7 +1550,7 @@ const PatientApp = {
         modal.className = 'assessment-modal';
         modal.innerHTML = `
             <div class="assessment-modal-content">
-                <h3>${editId ? '編輯評估' : '📋 今日副作用評估'}</h3>
+                <h3>${editId ? '編輯評估' : '今日副作用評估'}</h3>
                 <p style="text-align: center; color: var(--text-secondary); font-size: 13px; margin-bottom: 16px;">
                     請點選每個症狀的嚴重程度
                 </p>
@@ -1744,7 +1744,7 @@ const PatientApp = {
     showSatisfactionForm() {
         const questionsHtml = this.SATISFACTION_QUESTIONS.map((q, index) => {
             const ratingButtons = [1, 2, 3, 4, 5].map(level => {
-                const emojis = ['😞', '😐', '🙂', '😊', '🤩'];
+                const emojis = ['1', '2', '3', '4', '5'];
                 const labels = ['非常不滿意', '不太滿意', '普通', '滿意', '非常滿意'];
                 if (q.id === 'q2') {
                     // 營養師問題特殊處理
@@ -1784,7 +1784,7 @@ const PatientApp = {
         modal.className = 'satisfaction-modal';
         modal.innerHTML = `
             <div class="satisfaction-modal-content">
-                <h3>😊 療程滿意度回饋</h3>
+                <h3>療程滿意度回饋</h3>
                 <p style="text-align: center; color: var(--text-secondary); font-size: 13px; margin-bottom: 16px;">
                     感謝您使用體重追蹤服務，請花 1 分鐘給我們回饋
                 </p>

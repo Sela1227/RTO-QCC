@@ -637,7 +637,7 @@ const Intervention = {
         openModal('介入記錄', html, [
             { text: '關閉', class: 'btn-outline' },
             {
-                text: '📋 SDM 比較表',
+                text: 'SDM 比較表',
                 class: 'btn-outline',
                 closeOnClick: false,
                 onClick: () => {
@@ -904,7 +904,7 @@ const Intervention = {
         const html = `
             <div class="sdm-comparison">
                 <div style="text-align: center; margin-bottom: 20px;">
-                    <h3 style="color: var(--primary); margin-bottom: 8px;">🏥 您即將接受放射治療</h3>
+                    <h3 style="color: var(--primary); margin-bottom: 8px;">您即將接受放射治療</h3>
                     <p style="color: var(--text-secondary);">要如何選擇進食管路？</p>
                 </div>
                 
@@ -1022,13 +1022,13 @@ const Intervention = {
                 
                 <div style="text-align: center; margin-top: 16px;">
                     <p style="font-size: 12px; color: var(--text-hint);">
-                        🏥 彰濱秀傳醫院放射腫瘤科團隊關心您
+                        彰濱秀傳醫院放射腫瘤科團隊關心您
                     </p>
                 </div>
             </div>
         `;
         
-        openModal('📋 SDM 共享決策 - 進食管路選擇', html, [
+        openModal('SDM 共享決策 - 進食管路選擇', html, [
             { 
                 text: '列印', 
                 class: 'btn-outline',
@@ -1071,7 +1071,7 @@ const Intervention = {
                 </style>
             </head>
             <body>
-                <h1>🏥 您即將接受放射治療</h1>
+                <h1>您即將接受放射治療</h1>
                 <h2>要如何選擇進食管路？</h2>
                 
                 <table>
@@ -1095,7 +1095,7 @@ const Intervention = {
                 </div>
                 
                 <div class="footer">
-                    🏥 彰濱秀傳醫院放射腫瘤科團隊關心您
+                    彰濱秀傳醫院放射腫瘤科團隊關心您
                 </div>
             </body>
             </html>

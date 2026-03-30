@@ -583,7 +583,7 @@ const Report = {
                 </div>
                 
                 <div class="report-card">
-                    <div class="report-card-title">📋 副作用評估統計</div>
+                    <div class="report-card-title">副作用評估統計</div>
                     <div class="detail-row">
                         <span>評估記錄數</span>
                         <strong>${stats.sideEffectStats.total}</strong>

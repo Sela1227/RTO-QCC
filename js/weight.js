@@ -340,7 +340,7 @@ const Weight = {
         if (extraSideEffects.length > 0) {
             extraSeHtml = `
                 <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border);">
-                    <div style="font-size: 14px; color: var(--text-secondary); margin-bottom: 8px;">📋 其他副作用評估記錄</div>
+                    <div style="font-size: 14px; color: var(--text-secondary); margin-bottom: 8px;">其他副作用評估記錄</div>
                     ${extraSideEffects.map(se => `
                         <div class="detail-row" style="flex-wrap: wrap;">
                             <span>${formatDate(se.assess_date)}</span>

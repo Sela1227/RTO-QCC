@@ -133,7 +133,7 @@ const Patient = {
         setTimeout(() => {
             const html = `
                 <div style="text-align: center; padding: 16px 0;">
-                    <div style="font-size: 48px; margin-bottom: 16px;">⚠️</div>
+                    <div style="font-size: 24px; margin-bottom: 16px; color: var(--warning);">[!]</div>
                     <p style="margin-bottom: 8px;">確定要刪除此病人嗎？</p>
                     <div style="background: var(--bg); padding: 12px; border-radius: 8px; margin: 16px 0;">
                         <strong>${medicalId}</strong> ${name}
@@ -166,7 +166,7 @@ const Patient = {
         setTimeout(() => {
             const html = `
                 <div style="text-align: center; padding: 16px 0;">
-                    <div style="font-size: 48px; margin-bottom: 16px;">🗑️</div>
+                    <div style="font-size: 24px; margin-bottom: 16px; color: var(--danger);">[X]</div>
                     <p style="margin-bottom: 16px; color: var(--danger); font-weight: 600;">
                         再次確認：真的要刪除嗎？
                     </p>
@@ -338,7 +338,7 @@ const Patient = {
         
         const html = `
             <div style="text-align: center; padding: 16px 0;">
-                <div style="font-size: 48px; margin-bottom: 16px;">⚠️</div>
+                <div style="font-size: 24px; margin-bottom: 16px; color: var(--warning);">[!]</div>
                 <p style="margin-bottom: 16px;">此病歷號已有資料：</p>
                 <div style="background: var(--bg); padding: 16px; border-radius: 8px; text-align: left;">
                     <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">

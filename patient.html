@@ -15,7 +15,7 @@
         <!-- 未初始化狀態 -->
         <div id="init-screen" class="screen">
             <div class="init-container">
-                <div class="init-icon">🏥</div>
+                <div class="init-icon">[+]</div>
                 <h1>體重自我回報系統</h1>
                 <p class="init-subtitle">彰濱秀傳放射腫瘤科</p>
                 <p>請掃描醫護人員提供的<br>QR Code 來開始使用</p>
@@ -35,7 +35,7 @@
             <!-- 頂部資訊 -->
             <header class="header">
                 <div class="header-title">
-                    <span class="hospital-icon">🏥</span>
+                    <span class="hospital-icon">[醫]</span>
                     <div class="header-text">
                         <span class="header-main">彰濱秀傳放射腫瘤科</span>
                         <span class="header-sub">病人體重自我回報系統</span>
@@ -60,7 +60,7 @@
                         </div>
                     </div>
                     <button class="btn btn-outline btn-sm" id="btn-switch-patient" style="padding: 6px 10px; font-size: 12px;">
-                        🔄 切換
+                        切換
                     </button>
                 </div>
             </div>
@@ -71,7 +71,7 @@
                 <div id="tab-weight" class="tab-panel active">
                     <!-- 警示區 -->
                     <div id="alert-banner" class="alert-banner" style="display: none;">
-                        <div class="alert-icon">⚠️</div>
+                        <div class="alert-icon">[!]</div>
                         <div class="alert-content">
                             <div class="alert-title">體重變化警示</div>
                             <div class="alert-message" id="alert-message"></div>
@@ -138,7 +138,7 @@
                             ⏰ 提醒設定
                         </button>
                         <button class="btn btn-primary" id="btn-generate-qr">
-                            📤 回傳給醫護
+                            回傳給醫護
                         </button>
                     </div>
                 </div>
@@ -159,7 +159,7 @@
                         </div>
                         
                         <div class="edu-card">
-                            <h3>💪 高蛋白食物推薦</h3>
+                            <h3>高蛋白食物推薦</h3>
                             <ul>
                                 <li>蛋、豆腐、豆漿</li>
                                 <li>雞肉、魚肉</li>
@@ -169,7 +169,7 @@
                         </div>
                         
                         <div class="edu-card">
-                            <h3>⚠️ 體重下降時</h3>
+                            <h3>體重下降時</h3>
                             <ul>
                                 <li>增加餐間點心（如蒸蛋、布丁）</li>
                                 <li>飲品可加入奶粉增加熱量</li>
@@ -220,7 +220,7 @@
                         <!-- 照片記錄列表 -->
                         <div class="food-records-section">
                             <div class="section-header">
-                                <h3>📋 餐點記錄</h3>
+                                <h3>餐點記錄</h3>
                                 <span class="record-count" id="food-record-count">0 筆</span>
                             </div>
                             <div class="food-records-list" id="food-records-list">
@@ -233,18 +233,18 @@
                 <!-- ===== 副作用自我評估頁籤 ===== -->
                 <div id="tab-sideeffect" class="tab-panel">
                     <div class="sideeffect-content">
-                        <h2 class="section-title">📋 副作用自我評估</h2>
+                        <h2 class="section-title">副作用自我評估</h2>
                         <p class="sideeffect-hint">記錄您的症狀，幫助醫護人員了解您的狀況</p>
                         
                         <!-- 新增評估按鈕 -->
                         <button class="btn btn-primary btn-lg btn-block" id="btn-new-assessment" style="margin-bottom: 20px;">
-                            ➕ 新增今日評估
+                            新增今日評估
                         </button>
                         
                         <!-- 評估記錄列表 -->
                         <div class="assessment-records-section">
                             <div class="section-header">
-                                <h3>📊 評估記錄</h3>
+                                <h3>評估記錄</h3>
                                 <span class="record-count" id="assessment-record-count">0 筆</span>
                             </div>
                             <div class="assessment-records-list" id="assessment-records-list">
@@ -285,7 +285,7 @@
                     <span class="tab-label">體重</span>
                 </button>
                 <button class="tab-btn" data-tab="sideeffect">
-                    <span class="tab-icon">📋</span>
+                    <span class="tab-icon">+</span>
                     <span class="tab-label">副作用</span>
                 </button>
                 <button class="tab-btn" data-tab="nutrition">
@@ -316,7 +316,7 @@
         <!-- QR Code 顯示畫面 -->
         <div id="qr-display-screen" class="screen" style="display: none;">
             <div class="qr-display-container">
-                <h2>📤 回傳體重記錄</h2>
+                <h2>回傳體重記錄</h2>
                 <div id="qr-canvas-container"></div>
                 <p class="qr-info" id="qr-info">共 0 筆體重記錄</p>
                 <p class="qr-hint">請讓醫護人員掃描此 QR Code</p>
@@ -420,7 +420,7 @@
                     
                     <!-- 療程回饋 -->
                     <div class="settings-section" id="feedback-section">
-                        <h3>😊 療程回饋</h3>
+                        <h3>療程回饋</h3>
                         <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
                             請花 1 分鐘回饋您的滿意度，幫助我們提升服務品質。
                         </p>
@@ -434,7 +434,7 @@
                     
                     <!-- 加到主畫面 -->
                     <div class="settings-section" id="install-section">
-                        <h3>📱 加到主畫面</h3>
+                        <h3>加到主畫面</h3>
                         <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
                             將此網頁加到手機主畫面，下次可以像 APP 一樣直接開啟。
                         </p>

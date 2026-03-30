@@ -31,7 +31,7 @@ const Sync = {
     showStartupPrompt() {
         const html = `
             <div style="text-align: center; padding: 16px 0;">
-                <div style="font-size: 48px; margin-bottom: 16px;">🔄</div>
+                <div style="font-size: 18px; margin-bottom: 16px; color: var(--primary);">[同步]</div>
                 <p style="margin-bottom: 16px;">是否從網芳同步最新資料？</p>
                 <p style="font-size: 13px; color: var(--text-secondary);">
                     建議每天上班時先同步，確保資料最新
@@ -433,14 +433,14 @@ const Sync = {
                         <div style="font-size: 15px; font-weight: 500;">${conflict.localDisplay}</div>
                     </div>
                     <div style="background: var(--bg); padding: 12px; border-radius: 8px; border: 2px solid transparent;" id="conflict-import">
-                        <div style="font-size: 12px; color: var(--text-hint); margin-bottom: 8px;">📥 匯入資料</div>
+                        <div style="font-size: 12px; color: var(--text-hint); margin-bottom: 8px;">匯入資料</div>
                         <div style="font-size: 15px; font-weight: 500;">${conflict.importDisplay}</div>
                     </div>
                 </div>
             </div>
         `;
         
-        openModal('⚠️ 發現資料衝突', html, [
+        openModal('發現資料衝突', html, [
             { 
                 text: '保留本地', 
                 class: 'btn-outline',
@@ -719,7 +719,7 @@ const Sync = {
         
         const html = `
             <div style="text-align: center; padding: 16px 0;">
-                <div style="font-size: 48px; margin-bottom: 12px;">✅</div>
+                <div style="font-size: 18px; margin-bottom: 12px; color: var(--success);">[完成]</div>
                 <h3 style="margin-bottom: 16px;">同步完成</h3>
                 
                 <div style="background: var(--bg); padding: 16px; border-radius: 8px; text-align: left;">
@@ -784,7 +784,7 @@ const Sync = {
         return new Promise((resolve) => {
             const html = `
                 <div style="text-align: center; padding: 16px 0;">
-                    <div style="font-size: 48px; margin-bottom: 16px;">💾</div>
+                    <div style="font-size: 18px; margin-bottom: 16px; color: var(--primary);">[備份]</div>
                     <p style="margin-bottom: 16px;">是否備份資料到網芳？</p>
                     <p style="font-size: 13px; color: var(--text-secondary);">
                         建議每天下班前備份，確保資料安全

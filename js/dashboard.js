@@ -398,23 +398,36 @@ const Dashboard = {
             return `${(hours / 24).toFixed(1)} 天`;
         };
         
+        // SVG 圖示定義
+        const icons = {
+            users: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+            alert: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+            check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
+            clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+            phone: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>',
+            scale: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M5.5 8.5l13-5M18.5 8.5l-13-5"/><circle cx="5" cy="9" r="2"/><circle cx="19" cy="9" r="2"/></svg>',
+            clipboard: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>',
+            flag: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>',
+            star: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>'
+        };
+        
         const kpis = [
             {
-                icon: '📊',
+                icon: icons.users,
                 iconClass: 'blue',
                 value: s.trackedPatients,
                 unit: '人',
                 label: '追蹤人數'
             },
             {
-                icon: '⚠️',
+                icon: icons.alert,
                 iconClass: 'amber',
                 value: s.alertsTriggered,
                 unit: '次',
                 label: '警示觸發'
             },
             {
-                icon: '✅',
+                icon: icons.check,
                 iconClass: 'green',
                 value: s.completionRate.toFixed(1),
                 unit: '%',
@@ -423,7 +436,7 @@ const Dashboard = {
                 achieved: s.completionRate >= 95
             },
             {
-                icon: '⏱️',
+                icon: icons.clock,
                 iconClass: 'purple',
                 value: formatTime(s.avgResponseTime),
                 unit: '',
@@ -432,7 +445,7 @@ const Dashboard = {
                 achieved: s.avgResponseTime !== null && s.avgResponseTime <= 24
             },
             {
-                icon: '📱',
+                icon: icons.phone,
                 iconClass: 'blue',
                 value: s.selfReportRate.toFixed(1),
                 unit: '%',
@@ -441,7 +454,7 @@ const Dashboard = {
                 achieved: s.selfReportRate >= 60
             },
             {
-                icon: '💪',
+                icon: icons.scale,
                 iconClass: s.maintenanceRate >= 85 ? 'green' : 'amber',
                 value: s.maintenanceRate.toFixed(1),
                 unit: '%',
@@ -450,7 +463,7 @@ const Dashboard = {
                 achieved: s.maintenanceRate >= 85
             },
             {
-                icon: '📝',
+                icon: icons.clipboard,
                 iconClass: 'blue',
                 value: s.seTrackingRate.toFixed(1),
                 unit: '%',
@@ -459,14 +472,14 @@ const Dashboard = {
                 achieved: s.seTrackingRate >= 80
             },
             {
-                icon: '🏁',
+                icon: icons.flag,
                 iconClass: 'gray',
                 value: s.completedTreatments,
                 unit: '人',
                 label: '已結案'
             },
             {
-                icon: '😊',
+                icon: icons.star,
                 iconClass: s.satisfactionStats?.overallAvg >= 4 ? 'green' : 'amber',
                 value: s.satisfactionStats?.overallAvg?.toFixed(1) || '-',
                 unit: s.satisfactionStats?.overallAvg ? '/5' : '',
@@ -509,7 +522,7 @@ const Dashboard = {
             const avgScores = s.satisfactionStats.avgScores;
             satisfactionHtml = `
                 <div class="chart-card">
-                    <div class="chart-title">😊 滿意度分析 (${s.satisfactionStats.count} 份回饋)</div>
+                    <div class="chart-title">滿意度分析 (${s.satisfactionStats.count} 份回饋)</div>
                     <div class="stats-list" style="padding: 16px 0;">
                         ${Object.values(avgScores).map(item => {
                             const pct = (item.avg / 5) * 100;
@@ -544,9 +557,9 @@ const Dashboard = {
         } else {
             satisfactionHtml = `
                 <div class="chart-card">
-                    <div class="chart-title">😊 滿意度分析</div>
+                    <div class="chart-title">滿意度分析</div>
                     <div style="text-align: center; padding: 40px 20px; color: var(--text-hint);">
-                        <div style="font-size: 32px; margin-bottom: 8px;">📝</div>
+                        <div style="font-size: 14px; margin-bottom: 8px;">[ 無資料 ]</div>
                         <div>尚無滿意度回饋</div>
                     </div>
                 </div>
@@ -556,25 +569,25 @@ const Dashboard = {
         // 先建立圖表容器
         container.innerHTML = `
             <div class="chart-card">
-                <div class="chart-title">📈 月度趨勢</div>
+                <div class="chart-title">月度趨勢</div>
                 <div class="chart-container">
                     <canvas id="chart-monthly"></canvas>
                 </div>
             </div>
             <div class="chart-card">
-                <div class="chart-title">🏥 癌別分布</div>
+                <div class="chart-title">癌別分布</div>
                 <div class="chart-container small">
                     <canvas id="chart-cancer"></canvas>
                 </div>
             </div>
             <div class="chart-card">
-                <div class="chart-title">🔧 介入類型</div>
+                <div class="chart-title">介入類型</div>
                 <div class="chart-container small">
                     <canvas id="chart-intervention"></canvas>
                 </div>
             </div>
             <div class="chart-card">
-                <div class="chart-title">⏱️ 反應時間分布</div>
+                <div class="chart-title">反應時間分布</div>
                 <div class="stats-list" style="padding: 20px 0;">
                     ${s.responseTimeDistribution.map((item, i) => {
                         const colors = ['green', 'amber', 'red'];
@@ -820,11 +833,11 @@ const Dashboard = {
                 ['指標', '數值', '目標', '達成'],
                 ['追蹤人數', `${s.trackedPatients} 人`, '-', '-'],
                 ['警示觸發', `${s.alertsTriggered} 次`, '-', '-'],
-                ['介入完成率', `${s.completionRate.toFixed(1)}%`, '≥95%', s.completionRate >= 95 ? '✓' : '○'],
-                ['平均反應時間', s.avgResponseTime ? `${s.avgResponseTime.toFixed(1)} 小時` : '-', '≤24小時', s.avgResponseTime && s.avgResponseTime <= 24 ? '✓' : '○'],
-                ['體重維持率', `${s.maintenanceRate.toFixed(1)}%`, '≥85%', s.maintenanceRate >= 85 ? '✓' : '○'],
-                ['副作用追蹤率', `${s.seTrackingRate.toFixed(1)}%`, '≥80%', s.seTrackingRate >= 80 ? '✓' : '○'],
-                ['病人自填率', `${s.selfReportRate.toFixed(1)}%`, '≥60%', s.selfReportRate >= 60 ? '✓' : '○']
+                ['介入完成率', `${s.completionRate.toFixed(1)}%`, '>=95%', s.completionRate >= 95 ? 'V' : 'O'],
+                ['平均反應時間', s.avgResponseTime ? `${s.avgResponseTime.toFixed(1)} 小時` : '-', '<=24小時', s.avgResponseTime && s.avgResponseTime <= 24 ? 'V' : 'O'],
+                ['體重維持率', `${s.maintenanceRate.toFixed(1)}%`, '>=85%', s.maintenanceRate >= 85 ? 'V' : 'O'],
+                ['副作用追蹤率', `${s.seTrackingRate.toFixed(1)}%`, '>=80%', s.seTrackingRate >= 80 ? 'V' : 'O'],
+                ['病人自填率', `${s.selfReportRate.toFixed(1)}%`, '>=60%', s.selfReportRate >= 60 ? 'V' : 'O']
             ];
             
             // 繪製表格
@@ -850,59 +863,141 @@ const Dashboard = {
                 y += rowHeight;
             });
             
-            y += 10;
+            y += 12;
             
-            // === 癌別分析 ===
+            // === 圖表區 ===
+            // 截取月度趨勢圖
+            const monthlyCanvas = document.getElementById('chart-monthly');
+            if (monthlyCanvas) {
+                pdf.setFontSize(12);
+                pdf.setTextColor(44, 62, 80);
+                pdf.text('二、月度趨勢', 15, y);
+                y += 5;
+                
+                try {
+                    const monthlyImg = monthlyCanvas.toDataURL('image/png');
+                    const imgWidth = 180;
+                    const imgHeight = 60;
+                    pdf.addImage(monthlyImg, 'PNG', 15, y, imgWidth, imgHeight);
+                    y += imgHeight + 10;
+                } catch (e) {
+                    console.warn('月度趨勢圖截取失敗');
+                    y += 5;
+                }
+            }
+            
+            // 檢查是否需要換頁
+            if (y > pageHeight - 80) {
+                pdf.addPage();
+                y = 20;
+            }
+            
+            // === 癌別與介入並排 ===
             pdf.setFontSize(12);
             pdf.setTextColor(44, 62, 80);
-            pdf.text('二、癌別分析', 15, y);
-            y += 8;
+            pdf.text('三、癌別分布', 15, y);
+            pdf.text('四、介入類型', 110, y);
+            y += 5;
             
-            pdf.setFontSize(10);
-            s.cancerStats.forEach(item => {
-                const pct = s.totalTreatments > 0 ? (item.count / s.totalTreatments * 100).toFixed(1) : 0;
-                pdf.text(`• ${item.label}：${item.count} 人 (${pct}%)`, 20, y);
-                y += 6;
-            });
+            // 截取癌別分布圖
+            const cancerCanvas = document.getElementById('chart-cancer');
+            if (cancerCanvas) {
+                try {
+                    const cancerImg = cancerCanvas.toDataURL('image/png');
+                    pdf.addImage(cancerImg, 'PNG', 15, y, 80, 55);
+                } catch (e) {
+                    console.warn('癌別分布圖截取失敗');
+                }
+            }
             
-            y += 8;
+            // 截取介入類型圖
+            const interventionCanvas = document.getElementById('chart-intervention');
+            if (interventionCanvas) {
+                try {
+                    const interventionImg = interventionCanvas.toDataURL('image/png');
+                    pdf.addImage(interventionImg, 'PNG', 110, y, 80, 55);
+                } catch (e) {
+                    console.warn('介入類型圖截取失敗');
+                }
+            }
             
-            // === 介入分析 ===
+            y += 65;
+            
+            // 檢查是否需要換頁
+            if (y > pageHeight - 60) {
+                pdf.addPage();
+                y = 20;
+            }
+            
+            // === 反應時間分布 ===
             pdf.setFontSize(12);
-            pdf.text('三、介入分析', 15, y);
-            y += 8;
-            
-            const typeLabels = {
-                'nutrition': '營養諮詢',
-                'sdm': 'SDM 諮詢',
-                'ng_tube': '鼻胃管',
-                'gastrostomy': '胃造廔',
-                'manual': '其他'
-            };
-            
-            pdf.setFontSize(10);
-            s.interventionTypeStats.forEach(item => {
-                pdf.text(`• ${typeLabels[item.type] || item.type}：${item.count} 次`, 20, y);
-                y += 6;
-            });
-            
-            y += 8;
-            
-            // === 反應時間 ===
-            pdf.setFontSize(12);
-            pdf.text('四、反應時間分布', 15, y);
+            pdf.setTextColor(44, 62, 80);
+            pdf.text('五、反應時間分布', 15, y);
             y += 8;
             
             pdf.setFontSize(10);
-            s.responseTimeDistribution.forEach(item => {
-                pdf.text(`• ${item.label}：${item.count} 次 (${item.pct}%)`, 20, y);
-                y += 6;
+            const rtColors = [[107, 191, 138], [228, 185, 90], [217, 123, 123]];
+            s.responseTimeDistribution.forEach((item, i) => {
+                // 繪製條形
+                const barWidth = item.pct * 1.2;
+                pdf.setFillColor(...rtColors[i]);
+                pdf.rect(20, y - 4, barWidth, 5, 'F');
+                
+                // 標籤和數值
+                pdf.setTextColor(44, 62, 80);
+                pdf.text(`${item.label}：${item.count} 次 (${item.pct}%)`, 20 + barWidth + 5, y);
+                y += 8;
             });
+            
+            y += 5;
+            
+            // === 滿意度摘要 ===
+            if (s.satisfactionStats && s.satisfactionStats.count > 0) {
+                // 檢查是否需要換頁
+                if (y > pageHeight - 50) {
+                    pdf.addPage();
+                    y = 20;
+                }
+                
+                pdf.setFontSize(12);
+                pdf.setTextColor(44, 62, 80);
+                pdf.text('六、滿意度分析', 15, y);
+                y += 8;
+                
+                pdf.setFontSize(10);
+                pdf.text(`回饋份數：${s.satisfactionStats.count} 份`, 20, y);
+                y += 6;
+                pdf.text(`整體平均：${s.satisfactionStats.overallAvg?.toFixed(1) || '-'} / 5 分`, 20, y);
+                y += 6;
+                pdf.text(`NPS 淨推薦值：${s.satisfactionStats.nps !== null ? s.satisfactionStats.nps : '-'}`, 20, y);
+                y += 8;
+                
+                // 各題分數
+                const avgScores = s.satisfactionStats.avgScores;
+                if (avgScores && Object.keys(avgScores).length > 0) {
+                    Object.values(avgScores).forEach(item => {
+                        const barWidth = (item.avg / 5) * 80;
+                        const color = item.avg >= 4 ? [107, 191, 138] : item.avg >= 3 ? [228, 185, 90] : [217, 123, 123];
+                        
+                        pdf.setFillColor(...color);
+                        pdf.rect(20, y - 4, barWidth, 5, 'F');
+                        
+                        pdf.setTextColor(44, 62, 80);
+                        pdf.text(`${item.label}：${item.avg.toFixed(1)}/5`, 105, y);
+                        y += 7;
+                    });
+                }
+            }
             
             // === 頁尾 ===
-            pdf.setFontSize(8);
-            pdf.setTextColor(150, 150, 150);
-            pdf.text('彰濱秀傳紀念醫院 放射腫瘤科', pageWidth / 2, pageHeight - 10, { align: 'center' });
+            const totalPages = pdf.internal.getNumberOfPages();
+            for (let i = 1; i <= totalPages; i++) {
+                pdf.setPage(i);
+                pdf.setFontSize(8);
+                pdf.setTextColor(150, 150, 150);
+                pdf.text('彰濱秀傳紀念醫院 放射腫瘤科', pageWidth / 2, pageHeight - 10, { align: 'center' });
+                pdf.text(`第 ${i} / ${totalPages} 頁`, pageWidth - 20, pageHeight - 10, { align: 'right' });
+            }
             
             // 儲存 PDF
             const filename = `SELA_成效報告_${new Date().toISOString().split('T')[0]}.pdf`;

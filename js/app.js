@@ -110,7 +110,7 @@ const App = {
         
         const html = `
             <div style="text-align: center; padding: 20px 0;">
-                <div style="font-size: 48px; margin-bottom: 16px;">⚠️</div>
+                <div style="font-size: 24px; margin-bottom: 16px; color: var(--warning);">[!]</div>
                 <h3 style="margin-bottom: 8px; color: var(--warning);">請先備份資料</h3>
                 <p style="color: var(--text-secondary); margin-bottom: 20px;">
                     ${reason}，為避免資料遺失，請立即備份。
@@ -717,16 +717,16 @@ const App = {
                     記錄體重
                 </button>
                 <button class="btn btn-outline btn-sm" onclick="SideEffect.showList(${treatment.id})">
-                    📋 副作用
+                    副作用
                 </button>
                 <button class="btn btn-outline btn-sm" onclick="App.showQRMenu(${treatment.id})" title="QR Code 功能">
-                    📱 QR
+                    QR
                 </button>
                 <button class="btn btn-outline btn-sm" onclick="Intervention.showList(${treatment.id})">
                     介入記錄
                 </button>
                 <button class="btn btn-outline btn-sm" onclick="Satisfaction.showForm(${treatment.id})" title="滿意度調查">
-                    😊 滿意度
+                    滿意度
                 </button>
                 ${treatment.status === 'active' ? `
                     <button class="btn btn-outline btn-sm" style="color: var(--warning); border-color: var(--warning);" 
@@ -786,7 +786,7 @@ const App = {
                     <div style="display: flex; gap: 8px;">
                         <button class="btn btn-outline" style="padding: 2px 8px; font-size: 11px;"
                                 onclick="SideEffect.showList(${treatment.id})">
-                            📋 副作用
+                            副作用
                         </button>
                         <button class="btn btn-outline" style="padding: 2px 8px; font-size: 11px;"
                                 onclick="Weight.showList(${treatment.id})">
@@ -1314,14 +1314,14 @@ const App = {
                 
                 <div style="display: flex; flex-direction: column; gap: 12px;">
                     <button class="btn btn-primary" onclick="closeModal(); App.showPatientQRCode(${treatmentId})">
-                        📤 產生 QR Code 給病人
+                        產生 QR Code 給病人
                         <div style="font-size: 12px; font-weight: normal; margin-top: 4px; opacity: 0.8;">
                             讓病人掃描後可在手機記錄體重
                         </div>
                     </button>
                     
                     <button class="btn btn-outline" onclick="closeModal(); App.showImportPatientWeight(${treatmentId})">
-                        📥 掃描病人回傳的 QR Code
+                        掃描病人回傳的 QR Code
                         <div style="font-size: 12px; font-weight: normal; margin-top: 4px; opacity: 0.8;">
                             匯入病人在手機記錄的體重資料
                         </div>
@@ -1395,7 +1395,7 @@ const App = {
                     </p>
                 ` : `
                     <p style="color: var(--warning); font-size: 13px; margin-top: 12px;">
-                        ⚠️ 尚未設定病人端網址
+                        尚未設定病人端網址
                     </p>
                     <p style="color: var(--text-hint); font-size: 12px;">
                         請到設定 → 病人端 填入網址
@@ -1474,7 +1474,7 @@ const App = {
                 <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"><\/script>
             </head>
             <body>
-                <div class="title">🏥 體重追蹤</div>
+                <div class="title">體重追蹤</div>
                 <div class="patient-info">
                     <strong>${patient.medical_id}</strong> ${patient.name}
                 </div>
@@ -1772,7 +1772,7 @@ const App = {
             // 顯示結果
             const resultHtml = `
                 <div style="text-align: center; padding: 16px 0;">
-                    <div style="font-size: 36px; margin-bottom: 12px;">✅</div>
+                    <div style="font-size: 24px; margin-bottom: 12px; color: var(--success);">[OK]</div>
                     <h3 style="margin-bottom: 16px;">匯入成功</h3>
                     <div style="background: var(--bg); padding: 16px; border-radius: 8px;">
                         <div class="detail-row">

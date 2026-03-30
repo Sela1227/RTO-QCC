@@ -23,15 +23,15 @@ const SettingsUI = {
                     <div class="settings-tabs-label">基本設定</div>
                     <div class="settings-tabs-row">
                         <button class="settings-tab active" data-settings-tab="cancer">
-                            <span class="settings-tab-icon">🏥</span>
+                            <span class="settings-tab-icon">+</span>
                             <span class="settings-tab-text">癌別</span>
                         </button>
                         <button class="settings-tab" data-settings-tab="staff">
-                            <span class="settings-tab-icon">👤</span>
+                            <span class="settings-tab-icon">*</span>
                             <span class="settings-tab-text">人員</span>
                         </button>
                         <button class="settings-tab" data-settings-tab="alert">
-                            <span class="settings-tab-icon">⚠️</span>
+                            <span class="settings-tab-icon">!</span>
                             <span class="settings-tab-text">警示</span>
                         </button>
                         <button class="settings-tab" data-settings-tab="pause">
@@ -44,15 +44,15 @@ const SettingsUI = {
                     <div class="settings-tabs-label">資料管理</div>
                     <div class="settings-tabs-row">
                         <button class="settings-tab" data-settings-tab="sync">
-                            <span class="settings-tab-icon">🔄</span>
+                            <span class="settings-tab-icon">~</span>
                             <span class="settings-tab-text">同步</span>
                         </button>
                         <button class="settings-tab" data-settings-tab="backup">
-                            <span class="settings-tab-icon">💾</span>
+                            <span class="settings-tab-icon">@</span>
                             <span class="settings-tab-text">備份</span>
                         </button>
                         <button class="settings-tab" data-settings-tab="patient">
-                            <span class="settings-tab-icon">📱</span>
+                            <span class="settings-tab-icon">#</span>
                             <span class="settings-tab-text">病人端</span>
                         </button>
                     </div>
@@ -182,7 +182,7 @@ const SettingsUI = {
                             儲存設定
                         </button>
                         <div class="settings-info-box">
-                            <div class="settings-info-title">📋 部署說明</div>
+                            <div class="settings-info-title">部署說明</div>
                             <ol class="settings-info-list">
                                 <li>將 <code>patient.html</code> 上傳到網頁伺服器</li>
                                 <li>複製網頁網址填入上方欄位</li>
@@ -213,7 +213,7 @@ const SettingsUI = {
                     </div>
                     <div class="settings-btn-group">
                         <button class="btn btn-primary" onclick="SettingsUI.exportData()">
-                            <span class="btn-icon">💾</span> 匯出完整備份
+                            <span class="btn-icon">[備]</span> 匯出完整備份
                         </button>
                         <button class="btn btn-outline" onclick="document.getElementById('import-file').click()">
                             <span class="btn-icon">📂</span> 匯入還原
@@ -222,7 +222,7 @@ const SettingsUI = {
                                onchange="SettingsUI.importData(this.files[0])">
                     </div>
                     <div class="settings-warning">
-                        ⚠️ 匯入還原會清除現有資料，以備份檔案完全取代
+                        匯入還原會清除現有資料，以備份檔案完全取代
                     </div>
                     
                     <div class="settings-divider"></div>
@@ -233,7 +233,7 @@ const SettingsUI = {
                     </div>
                     <div class="settings-btn-group">
                         <button class="btn btn-outline" onclick="document.getElementById('sync-file').click()">
-                            <span class="btn-icon">📥</span> 同步資料（只新增不覆蓋）
+                            <span class="btn-icon">[入]</span> 同步資料（只新增不覆蓋）
                         </button>
                         <input type="file" id="sync-file" accept=".json" style="display: none;" 
                                onchange="SettingsUI.syncData(this.files[0])">
@@ -247,7 +247,7 @@ const SettingsUI = {
                     </div>
                     <div class="settings-btn-group">
                         <button class="btn btn-danger" onclick="SettingsUI.clearAllData()">
-                            <span class="btn-icon">🗑️</span> 清除所有資料
+                            <span class="btn-icon">[清]</span> 清除所有資料
                         </button>
                         <button class="btn btn-outline" onclick="SettingsUI.resetToDemo()">
                             還原測試資料
@@ -274,10 +274,10 @@ const SettingsUI = {
                     
                     <div class="settings-btn-group">
                         <button class="btn btn-primary" onclick="closeModal(); Sync.selectAndSync()">
-                            <span class="btn-icon">📥</span> 從網芳同步
+                            <span class="btn-icon">[入]</span> 從網芳同步
                         </button>
                         <button class="btn btn-outline" onclick="closeModal(); Sync.backupToFile()">
-                            <span class="btn-icon">💾</span> 備份到網芳
+                            <span class="btn-icon">[備]</span> 備份到網芳
                         </button>
                     </div>
                     
@@ -322,7 +322,7 @@ const SettingsUI = {
                     
                     <div class="settings-info-box" style="margin-top: 12px; background: var(--warning-bg, #fff8e6);">
                         <div style="font-size: 13px;">
-                            ⚠️ <strong>衝突處理</strong>：若同一筆資料內容不同，系統會提示您選擇保留哪一個版本
+                            <strong>衝突處理</strong>：若同一筆資料內容不同，系統會提示您選擇保留哪一個版本
                         </div>
                     </div>
                 </div>
@@ -593,7 +593,7 @@ const SettingsUI = {
         // 顯示備份摘要
         const summaryHtml = `
             <div style="text-align: center; padding: 16px 0;">
-                <div style="font-size: 36px; margin-bottom: 12px;">💾</div>
+                <div style="font-size: 18px; margin-bottom: 12px; color: var(--primary);">[備份]</div>
                 <h3 style="margin-bottom: 16px;">備份摘要</h3>
                 <div style="background: var(--bg); padding: 16px; border-radius: 8px; text-align: left;">
                     <div class="detail-row">
@@ -939,7 +939,7 @@ const SettingsUI = {
             // 顯示結果
             const resultHtml = `
                 <div style="text-align: center; padding: 16px 0;">
-                    <div style="font-size: 36px; margin-bottom: 12px;">✅</div>
+                    <div style="font-size: 18px; margin-bottom: 12px; color: var(--success);">[完成]</div>
                     <h3 style="margin-bottom: 16px;">同步完成</h3>
                     <div style="background: var(--bg); padding: 16px; border-radius: 8px; text-align: left;">
                         <div class="detail-row"><span>病人</span><span>新增 <strong>${stats.patient.added}</strong> / 跳過 ${stats.patient.skipped}</span></div>
@@ -1170,7 +1170,7 @@ const SettingsUI = {
             // 顯示結果
             const resultHtml = `
                 <div style="text-align: center; padding: 16px 0;">
-                    <div style="font-size: 36px; margin-bottom: 12px;">✅</div>
+                    <div style="font-size: 18px; margin-bottom: 12px; color: var(--success);">[完成]</div>
                     <h3 style="margin-bottom: 16px;">同步完成</h3>
                     <div style="background: var(--bg); padding: 16px; border-radius: 8px; text-align: left;">
                         <div class="detail-row">
