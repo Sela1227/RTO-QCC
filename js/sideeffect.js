@@ -1,6 +1,7 @@
 /**
  * 副作用評估模組
  * 處理病人回報的副作用評估資料
+ * 嚴重程度參考 CTCAE v5.0 (Common Terminology Criteria for Adverse Events)
  */
 
 const SideEffect = {
@@ -16,12 +17,51 @@ const SideEffect = {
         'P': { code: 'P', name: '疼痛', icon: '😖', scale: 10 }  // 0-10 量表
     },
     
-    // 嚴重程度定義（0-3 量表）
+    // 嚴重程度定義（CTCAE Grade 0-3）
     SEVERITY: {
-        0: { level: 0, name: '無', class: 'normal' },
-        1: { level: 1, name: '輕微', class: 'mild' },
-        2: { level: 2, name: '中等', class: 'moderate' },
-        3: { level: 3, name: '嚴重', class: 'severe' }
+        0: { level: 0, name: '無', class: 'normal', desc: '無症狀' },
+        1: { level: 1, name: '輕微', class: 'mild', desc: '症狀輕微，不影響日常活動' },
+        2: { level: 2, name: '中度', class: 'moderate', desc: '影響日常活動，但仍可自理' },
+        3: { level: 3, name: '嚴重', class: 'severe', desc: '嚴重影響日常，需要協助或醫療處置' }
+    },
+    
+    // 各症狀的 CTCAE 詳細定義
+    CTCAE_DEFINITIONS: {
+        'N': { // 噁心嘔吐
+            1: '食慾下降但不影響進食',
+            2: '進食量明顯減少，但無需靜脈輸液',
+            3: '無法經口進食，需要靜脈輸液或住院'
+        },
+        'F': { // 疲勞
+            1: '比平常稍感疲倦，仍可正常活動',
+            2: '影響部分日常活動，需要休息',
+            3: '影響大部分活動，生活起居需協助'
+        },
+        'O': { // 口腔黏膜炎
+            1: '黏膜輕微紅腫，不影響進食',
+            2: '疼痛影響進食，需要飲食調整',
+            3: '嚴重疼痛，無法經口進食'
+        },
+        'S': { // 皮膚反應
+            1: '輕微發紅或乾燥',
+            2: '明顯發紅、脫皮或濕性皮膚炎',
+            3: '嚴重皮膚反應，有潰瘍或出血'
+        },
+        'W': { // 吞嚥困難
+            1: '吞嚥時稍有不適，不影響進食',
+            2: '需改吃軟質或流質飲食',
+            3: '無法吞嚥，需要管灌餵食'
+        },
+        'A': { // 食慾下降
+            1: '食慾稍減，進食量略少',
+            2: '進食量明顯減少，但無需營養支持',
+            3: '需要營養補充或管灌餵食'
+        },
+        'D': { // 腹瀉
+            1: '每日排便增加 1-3 次',
+            2: '每日排便增加 4-6 次，影響日常',
+            3: '每日排便增加 7 次以上或需要住院'
+        }
     },
     
     /**
@@ -59,12 +99,12 @@ const SideEffect = {
     },
     
     /**
-     * 取得療程的所有副作用評估
+     * 取得療程的所有副作用評估（排除已刪除）
      */
     async getByTreatment(treatmentId) {
         const all = await DB.getAll('side_effects');
         return all
-            .filter(r => r.treatment_id === treatmentId)
+            .filter(r => r.treatment_id === treatmentId && !r.deleted)
             .sort((a, b) => new Date(b.assess_date) - new Date(a.assess_date)); // 倒序
     },
     
@@ -90,10 +130,15 @@ const SideEffect = {
     },
     
     /**
-     * 刪除評估記錄
+     * 刪除評估記錄（軟刪除）
      */
     async delete(id) {
-        return DB.delete('side_effects', id);
+        const record = await DB.getById('side_effects', id);
+        if (record) {
+            record.deleted = true;
+            record.deleted_at = new Date().toISOString();
+            return DB.update('side_effects', record);
+        }
     },
     
     /**
@@ -225,12 +270,12 @@ const SideEffect = {
                 ${listHtml}
             </div>
             <div class="severity-legend" style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border);">
-                <div style="font-size: 12px; color: var(--text-hint); margin-bottom: 8px;">嚴重程度說明</div>
+                <div style="font-size: 12px; color: var(--text-hint); margin-bottom: 8px;">嚴重程度說明（參考 CTCAE v5.0）</div>
                 <div style="display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px;">
-                    <span><span class="side-effect-tag normal">無</span></span>
-                    <span><span class="side-effect-tag mild">輕微</span></span>
-                    <span><span class="side-effect-tag moderate">中等</span></span>
-                    <span><span class="side-effect-tag severe">嚴重</span></span>
+                    <span><span class="side-effect-tag normal">無</span> 無症狀</span>
+                    <span><span class="side-effect-tag mild">輕微</span> 不影響日常</span>
+                    <span><span class="side-effect-tag moderate">中度</span> 影響日常但可自理</span>
+                    <span><span class="side-effect-tag severe">嚴重</span> 需要協助或醫療處置</span>
                 </div>
             </div>
         `;
@@ -313,12 +358,16 @@ const SideEffect = {
                 // 其他症狀使用 0-3 量表
                 const severityButtons = [0, 1, 2, 3].map(level => {
                     const severityInfo = this.SEVERITY[level] || { name: String(level) };
+                    // 取得該症狀的 CTCAE 定義
+                    const ctcaeDef = this.CTCAE_DEFINITIONS[code];
+                    const ctcaeDesc = level === 0 ? '無症狀' : (ctcaeDef && ctcaeDef[level]) || severityInfo.desc || '';
+                    const titleText = `${severityInfo.name}：${ctcaeDesc}`;
                     return `
                         <button type="button" 
                                 class="severity-select-btn ${currentLevel === level ? 'active' : ''}" 
                                 data-code="${code}" 
                                 data-level="${level}"
-                                title="${severityInfo.name}">
+                                title="${titleText}">
                             ${level === 0 ? '無' : level}
                         </button>
                     `;
@@ -347,7 +396,7 @@ const SideEffect = {
                     <div class="symptom-form-section">
                         <div class="symptom-form-header">
                             <span>症狀項目</span>
-                            <span style="font-size: 11px; color: var(--text-hint);">無 / 輕 / 中 / 重</span>
+                            <span style="font-size: 11px; color: var(--text-hint);">0無 / 1輕 / 2中 / 3重（長按查看說明）</span>
                         </div>
                         ${symptomsHtml}
                     </div>

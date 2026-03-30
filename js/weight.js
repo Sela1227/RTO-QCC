@@ -4,11 +4,13 @@
 
 const Weight = {
     /**
-     * 依療程取得體重記錄（依日期降序）
+     * 依療程取得體重記錄（依日期降序，排除已刪除）
      */
     async getByTreatment(treatmentId) {
         const records = await DB.getByIndex('weight_records', 'treatment_id', treatmentId);
-        return records.sort((a, b) => new Date(b.measure_date) - new Date(a.measure_date));
+        return records
+            .filter(r => !r.deleted)
+            .sort((a, b) => new Date(b.measure_date) - new Date(a.measure_date));
     },
     
     /**
@@ -103,10 +105,15 @@ const Weight = {
     },
     
     /**
-     * 刪除體重記錄
+     * 刪除體重記錄（軟刪除）
      */
     async delete(id) {
-        return DB.delete('weight_records', id);
+        const record = await DB.get('weight_records', id);
+        if (record) {
+            record.deleted = true;
+            record.deleted_at = new Date().toISOString();
+            return DB.update('weight_records', record);
+        }
     },
     
     /**

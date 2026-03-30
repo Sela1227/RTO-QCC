@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1a1a2e">
     <title>彰濱秀傳放射腫瘤科病人體重自我回報系統</title>
-    <link rel="stylesheet" href="css/patient.css?v=2.92">
+    <link rel="stylesheet" href="css/patient.css?v=3.0">
     <link rel="manifest" href="manifest.json">
 </head>
 <body>
@@ -418,6 +418,20 @@
                         </button>
                     </div>
                     
+                    <!-- 療程回饋 -->
+                    <div class="settings-section" id="feedback-section">
+                        <h3>😊 療程回饋</h3>
+                        <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
+                            請花 1 分鐘回饋您的滿意度，幫助我們提升服務品質。
+                        </p>
+                        <button class="btn btn-primary btn-block" id="btn-satisfaction" onclick="PatientApp.showSatisfactionForm()">
+                            填寫滿意度調查
+                        </button>
+                        <div id="satisfaction-status" style="display: none; margin-top: 8px; text-align: center; font-size: 13px; color: var(--success);">
+                            ✓ 已完成回饋，感謝您！
+                        </div>
+                    </div>
+                    
                     <!-- 加到主畫面 -->
                     <div class="settings-section" id="install-section">
                         <h3>📱 加到主畫面</h3>
@@ -433,7 +447,7 @@
                     </div>
                     
                     <div class="settings-footer">
-                        <p>彰濱秀傳放射腫瘤科<br>病人體重自我回報系統 v2.92</p>
+                        <p>彰濱秀傳放射腫瘤科<br>病人體重自我回報系統 v3.1</p>
                     </div>
                 </div>
             </div>
@@ -461,6 +475,6 @@
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
     
     <!-- 應用程式 -->
-    <script src="js/patient-app.js?v=2.92"></script>
+    <script src="js/patient-app.js?v=3.0"></script>
 </body>
 </html>

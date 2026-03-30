@@ -1,6 +1,6 @@
 /**
  * 彰濱放腫體重監控預防系統 - 主程式
- * v5.9.2 Web 版
+ * v6.0.1 Web 版
  */
 
 const App = {
@@ -23,6 +23,9 @@ const App = {
             // 綁定事件
             this.bindEvents();
             
+            // 綁定關閉前備份提示
+            this.bindCloseEvent();
+            
             // 檢查備份狀態（暫時關閉強制備份）
             // await this.checkBackupStatus();
             
@@ -30,10 +33,40 @@ const App = {
             await this.refresh();
             
             console.log('彰濱放腫體重監控預防系統已啟動');
+            
+            // 延遲顯示同步提示（讓畫面先載入）
+            setTimeout(() => Sync.checkOnStartup(), 500);
+            
         } catch (e) {
             console.error('初始化失敗:', e);
             showToast('系統初始化失敗', 'error');
         }
+    },
+    
+    /**
+     * 綁定關閉前事件
+     */
+    bindCloseEvent() {
+        // 使用 visibilitychange 來處理（更可靠）
+        let backupPromptShown = false;
+        
+        document.addEventListener('visibilitychange', async () => {
+            if (document.visibilityState === 'hidden' && !backupPromptShown) {
+                const enabled = await Settings.get('sync_on_close', true);
+                if (enabled) {
+                    // 無法在 visibilitychange 中顯示 modal
+                    // 改用其他方式提醒
+                }
+            }
+        });
+        
+        // 添加快捷鍵 Ctrl+S 備份
+        document.addEventListener('keydown', async (e) => {
+            if (e.ctrlKey && e.key === 's') {
+                e.preventDefault();
+                await Sync.backupToFile();
+            }
+        });
     },
     
     /**
@@ -274,6 +307,9 @@ const App = {
             case 'reports':
                 await Report.initFilters();
                 await Report.render();
+                break;
+            case 'dashboard':
+                await Dashboard.refresh();
                 break;
         }
     },
@@ -595,15 +631,22 @@ const App = {
             pendingHtml = `
                 <div style="background: rgba(228, 185, 90, 0.1); padding: 8px 10px; border-radius: 6px; margin-bottom: 10px;">
                     <strong style="color: var(--warning); font-size: 12px;">待處理介入</strong>
-                    ${treatment.pending_interventions.map(i => `
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px;">
-                            <span style="font-size: 12px;">${formatInterventionType(i.type)}</span>
-                            <button class="btn btn-warning btn-sm" style="padding: 2px 8px; font-size: 11px;"
-                                    onclick="Intervention.showExecuteForm(${i.id})">
-                                執行
-                            </button>
-                        </div>
-                    `).join('')}
+                    ${treatment.pending_interventions.map(i => {
+                        const statusLabel = i.status === 'contacted' 
+                            ? '<span class="tag tag-blue" style="font-size: 10px; padding: 1px 4px; margin-left: 4px;">已聯繫</span>'
+                            : '';
+                        const actionBtn = i.status === 'contacted'
+                            ? `<button class="btn btn-primary btn-sm" style="padding: 2px 8px; font-size: 11px;"
+                                    onclick="Intervention.showExecuteForm(${i.id})">執行</button>`
+                            : `<button class="btn btn-warning btn-sm" style="padding: 2px 8px; font-size: 11px;"
+                                    onclick="Intervention.showExecuteForm(${i.id})">執行</button>`;
+                        return `
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px;">
+                                <span style="font-size: 12px;">${formatInterventionType(i.type)}${statusLabel}</span>
+                                ${actionBtn}
+                            </div>
+                        `;
+                    }).join('')}
                 </div>
             `;
         }
@@ -776,6 +819,7 @@ const App = {
         // 標籤與體重資料
         const labels = [];
         const weights = [];
+        const dates = []; // 用於計算預測
         
         // 判斷起始點：
         // 如果第一筆有效體重 = 基準體重，表示療程開始時無法量測，
@@ -797,6 +841,7 @@ const App = {
         if (baseline) {
             labels.push(formatDate(baselineDate, 'MM/DD'));
             weights.push(baseline);
+            dates.push(new Date(baselineDate));
         }
         
         // 後續體重記錄（如果基準來自記錄，則跳過第一筆避免重複）
@@ -804,11 +849,27 @@ const App = {
         recordsToPlot.forEach(r => {
             labels.push(formatDate(r.measure_date, 'MM/DD'));
             weights.push(r.weight);
+            dates.push(new Date(r.measure_date));
         });
         
         // 計算警示線
         const threshold3 = baseline ? baseline * 0.97 : null;  // -3%
         const threshold5 = baseline ? baseline * 0.95 : null;  // -5%
+        
+        // ===== 線性迴歸預測 =====
+        let predictionData = null;
+        let predictionLabels = [];
+        let allLabels = [...labels];
+        
+        // 需要至少 3 個數據點才進行預測
+        if (weights.length >= 3) {
+            const prediction = this.calculateWeightPrediction(dates, weights, 14); // 預測 14 天
+            if (prediction) {
+                predictionData = prediction.values;
+                predictionLabels = prediction.labels;
+                allLabels = [...labels, ...predictionLabels];
+            }
+        }
         
         const datasets = [
             {
@@ -824,11 +885,40 @@ const App = {
             }
         ];
         
-        // 加入警示線
+        // 加入預測虛線
+        if (predictionData && predictionData.length > 0) {
+            // 預測線從最後一個實際點開始
+            const predictionWithStart = [...new Array(weights.length - 1).fill(null), weights[weights.length - 1], ...predictionData];
+            
+            // 判斷預測趨勢顏色
+            const lastWeight = weights[weights.length - 1];
+            const finalPrediction = predictionData[predictionData.length - 1];
+            let predictionColor = '#9CA3AF'; // 灰色（持平）
+            if (finalPrediction < lastWeight * 0.98) {
+                predictionColor = '#D97B7B'; // 紅色（下降趨勢）
+            } else if (finalPrediction > lastWeight * 1.02) {
+                predictionColor = '#6BBF8A'; // 綠色（上升趨勢）
+            }
+            
+            datasets.push({
+                label: '預測趨勢',
+                data: predictionWithStart,
+                borderColor: predictionColor,
+                borderDash: [4, 4],
+                borderWidth: 2,
+                pointRadius: 0,
+                pointHoverRadius: 4,
+                fill: false,
+                tension: 0,
+                order: 0
+            });
+        }
+        
+        // 加入警示線（延伸到預測區間）
         if (threshold3) {
             datasets.push({
                 label: '-3% (SDM)',
-                data: labels.map(() => threshold3),
+                data: allLabels.map(() => threshold3),
                 borderColor: '#E4B95A',
                 borderDash: [6, 4],
                 borderWidth: 1.5,
@@ -841,7 +931,7 @@ const App = {
         if (threshold5) {
             datasets.push({
                 label: '-5% (營養)',
-                data: labels.map(() => threshold5),
+                data: allLabels.map(() => threshold5),
                 borderColor: '#D97B7B',
                 borderDash: [6, 4],
                 borderWidth: 1.5,
@@ -858,7 +948,7 @@ const App = {
         
         this.weightChart = new Chart(ctx, {
             type: 'line',
-            data: { labels, datasets },
+            data: { labels: allLabels, datasets },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
@@ -877,7 +967,11 @@ const App = {
                             label: function(context) {
                                 const label = context.dataset.label || '';
                                 const value = context.parsed.y;
+                                if (value === null) return null;
                                 if (label === '體重') {
+                                    return `${label}: ${value.toFixed(1)} kg`;
+                                }
+                                if (label === '預測趨勢') {
                                     return `${label}: ${value.toFixed(1)} kg`;
                                 }
                                 return `${label}: ${value.toFixed(1)} kg`;
@@ -898,6 +992,74 @@ const App = {
                 }
             }
         });
+    },
+    
+    /**
+     * 計算體重預測（線性迴歸）
+     * @param {Date[]} dates - 日期陣列
+     * @param {number[]} weights - 體重陣列
+     * @param {number} daysToPredict - 預測天數
+     * @returns {Object|null} { values: 預測值陣列, labels: 日期標籤陣列 }
+     */
+    calculateWeightPrediction(dates, weights, daysToPredict = 14) {
+        if (dates.length < 3 || weights.length < 3) return null;
+        
+        // 取最近 7 筆資料進行迴歸（或全部如果不足 7 筆）
+        const n = Math.min(7, dates.length);
+        const recentDates = dates.slice(-n);
+        const recentWeights = weights.slice(-n);
+        
+        // 將日期轉換為數值（從第一天開始的天數）
+        const startDate = recentDates[0];
+        const x = recentDates.map(d => (d - startDate) / (1000 * 60 * 60 * 24));
+        const y = recentWeights;
+        
+        // 計算線性迴歸 y = mx + b
+        const sumX = x.reduce((a, b) => a + b, 0);
+        const sumY = y.reduce((a, b) => a + b, 0);
+        const sumXY = x.reduce((acc, xi, i) => acc + xi * y[i], 0);
+        const sumX2 = x.reduce((acc, xi) => acc + xi * xi, 0);
+        
+        const m = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+        const b = (sumY - m * sumX) / n;
+        
+        // 如果斜率太小（幾乎持平），不顯示預測線
+        if (Math.abs(m) < 0.01) return null;
+        
+        // 生成預測點（每 7 天一個點）
+        const lastDate = dates[dates.length - 1];
+        const lastX = (lastDate - startDate) / (1000 * 60 * 60 * 24);
+        
+        const predictionValues = [];
+        const predictionLabels = [];
+        
+        // 預測 2 週，每週一個點
+        for (let d = 7; d <= daysToPredict; d += 7) {
+            const futureX = lastX + d;
+            const predictedWeight = m * futureX + b;
+            
+            // 限制預測範圍（不超過 ±20%）
+            const avgWeight = y.reduce((a, b) => a + b, 0) / y.length;
+            if (predictedWeight < avgWeight * 0.8 || predictedWeight > avgWeight * 1.2) {
+                break;
+            }
+            
+            predictionValues.push(Math.round(predictedWeight * 10) / 10);
+            
+            // 生成日期標籤
+            const futureDate = new Date(lastDate);
+            futureDate.setDate(futureDate.getDate() + d);
+            predictionLabels.push(formatDate(futureDate.toISOString().split('T')[0], 'MM/DD'));
+        }
+        
+        if (predictionValues.length === 0) return null;
+        
+        return {
+            values: predictionValues,
+            labels: predictionLabels,
+            slope: m,  // 每日變化量
+            intercept: b
+        };
     },
     
     /**
@@ -946,6 +1108,7 @@ const App = {
         // 標籤與體重資料
         const labels = [];
         const weights = [];
+        const dates = [];
         
         // 判斷起始點
         let baselineDate = treatment.treatment_start;
@@ -963,6 +1126,7 @@ const App = {
         if (baseline) {
             labels.push(formatDate(baselineDate, 'MM/DD'));
             weights.push(baseline);
+            dates.push(new Date(baselineDate));
         }
         
         // 後續體重記錄
@@ -970,11 +1134,26 @@ const App = {
         recordsToPlot.forEach(r => {
             labels.push(formatDate(r.measure_date, 'MM/DD'));
             weights.push(r.weight);
+            dates.push(new Date(r.measure_date));
         });
         
         // 計算警示線
         const threshold3 = baseline ? baseline * 0.97 : null;
         const threshold5 = baseline ? baseline * 0.95 : null;
+        
+        // ===== 線性迴歸預測 =====
+        let predictionData = null;
+        let predictionLabels = [];
+        let allLabels = [...labels];
+        
+        if (weights.length >= 3) {
+            const prediction = this.calculateWeightPrediction(dates, weights, 14);
+            if (prediction) {
+                predictionData = prediction.values;
+                predictionLabels = prediction.labels;
+                allLabels = [...labels, ...predictionLabels];
+            }
+        }
         
         const datasets = [
             {
@@ -992,10 +1171,40 @@ const App = {
             }
         ];
         
+        // 加入預測虛線
+        if (predictionData && predictionData.length > 0) {
+            const predictionWithStart = [...new Array(weights.length - 1).fill(null), weights[weights.length - 1], ...predictionData];
+            
+            const lastWeight = weights[weights.length - 1];
+            const finalPrediction = predictionData[predictionData.length - 1];
+            let predictionColor = '#9CA3AF';
+            let trendText = '持平';
+            if (finalPrediction < lastWeight * 0.98) {
+                predictionColor = '#D97B7B';
+                trendText = '下降';
+            } else if (finalPrediction > lastWeight * 1.02) {
+                predictionColor = '#6BBF8A';
+                trendText = '上升';
+            }
+            
+            datasets.push({
+                label: `預測趨勢 (${trendText})`,
+                data: predictionWithStart,
+                borderColor: predictionColor,
+                borderDash: [5, 5],
+                borderWidth: 2.5,
+                pointRadius: 3,
+                pointBackgroundColor: predictionColor,
+                fill: false,
+                tension: 0,
+                order: 0
+            });
+        }
+        
         if (threshold3) {
             datasets.push({
                 label: `-3% SDM (${threshold3.toFixed(1)} kg)`,
-                data: labels.map(() => threshold3),
+                data: allLabels.map(() => threshold3),
                 borderColor: '#E4B95A',
                 borderDash: [8, 4],
                 borderWidth: 2,
@@ -1008,7 +1217,7 @@ const App = {
         if (threshold5) {
             datasets.push({
                 label: `-5% 營養師 (${threshold5.toFixed(1)} kg)`,
-                data: labels.map(() => threshold5),
+                data: allLabels.map(() => threshold5),
                 borderColor: '#D97B7B',
                 borderDash: [8, 4],
                 borderWidth: 2,
@@ -1020,7 +1229,7 @@ const App = {
         
         new Chart(ctx, {
             type: 'line',
-            data: { labels, datasets },
+            data: { labels: allLabels, datasets },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
@@ -1043,6 +1252,7 @@ const App = {
                             label: function(context) {
                                 const label = context.dataset.label || '';
                                 const value = context.parsed.y;
+                                if (value === null) return null;
                                 if (label.includes('體重')) {
                                     // 計算與基準的變化
                                     if (baseline) {
@@ -1050,6 +1260,13 @@ const App = {
                                         return `體重: ${value.toFixed(1)} kg (${change >= 0 ? '+' : ''}${change.toFixed(1)}%)`;
                                     }
                                     return `體重: ${value.toFixed(1)} kg`;
+                                }
+                                if (label.includes('預測')) {
+                                    if (baseline) {
+                                        const change = ((value - baseline) / baseline * 100);
+                                        return `預測: ${value.toFixed(1)} kg (${change >= 0 ? '+' : ''}${change.toFixed(1)}%)`;
+                                    }
+                                    return `預測: ${value.toFixed(1)} kg`;
                                 }
                                 return `${label}`;
                             }

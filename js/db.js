@@ -4,7 +4,7 @@
  */
 
 const DB_NAME = 'sela_weight_tracker';
-const DB_VERSION = 2; // 升級版本以新增副作用評估表
+const DB_VERSION = 3; // v3: 新增滿意度調查表
 
 // 資料庫實例
 let db = null;
@@ -83,6 +83,15 @@ async function initDB() {
                 });
                 sideEffectStore.createIndex('treatment_id', 'treatment_id', { unique: false });
                 sideEffectStore.createIndex('assess_date', 'assess_date', { unique: false });
+            }
+            
+            // 滿意度調查表（v3 新增）
+            if (!database.objectStoreNames.contains('satisfaction')) {
+                const satisfactionStore = database.createObjectStore('satisfaction', { 
+                    keyPath: 'id', 
+                    autoIncrement: true 
+                });
+                satisfactionStore.createIndex('treatment_id', 'treatment_id', { unique: false });
             }
             
             console.log('資料庫結構已建立');

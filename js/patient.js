@@ -4,11 +4,13 @@
 
 const Patient = {
     /**
-     * 取得所有病人（依病歷號排序）
+     * 取得所有病人（依病歷號排序，排除已刪除）
      */
     async getAll() {
         const patients = await DB.getAll('patients');
-        return patients.sort((a, b) => a.medical_id.localeCompare(b.medical_id));
+        return patients
+            .filter(p => !p.deleted)
+            .sort((a, b) => a.medical_id.localeCompare(b.medical_id));
     },
     
     /**
@@ -31,7 +33,7 @@ const Patient = {
     },
     
     /**
-     * 搜尋病人
+     * 搜尋病人（排除已刪除）
      */
     async search(keyword) {
         if (!keyword) return [];
@@ -74,31 +76,52 @@ const Patient = {
     },
     
     /**
-     * 刪除病人（連同療程、體重記錄、介入記錄）
+     * 刪除病人（軟刪除，連同療程、體重記錄、副作用、介入記錄）
      */
     async delete(patientId) {
+        const deletedAt = new Date().toISOString();
+        
         // 取得所有療程
         const treatments = await DB.getByIndex('treatments', 'patient_id', patientId);
         
         for (const t of treatments) {
-            // 刪除體重記錄
+            // 軟刪除體重記錄
             const weights = await DB.getByIndex('weight_records', 'treatment_id', t.id);
             for (const w of weights) {
-                await DB.delete('weight_records', w.id);
+                w.deleted = true;
+                w.deleted_at = deletedAt;
+                await DB.update('weight_records', w);
             }
             
-            // 刪除介入記錄
+            // 軟刪除副作用記錄
+            const sideEffects = await DB.getAll('side_effects');
+            for (const se of sideEffects.filter(s => s.treatment_id === t.id)) {
+                se.deleted = true;
+                se.deleted_at = deletedAt;
+                await DB.update('side_effects', se);
+            }
+            
+            // 軟刪除介入記錄
             const interventions = await DB.getByIndex('interventions', 'treatment_id', t.id);
             for (const i of interventions) {
-                await DB.delete('interventions', i.id);
+                i.deleted = true;
+                i.deleted_at = deletedAt;
+                await DB.update('interventions', i);
             }
             
-            // 刪除療程
-            await DB.delete('treatments', t.id);
+            // 軟刪除療程
+            t.deleted = true;
+            t.deleted_at = deletedAt;
+            await DB.update('treatments', t);
         }
         
-        // 刪除病人
-        return DB.delete('patients', patientId);
+        // 軟刪除病人
+        const patient = await DB.get('patients', patientId);
+        if (patient) {
+            patient.deleted = true;
+            patient.deleted_at = deletedAt;
+            return DB.update('patients', patient);
+        }
     },
     
     /**

@@ -12,6 +12,10 @@ const SettingsUI = {
         const alertRules = await Settings.get('alert_rules', []);
         const pauseReasons = await Settings.get('pause_reasons', []);
         const patientAppUrl = await Settings.get('patient_app_url', '');
+        const syncOnStartup = await Settings.get('sync_on_startup', true);
+        const syncOnClose = await Settings.get('sync_on_close', true);
+        const lastSyncTime = await Settings.get('last_sync_time', null);
+        const satisfactionEnabled = await Settings.get('satisfaction_enabled', false);
         
         const html = `
             <div class="settings-tabs-container">
@@ -39,17 +43,17 @@ const SettingsUI = {
                 <div class="settings-tabs-group">
                     <div class="settings-tabs-label">資料管理</div>
                     <div class="settings-tabs-row">
-                        <button class="settings-tab" data-settings-tab="patient">
-                            <span class="settings-tab-icon">📱</span>
-                            <span class="settings-tab-text">病人端</span>
+                        <button class="settings-tab" data-settings-tab="sync">
+                            <span class="settings-tab-icon">🔄</span>
+                            <span class="settings-tab-text">同步</span>
                         </button>
                         <button class="settings-tab" data-settings-tab="backup">
                             <span class="settings-tab-icon">💾</span>
                             <span class="settings-tab-text">備份</span>
                         </button>
-                        <button class="settings-tab" data-settings-tab="patientdata">
-                            <span class="settings-tab-icon">👥</span>
-                            <span class="settings-tab-text">病人資料</span>
+                        <button class="settings-tab" data-settings-tab="patient">
+                            <span class="settings-tab-icon">📱</span>
+                            <span class="settings-tab-text">病人端</span>
                         </button>
                     </div>
                 </div>
@@ -186,6 +190,19 @@ const SettingsUI = {
                             </ol>
                         </div>
                     </div>
+                    
+                    <div class="settings-panel-header" style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border);">
+                        <span class="settings-panel-title">滿意度調查</span>
+                        <span class="settings-panel-desc">療程結束時詢問病人對服務的滿意度</span>
+                    </div>
+                    <div class="settings-toggle-row">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="satisfaction-enabled" ${satisfactionEnabled ? 'checked' : ''} 
+                                   onchange="SettingsUI.saveSatisfactionEnabled()">
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <span>啟用滿意度調查（病人端顯示問卷入口）</span>
+                    </div>
                 </div>
                 
                 <!-- 完整備份 -->
@@ -238,48 +255,75 @@ const SettingsUI = {
                     </div>
                 </div>
                 
-                <!-- 病人資料匯出入 -->
-                <div class="settings-panel" id="settings-patientdata" style="display: none;">
+                <!-- 同步設定 -->
+                <div class="settings-panel" id="settings-sync" style="display: none;">
                     <div class="settings-panel-header">
-                        <span class="settings-panel-title">匯出病人資料</span>
-                        <span class="settings-panel-desc">只匯出病人相關資料（不含系統設定）</span>
+                        <span class="settings-panel-title">多機同步</span>
+                        <span class="settings-panel-desc">在多台電腦間同步病人資料（不含系統設定）</span>
                     </div>
+                    
+                    <div class="settings-info-box" style="margin-bottom: 16px;">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                            <span style="font-size: 20px;">📁</span>
+                            <span style="font-weight: 500;">建議檔名：SELA_RTO_病人資料.json</span>
+                        </div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">
+                            存放於 RTO 網芳共用資料夾，所有電腦使用同一檔案
+                        </div>
+                    </div>
+                    
                     <div class="settings-btn-group">
-                        <button class="btn btn-primary" onclick="SettingsUI.exportPatientData()">
-                            <span class="btn-icon">👥</span> 匯出病人資料
+                        <button class="btn btn-primary" onclick="closeModal(); Sync.selectAndSync()">
+                            <span class="btn-icon">📥</span> 從網芳同步
+                        </button>
+                        <button class="btn btn-outline" onclick="closeModal(); Sync.backupToFile()">
+                            <span class="btn-icon">💾</span> 備份到網芳
                         </button>
                     </div>
-                    <div class="settings-info-box">
-                        <div class="settings-info-title">📋 匯出內容</div>
-                        <ul class="settings-info-list" style="list-style: disc;">
-                            <li>病人基本資料</li>
-                            <li>療程資料</li>
-                            <li>體重記錄</li>
-                            <li>副作用評估</li>
-                            <li>介入記錄</li>
-                        </ul>
+                    
+                    ${lastSyncTime ? `
+                        <p style="font-size: 12px; color: var(--text-hint); margin-top: 8px;">
+                            上次同步：${new Date(lastSyncTime).toLocaleString('zh-TW')}
+                        </p>
+                    ` : ''}
+                    
+                    <div class="settings-divider"></div>
+                    
+                    <div class="settings-panel-header">
+                        <span class="settings-panel-title">提示設定</span>
+                        <span class="settings-panel-desc">控制自動提示行為</span>
+                    </div>
+                    
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        <label style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
+                            <input type="checkbox" id="sync-on-startup" ${syncOnStartup ? 'checked' : ''} 
+                                   onchange="SettingsUI.saveSyncSettings()">
+                            <span>啟動時提示同步</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
+                            <input type="checkbox" id="sync-on-close" ${syncOnClose ? 'checked' : ''} 
+                                   onchange="SettingsUI.saveSyncSettings()">
+                            <span>顯示備份快捷鍵提示 (Ctrl+S)</span>
+                        </label>
                     </div>
                     
                     <div class="settings-divider"></div>
                     
                     <div class="settings-panel-header">
-                        <span class="settings-panel-title">匯入病人資料</span>
-                        <span class="settings-panel-desc">從檔案匯入病人資料</span>
+                        <span class="settings-panel-title">使用說明</span>
                     </div>
-                    <div class="settings-btn-group">
-                        <button class="btn btn-outline" onclick="document.getElementById('import-patient-file').click()">
-                            <span class="btn-icon">📂</span> 匯入病人資料（覆蓋）
-                        </button>
-                        <input type="file" id="import-patient-file" accept=".json" style="display: none;" 
-                               onchange="SettingsUI.importPatientData(this.files[0])">
-                        <button class="btn btn-outline" onclick="document.getElementById('sync-patient-file').click()">
-                            <span class="btn-icon">📥</span> 同步病人資料（只新增）
-                        </button>
-                        <input type="file" id="sync-patient-file" accept=".json" style="display: none;" 
-                               onchange="SettingsUI.syncPatientData(this.files[0])">
+                    <div class="settings-info-box">
+                        <ol class="settings-info-list">
+                            <li><strong>上班</strong>：開啟系統 → 從網芳同步最新資料</li>
+                            <li><strong>工作中</strong>：正常使用，資料存在本機</li>
+                            <li><strong>下班</strong>：按 Ctrl+S 或點「備份到網芳」</li>
+                        </ol>
                     </div>
-                    <div class="settings-warning">
-                        ⚠️ 「覆蓋」會清除現有病人資料；「只新增」不會影響現有資料
+                    
+                    <div class="settings-info-box" style="margin-top: 12px; background: var(--warning-bg, #fff8e6);">
+                        <div style="font-size: 13px;">
+                            ⚠️ <strong>衝突處理</strong>：若同一筆資料內容不同，系統會提示您選擇保留哪一個版本
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1172,6 +1216,28 @@ const SettingsUI = {
         const url = document.getElementById('patient-app-url').value.trim();
         await Settings.set('patient_app_url', url);
         showToast('病人端網址已儲存');
+    },
+    
+    /**
+     * 儲存滿意度調查設定
+     */
+    async saveSatisfactionEnabled() {
+        const enabled = document.getElementById('satisfaction-enabled')?.checked ?? false;
+        await Settings.set('satisfaction_enabled', enabled);
+        showToast(enabled ? '滿意度調查已啟用' : '滿意度調查已停用');
+    },
+    
+    /**
+     * 儲存同步設定
+     */
+    async saveSyncSettings() {
+        const syncOnStartup = document.getElementById('sync-on-startup')?.checked ?? true;
+        const syncOnClose = document.getElementById('sync-on-close')?.checked ?? true;
+        
+        await Settings.set('sync_on_startup', syncOnStartup);
+        await Settings.set('sync_on_close', syncOnClose);
+        
+        showToast('同步設定已儲存');
     },
     
     async clearAllData() {

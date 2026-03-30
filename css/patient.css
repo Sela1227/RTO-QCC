@@ -1619,3 +1619,105 @@ body {
 .assessment-modal-buttons .btn {
     flex: 1;
 }
+
+/* ============================================
+   滿意度問卷樣式
+   ============================================ */
+
+.satisfaction-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    padding: 20px;
+}
+
+.satisfaction-modal-content {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    max-width: 400px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.satisfaction-modal-content h3 {
+    text-align: center;
+    margin-bottom: 8px;
+    font-size: 18px;
+}
+
+.satisfaction-question {
+    margin-bottom: 20px;
+}
+
+.question-text {
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 10px;
+    color: var(--text);
+}
+
+.satisfaction-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+}
+
+.satisfaction-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: white;
+    font-size: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.satisfaction-btn:hover {
+    border-color: var(--primary);
+    transform: scale(1.1);
+}
+
+.satisfaction-btn.active {
+    border-color: var(--primary);
+    background: var(--primary-light);
+    transform: scale(1.15);
+}
+
+.satisfaction-btn.na-btn {
+    font-size: 16px;
+    color: var(--text-hint);
+}
+
+.satisfaction-btn.na-btn.active {
+    background: var(--bg);
+}
+
+.satisfaction-question textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    resize: vertical;
+    font-family: inherit;
+}
+
+.satisfaction-buttons-footer {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.satisfaction-buttons-footer .btn {
+    flex: 1;
+}

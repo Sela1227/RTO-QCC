@@ -891,6 +891,18 @@ const PatientApp = {
             document.getElementById('settings-start').textContent = this.data.treatment_start;
             document.getElementById('settings-baseline').textContent = this.data.baseline_weight + ' kg';
         }
+        
+        // 檢查滿意度狀態
+        const satisfactionBtn = document.getElementById('btn-satisfaction');
+        const satisfactionStatus = document.getElementById('satisfaction-status');
+        
+        if (this.hasSatisfactionSubmitted()) {
+            if (satisfactionBtn) satisfactionBtn.style.display = 'none';
+            if (satisfactionStatus) satisfactionStatus.style.display = 'block';
+        } else {
+            if (satisfactionBtn) satisfactionBtn.style.display = 'block';
+            if (satisfactionStatus) satisfactionStatus.style.display = 'none';
+        }
     },
     
     /**
@@ -1457,6 +1469,25 @@ const PatientApp = {
         { id: 'pain', name: '疼痛', icon: '😖', scale: 10 }  // 0-10 量表
     ],
     
+    // CTCAE 嚴重程度定義（參考 CTCAE v5.0）
+    SEVERITY_DEFS: {
+        0: { name: '無', desc: '無症狀' },
+        1: { name: '輕微', desc: '不影響日常活動' },
+        2: { name: '中度', desc: '影響日常但可自理' },
+        3: { name: '嚴重', desc: '需協助或醫療處置' }
+    },
+    
+    // 各症狀的 CTCAE 詳細定義
+    CTCAE_DEFS: {
+        nausea: { 1: '食慾稍降但可進食', 2: '進食量明顯減少', 3: '無法經口進食' },
+        fatigue: { 1: '稍感疲倦', 2: '需要較多休息', 3: '日常起居需協助' },
+        oral: { 1: '黏膜輕微不適', 2: '疼痛影響進食', 3: '嚴重疼痛無法進食' },
+        skin: { 1: '輕微發紅或乾燥', 2: '明顯發紅脫皮', 3: '嚴重皮膚反應' },
+        swallow: { 1: '吞嚥稍有不適', 2: '需改吃軟質流質', 3: '無法吞嚥需管灌' },
+        appetite: { 1: '食慾稍減', 2: '進食量明顯減少', 3: '需營養補充' },
+        diarrhea: { 1: '每日增加1-3次', 2: '每日增加4-6次', 3: '每日增加7次以上' }
+    },
+    
     /**
      * 顯示評估表單
      */
@@ -1493,16 +1524,23 @@ const PatientApp = {
             }
             
             // 其他症狀使用 0-3 按鈕
+            const getSeverityTitle = (level) => {
+                const def = this.SEVERITY_DEFS[level] || {};
+                const ctcae = this.CTCAE_DEFS[item.id];
+                const ctcaeDesc = level === 0 ? '無症狀' : (ctcae && ctcae[level]) || def.desc || '';
+                return `${def.name}：${ctcaeDesc}`;
+            };
+            
             return `
                 <div class="symptom-item" data-symptom="${item.id}">
                     <div class="symptom-item-header">
                         <span class="symptom-name">${item.icon} ${item.name}</span>
                     </div>
                     <div class="severity-buttons">
-                        <button class="severity-btn ${currentLevel === 0 ? 'active' : ''}" data-level="0" title="無">無</button>
-                        <button class="severity-btn ${currentLevel === 1 ? 'active' : ''}" data-level="1" title="輕微">輕</button>
-                        <button class="severity-btn ${currentLevel === 2 ? 'active' : ''}" data-level="2" title="中等">中</button>
-                        <button class="severity-btn ${currentLevel === 3 ? 'active' : ''}" data-level="3" title="嚴重">重</button>
+                        <button class="severity-btn ${currentLevel === 0 ? 'active' : ''}" data-level="0" title="${getSeverityTitle(0)}">無</button>
+                        <button class="severity-btn ${currentLevel === 1 ? 'active' : ''}" data-level="1" title="${getSeverityTitle(1)}">輕</button>
+                        <button class="severity-btn ${currentLevel === 2 ? 'active' : ''}" data-level="2" title="${getSeverityTitle(2)}">中</button>
+                        <button class="severity-btn ${currentLevel === 3 ? 'active' : ''}" data-level="3" title="${getSeverityTitle(3)}">重</button>
                     </div>
                 </div>
             `;
@@ -1675,6 +1713,157 @@ const PatientApp = {
         localStorage.setItem(this.ASSESSMENT_STORAGE_KEY, JSON.stringify(records));
         this.renderAssessmentRecords();
         this.showToast('已刪除', 'success');
+    },
+    
+    // ========== 滿意度調查功能 ==========
+    
+    SATISFACTION_STORAGE_KEY: 'sela_satisfaction',
+    
+    /**
+     * 滿意度問題定義
+     */
+    SATISFACTION_QUESTIONS: [
+        { id: 'q1', text: '您對放射腫瘤科的整體服務滿意嗎？', type: 'rating' },
+        { id: 'q2', text: '營養師的協助對您有幫助嗎？', type: 'rating_optional' },
+        { id: 'q3', text: '體重追蹤 APP 操作容易嗎？', type: 'rating' },
+        { id: 'q4', text: '治療前的說明讓您了解療程嗎？', type: 'rating' },
+        { id: 'q5', text: '您願意推薦這個服務給其他病友嗎？', type: 'rating' }
+    ],
+    
+    /**
+     * 檢查是否已填寫滿意度
+     */
+    hasSatisfactionSubmitted() {
+        const data = localStorage.getItem(this.SATISFACTION_STORAGE_KEY);
+        return data ? JSON.parse(data).submitted : false;
+    },
+    
+    /**
+     * 顯示滿意度問卷
+     */
+    showSatisfactionForm() {
+        const questionsHtml = this.SATISFACTION_QUESTIONS.map((q, index) => {
+            const ratingButtons = [1, 2, 3, 4, 5].map(level => {
+                const emojis = ['😞', '😐', '🙂', '😊', '🤩'];
+                const labels = ['非常不滿意', '不太滿意', '普通', '滿意', '非常滿意'];
+                if (q.id === 'q2') {
+                    // 營養師問題特殊處理
+                    const labels2 = ['沒有幫助', '有點幫助', '普通', '有幫助', '非常有幫助'];
+                    return `
+                        <button type="button" class="satisfaction-btn" data-question="${q.id}" data-value="${level}" title="${labels2[level-1]}">
+                            ${emojis[level-1]}
+                        </button>
+                    `;
+                }
+                return `
+                    <button type="button" class="satisfaction-btn" data-question="${q.id}" data-value="${level}" title="${labels[level-1]}">
+                        ${emojis[level-1]}
+                    </button>
+                `;
+            }).join('');
+            
+            // 營養師問題加上「未使用」選項
+            const naOption = q.type === 'rating_optional' ? `
+                <button type="button" class="satisfaction-btn na-btn" data-question="${q.id}" data-value="0" title="未使用營養師服務">
+                    ⊘
+                </button>
+            ` : '';
+            
+            return `
+                <div class="satisfaction-question">
+                    <div class="question-text">${index + 1}. ${q.text}</div>
+                    <div class="satisfaction-buttons">
+                        ${ratingButtons}
+                        ${naOption}
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        const modal = document.createElement('div');
+        modal.className = 'satisfaction-modal';
+        modal.innerHTML = `
+            <div class="satisfaction-modal-content">
+                <h3>😊 療程滿意度回饋</h3>
+                <p style="text-align: center; color: var(--text-secondary); font-size: 13px; margin-bottom: 16px;">
+                    感謝您使用體重追蹤服務，請花 1 分鐘給我們回饋
+                </p>
+                
+                ${questionsHtml}
+                
+                <div class="satisfaction-question">
+                    <div class="question-text">其他建議（選填）</div>
+                    <textarea id="satisfaction-feedback" placeholder="請輸入您的建議..." rows="3"></textarea>
+                </div>
+                
+                <div class="satisfaction-buttons-footer">
+                    <button class="btn btn-outline" onclick="this.closest('.satisfaction-modal').remove()">稍後再說</button>
+                    <button class="btn btn-primary" id="btn-submit-satisfaction">送出回饋</button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // 綁定按鈕事件
+        modal.querySelectorAll('.satisfaction-btn').forEach(btn => {
+            btn.onclick = () => {
+                const question = btn.dataset.question;
+                modal.querySelectorAll(`.satisfaction-btn[data-question="${question}"]`).forEach(b => {
+                    b.classList.remove('active');
+                });
+                btn.classList.add('active');
+            };
+        });
+        
+        // 送出按鈕
+        modal.querySelector('#btn-submit-satisfaction').onclick = () => {
+            this.submitSatisfaction(modal);
+        };
+    },
+    
+    /**
+     * 送出滿意度問卷
+     */
+    submitSatisfaction(modal) {
+        const answers = {};
+        let allAnswered = true;
+        
+        this.SATISFACTION_QUESTIONS.forEach(q => {
+            const activeBtn = modal.querySelector(`.satisfaction-btn.active[data-question="${q.id}"]`);
+            if (activeBtn) {
+                answers[q.id] = parseInt(activeBtn.dataset.value);
+            } else if (q.type !== 'rating_optional') {
+                allAnswered = false;
+            }
+        });
+        
+        if (!allAnswered) {
+            this.showToast('請回答所有問題', 'error');
+            return;
+        }
+        
+        const feedback = modal.querySelector('#satisfaction-feedback').value.trim();
+        
+        const data = {
+            submitted: true,
+            submittedAt: new Date().toISOString(),
+            answers,
+            feedback
+        };
+        
+        localStorage.setItem(this.SATISFACTION_STORAGE_KEY, JSON.stringify(data));
+        
+        modal.remove();
+        this.showToast('感謝您的回饋！', 'success');
+    },
+    
+    /**
+     * 取得滿意度資料（用於 QR Code 回傳）
+     */
+    getSatisfactionData() {
+        const data = localStorage.getItem(this.SATISFACTION_STORAGE_KEY);
+        return data ? JSON.parse(data) : null;
     }
 };
 

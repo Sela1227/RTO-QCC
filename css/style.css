@@ -1819,3 +1819,174 @@ body {
     font-weight: 600;
     color: var(--text);
 }
+
+/* ============================================
+   成效儀表板樣式
+   ============================================ */
+
+.dashboard-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+@media (max-width: 1200px) {
+    .dashboard-kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 600px) {
+    .dashboard-kpi-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.kpi-card {
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.kpi-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+}
+
+.kpi-icon.blue { background: rgba(91, 143, 185, 0.15); color: var(--primary); }
+.kpi-icon.green { background: rgba(107, 175, 141, 0.15); color: var(--success); }
+.kpi-icon.amber { background: rgba(228, 185, 90, 0.15); color: var(--warning); }
+.kpi-icon.red { background: rgba(217, 123, 123, 0.15); color: var(--danger); }
+.kpi-icon.purple { background: rgba(147, 112, 219, 0.15); color: #9370DB; }
+.kpi-icon.gray { background: rgba(156, 163, 175, 0.15); color: #6B7280; }
+
+.kpi-content {
+    flex: 1;
+}
+
+.kpi-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.2;
+}
+
+.kpi-value .unit {
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--text-secondary);
+    margin-left: 4px;
+}
+
+.kpi-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+.kpi-trend {
+    font-size: 12px;
+    margin-top: 4px;
+}
+
+.kpi-trend.up { color: var(--success); }
+.kpi-trend.down { color: var(--danger); }
+.kpi-trend.neutral { color: var(--text-hint); }
+
+.dashboard-charts {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+}
+
+@media (max-width: 1000px) {
+    .dashboard-charts {
+        grid-template-columns: 1fr;
+    }
+}
+
+.chart-card {
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.chart-card.full-width {
+    grid-column: 1 / -1;
+}
+
+.chart-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.chart-container {
+    height: 250px;
+    position: relative;
+}
+
+.chart-container.small {
+    height: 180px;
+}
+
+/* 統計列表 */
+.stats-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.stats-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.stats-bar-container {
+    flex: 1;
+    height: 8px;
+    background: var(--bg);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.stats-bar {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.stats-bar.blue { background: var(--primary); }
+.stats-bar.green { background: var(--success); }
+.stats-bar.amber { background: var(--warning); }
+.stats-bar.red { background: var(--danger); }
+
+.stats-label {
+    font-size: 13px;
+    color: var(--text);
+    min-width: 100px;
+}
+
+.stats-value {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    min-width: 60px;
+    text-align: right;
+}

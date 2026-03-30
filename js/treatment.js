@@ -28,29 +28,31 @@ const Treatment = {
     },
     
     /**
-     * 依病人取得療程
+     * 依病人取得療程（排除已刪除）
      */
     async getByPatient(patientId) {
         const treatments = await DB.getByIndex('treatments', 'patient_id', patientId);
         const cancerTypes = await Settings.get('cancer_types', []);
         
-        return treatments.map(t => {
-            const ct = cancerTypes.find(c => c.code === t.cancer_type);
-            t.cancer_type_label = ct ? ct.label : t.cancer_type;
-            return t;
-        }).sort((a, b) => new Date(b.treatment_start) - new Date(a.treatment_start));
+        return treatments
+            .filter(t => !t.deleted)
+            .map(t => {
+                const ct = cancerTypes.find(c => c.code === t.cancer_type);
+                t.cancer_type_label = ct ? ct.label : t.cancer_type;
+                return t;
+            }).sort((a, b) => new Date(b.treatment_start) - new Date(a.treatment_start));
     },
     
     /**
-     * 取得所有進行中療程
+     * 取得所有進行中療程（排除已刪除）
      */
     async getActive() {
         const all = await DB.getByIndex('treatments', 'status', 'active');
-        return this.enrichTreatments(all);
+        return this.enrichTreatments(all.filter(t => !t.deleted));
     },
     
     /**
-     * 取得所有暫停中療程
+     * 取得所有暫停中療程（排除已刪除）
      */
     async getPaused() {
         const all = await DB.getByIndex('treatments', 'status', 'paused');
