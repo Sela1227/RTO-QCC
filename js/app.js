@@ -880,6 +880,12 @@ const App = {
                         <span>介入記錄</span>
                         <span>${interventionStats.executed}/${interventionStats.total} 已執行</span>
                     </div>
+                    ${treatment.radiation_dose ? `
+                    <div class="detail-row" style="padding: 2px 0;">
+                        <span>放療劑量</span>
+                        <span>${treatment.radiation_dose} Gy${treatment.radiation_fractions ? ` / ${treatment.radiation_fractions} 次` : ''}</span>
+                    </div>
+                    ` : ''}
                     ${patient.phone ? `
                     <div class="detail-row" style="padding: 2px 0;">
                         <span>聯絡電話</span>

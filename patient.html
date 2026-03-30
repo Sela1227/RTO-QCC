@@ -2,503 +2,515 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>彰濱放腫體重監控預防系統</title>
-    <link rel="stylesheet" href="css/style.css?v=6.60">
-    <!-- 外部套件 -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#1a1a2e">
+    <title>彰濱秀傳放射腫瘤科病人體重自我回報系統</title>
+    <link rel="stylesheet" href="css/patient.css?v=3.0">
+    <link rel="manifest" href="manifest.json">
 </head>
 <body>
-    <!-- 登入畫面 -->
-    <div class="login-screen" id="login-screen">
-        <div class="login-box">
-            <img src="logo.png" alt="SELA" width="64" height="64" style="width:64px;height:64px;border-radius:12px;margin-bottom:16px;">
-            <h1>彰濱放腫體重監控預防系統</h1>
-            <p>請輸入密碼進入系統</p>
-            <form id="login-form" onsubmit="return handleLogin(event)">
-                <input type="password" id="login-password" class="login-input" placeholder="請輸入密碼" autofocus>
-                <button type="submit" class="btn btn-primary login-btn">進入系統</button>
-            </form>
-            <p class="login-error" id="login-error"></p>
-        </div>
-    </div>
-
-    <div class="app" id="main-app" style="display: none;">
-        <!-- 頂部列 -->
-        <header class="header">
-            <div class="header-left">
-                <div class="logo">
-                    <img src="logo.png" alt="SELA" class="logo-img" width="28" height="28" style="width:28px;height:28px;max-width:28px;max-height:28px;">
-                    <span class="logo-text">彰濱放腫體重監控預防系統</span>
-                </div>
+    <div id="app">
+        <!-- 未初始化狀態 -->
+        <div id="init-screen" class="screen">
+            <div class="init-container">
+                <div class="init-icon">[+]</div>
+                <h1>體重自我回報系統</h1>
+                <p class="init-subtitle">彰濱秀傳放射腫瘤科</p>
+                <p>請掃描醫護人員提供的<br>QR Code 來開始使用</p>
+                <button class="btn btn-primary btn-lg" id="btn-scan-init">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                        <circle cx="12" cy="13" r="4"></circle>
+                    </svg>
+                    掃描 QR Code
+                </button>
+                <p class="init-hint">或請醫護人員協助設定</p>
             </div>
-            <div class="header-right">
-                <button class="btn-icon" id="btn-settings" title="設定">
+        </div>
+
+        <!-- 主畫面 -->
+        <div id="main-screen" class="screen" style="display: none;">
+            <!-- 頂部資訊 -->
+            <header class="header">
+                <div class="header-title">
+                    <span class="hospital-icon">[醫]</span>
+                    <div class="header-text">
+                        <span class="header-main">彰濱秀傳放射腫瘤科</span>
+                        <span class="header-sub">病人體重自我回報系統</span>
+                    </div>
+                </div>
+                <button class="btn-icon" id="btn-settings">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="3"></circle>
                         <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
                     </svg>
                 </button>
-            </div>
-        </header>
+            </header>
 
-        <!-- 主內容區 -->
-        <div class="main">
-            <!-- 左側選單 -->
-            <nav class="sidebar">
-                <ul class="nav-list">
-                    <li class="nav-item active" data-page="home">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                            <polyline points="9 22 9 12 15 12 15 22"></polyline>
-                        </svg>
-                        <span>儀表板</span>
-                    </li>
-                    <li class="nav-item" data-page="tracking">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                            <polyline points="14 2 14 8 20 8"></polyline>
-                            <line x1="16" y1="13" x2="8" y2="13"></line>
-                            <line x1="16" y1="17" x2="8" y2="17"></line>
-                            <polyline points="10 9 9 9 8 9"></polyline>
-                        </svg>
-                        <span>治療清單</span>
-                    </li>
-                    <li class="nav-item" data-page="reports">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="18" y1="20" x2="18" y2="10"></line>
-                            <line x1="12" y1="20" x2="12" y2="4"></line>
-                            <line x1="6" y1="20" x2="6" y2="14"></line>
-                        </svg>
-                        <span>報表</span>
-                    </li>
-                    <li class="nav-item" data-page="dashboard">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <polyline points="12 6 12 12 16 14"></polyline>
-                        </svg>
-                        <span>成效</span>
-                    </li>
-                    <li class="nav-item" data-page="patients">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
-                            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
-                            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
-                        </svg>
-                        <span>資料庫</span>
-                    </li>
-                </ul>
-                <div class="nav-footer">
-                    <img src="logo.png" alt="SELA" class="nav-logo" width="48" height="48" style="width:48px;height:48px;max-width:48px;max-height:48px;">
-                    <span class="version">v6.6.0 Web</span>
-                </div>
-            </nav>
-
-            <!-- 內容區 -->
-            <main class="content">
-                <!-- 儀表板 -->
-                <section class="page active" id="page-home">
-                    <div class="page-header">
-                        <h1>儀表板</h1>
-                        <div class="header-actions">
-                            <button class="btn btn-outline btn-sm" onclick="App.syncFromFile()">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <polyline points="23 4 23 10 17 10"></polyline>
-                                    <polyline points="1 20 1 14 7 14"></polyline>
-                                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-                                </svg>
-                                同步
-                            </button>
-                            <input type="file" id="home-sync-file" accept=".json" style="display: none;" 
-                                   onchange="App.doSyncFromFile(this.files[0])">
-                            <button class="btn btn-primary btn-sm" id="btn-new-patient">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                                </svg>
-                                新增病人
-                            </button>
+            <!-- 病人資訊卡 -->
+            <div class="patient-info-card">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <div class="patient-name" id="display-name">王大明</div>
+                        <div class="patient-details">
+                            <span>病歷號：<strong id="display-pid">1234567</strong></span>
+                            <span>基準體重：<strong id="display-baseline">68.5</strong> kg</span>
                         </div>
                     </div>
-                    <div class="stats-grid stats-grid-5">
-                        <div class="stat-card" data-filter="active">
-                            <div class="stat-icon stat-icon-blue">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
-                                </svg>
+                    <button class="btn btn-outline btn-sm" id="btn-switch-patient" style="padding: 6px 10px; font-size: 12px;">
+                        切換
+                    </button>
+                </div>
+            </div>
+
+            <!-- 分頁內容區 -->
+            <div class="tab-content">
+                <!-- ===== 體重頁籤 ===== -->
+                <div id="tab-weight" class="tab-panel active">
+                    <!-- 警示區 -->
+                    <div id="alert-banner" class="alert-banner" style="display: none;">
+                        <div class="alert-icon">[!]</div>
+                        <div class="alert-content">
+                            <div class="alert-title">體重變化警示</div>
+                            <div class="alert-message" id="alert-message"></div>
+                        </div>
+                    </div>
+
+                    <!-- 警示說明 -->
+                    <div class="alert-legend">
+                        <div class="alert-legend-item warning">
+                            <span class="legend-dot"></span>
+                            <span>-3%：找醫護討論進食抉擇</span>
+                        </div>
+                        <div class="alert-legend-item danger">
+                            <span class="legend-dot"></span>
+                            <span>-5%：建議諮詢營養師</span>
+                        </div>
+                    </div>
+
+                    <!-- 今日輸入區 -->
+                    <div class="input-section">
+                        <h2>記錄體重</h2>
+                        <div class="weight-input-group">
+                            <input type="number" 
+                                   id="weight-input" 
+                                   class="weight-input" 
+                                   placeholder="0.0"
+                                   step="0.1"
+                                   min="20"
+                                   max="200"
+                                   inputmode="decimal">
+                            <span class="weight-unit">kg</span>
+                        </div>
+                        <div class="input-date">
+                            <label>日期：</label>
+                            <input type="date" id="record-date" class="date-input">
+                        </div>
+                        <button class="btn btn-primary btn-block" id="btn-record">
+                            記錄體重
+                        </button>
+                    </div>
+
+                    <!-- 歷史記錄 -->
+                    <div class="history-section">
+                        <div class="section-header">
+                            <h2>歷史記錄</h2>
+                            <span class="record-count" id="record-count">0 筆</span>
+                        </div>
+                        <div class="history-list" id="history-list">
+                            <!-- 動態生成 -->
+                        </div>
+                    </div>
+
+                    <!-- 趨勢圖 -->
+                    <div class="chart-section">
+                        <h2>體重趨勢</h2>
+                        <div class="chart-container">
+                            <canvas id="weight-chart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- 體重頁操作 -->
+                    <div class="tab-actions">
+                        <button class="btn btn-outline" id="btn-reminder">
+                            ⏰ 提醒設定
+                        </button>
+                        <button class="btn btn-primary" id="btn-generate-qr">
+                            回傳給醫護
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ===== 衛教頁籤 ===== -->
+                <div id="tab-education" class="tab-panel">
+                    <div class="education-content">
+                        <h2 class="section-title">📚 放療期間營養衛教</h2>
+                        
+                        <div class="edu-card">
+                            <h3>🍽️ 飲食原則</h3>
+                            <ul>
+                                <li>少量多餐，每天 5-6 餐</li>
+                                <li>選擇高蛋白、高熱量食物</li>
+                                <li>避免太燙、太辣、太酸的食物</li>
+                                <li>細嚼慢嚥，幫助消化</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="edu-card">
+                            <h3>高蛋白食物推薦</h3>
+                            <ul>
+                                <li>蛋、豆腐、豆漿</li>
+                                <li>雞肉、魚肉</li>
+                                <li>牛奶、優格</li>
+                                <li>營養補充品（如安素）</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="edu-card">
+                            <h3>體重下降時</h3>
+                            <ul>
+                                <li>增加餐間點心（如蒸蛋、布丁）</li>
+                                <li>飲品可加入奶粉增加熱量</li>
+                                <li>可使用市售營養補充品</li>
+                                <li>如持續下降，請告知醫護人員</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="edu-card">
+                            <h3>🤢 噁心嘔吐時</h3>
+                            <ul>
+                                <li>避免油膩、油炸食物</li>
+                                <li>嘗試冷食或室溫食物</li>
+                                <li>進食後不要立即躺下</li>
+                                <li>可嘗試薑茶或酸梅</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="edu-card">
+                            <h3>😣 口腔黏膜炎時</h3>
+                            <ul>
+                                <li>選擇軟質、滑順的食物</li>
+                                <li>避免酸、辣、過鹹食物</li>
+                                <li>可用吸管喝飲品</li>
+                                <li>保持口腔清潔</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===== 營養諮詢頁籤 ===== -->
+                <div id="tab-nutrition" class="tab-panel">
+                    <div class="nutrition-content">
+                        <h2 class="section-title">飲食記錄</h2>
+                        <p class="nutrition-hint">拍下您的餐點照片，回診時可與營養師討論</p>
+                        
+                        <!-- 拍照區 -->
+                        <div class="photo-upload-section">
+                            <input type="file" id="food-photo-input" accept="image/*" capture="environment" style="display: none;">
+                            <button class="btn btn-primary btn-lg photo-btn" id="btn-take-photo">
+                                拍攝餐點
+                            </button>
+                            <button class="btn btn-outline photo-btn" id="btn-choose-photo">
+                                從相簿選擇
+                            </button>
+                        </div>
+                        
+                        <!-- 照片記錄列表 -->
+                        <div class="food-records-section">
+                            <div class="section-header">
+                                <h3>餐點記錄</h3>
+                                <span class="record-count" id="food-record-count">0 筆</span>
                             </div>
-                            <div class="stat-info">
-                                <span class="stat-value" id="stat-active">0</span>
-                                <span class="stat-label">治療中</span>
+                            <div class="food-records-list" id="food-records-list">
+                                <div class="empty-hint">尚無餐點記錄<br>點擊上方按鈕開始記錄</div>
                             </div>
                         </div>
-                        <div class="stat-card" data-filter="paused">
-                            <div class="stat-icon stat-icon-gray">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="10"></circle>
-                                    <line x1="10" y1="15" x2="10" y2="9"></line>
-                                    <line x1="14" y1="15" x2="14" y2="9"></line>
-                                </svg>
+                    </div>
+                </div>
+
+                <!-- ===== 副作用自我評估頁籤 ===== -->
+                <div id="tab-sideeffect" class="tab-panel">
+                    <div class="sideeffect-content">
+                        <h2 class="section-title">副作用自我評估</h2>
+                        <p class="sideeffect-hint">記錄您的症狀，幫助醫護人員了解您的狀況</p>
+                        
+                        <!-- 新增評估按鈕 -->
+                        <button class="btn btn-primary btn-lg btn-block" id="btn-new-assessment" style="margin-bottom: 20px;">
+                            新增今日評估
+                        </button>
+                        
+                        <!-- 評估記錄列表 -->
+                        <div class="assessment-records-section">
+                            <div class="section-header">
+                                <h3>評估記錄</h3>
+                                <span class="record-count" id="assessment-record-count">0 筆</span>
                             </div>
-                            <div class="stat-info">
-                                <span class="stat-value" id="stat-paused">0</span>
-                                <span class="stat-label">暫停中</span>
-                            </div>
-                        </div>
-                        <div class="stat-card stat-card-warning" data-filter="pending">
-                            <div class="stat-icon stat-icon-amber">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="10"></circle>
-                                    <line x1="12" y1="8" x2="12" y2="12"></line>
-                                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                                </svg>
-                            </div>
-                            <div class="stat-info">
-                                <span class="stat-value" id="stat-pending">0</span>
-                                <span class="stat-label">需處理</span>
+                            <div class="assessment-records-list" id="assessment-records-list">
+                                <div class="empty-hint">尚無評估記錄<br>點擊上方按鈕開始記錄</div>
                             </div>
                         </div>
-                        <div class="stat-card" data-filter="attention">
-                            <div class="stat-icon stat-icon-teal">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                    <circle cx="12" cy="12" r="3"></circle>
-                                </svg>
-                            </div>
-                            <div class="stat-info">
-                                <span class="stat-value" id="stat-attention">0</span>
-                                <span class="stat-label">需關注</span>
+                        
+                        <!-- 評估項目說明 -->
+                        <div class="assessment-legend">
+                            <h3>嚴重程度說明</h3>
+                            <div class="legend-items">
+                                <div class="legend-item">
+                                    <span class="severity-dot severity-0"></span>
+                                    <span>無症狀</span>
+                                </div>
+                                <div class="legend-item">
+                                    <span class="severity-dot severity-1"></span>
+                                    <span>輕微 - 不影響日常</span>
+                                </div>
+                                <div class="legend-item">
+                                    <span class="severity-dot severity-2"></span>
+                                    <span>中等 - 稍微影響日常</span>
+                                </div>
+                                <div class="legend-item">
+                                    <span class="severity-dot severity-3"></span>
+                                    <span>嚴重 - 明顯影響日常</span>
+                                </div>
                             </div>
                         </div>
-                        <div class="stat-card stat-card-danger" data-filter="overdue">
-                            <div class="stat-icon stat-icon-coral">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="10"></circle>
-                                    <polyline points="12 6 12 12 16 14"></polyline>
-                                </svg>
-                            </div>
-                            <div class="stat-info">
-                                <span class="stat-value" id="stat-overdue">0</span>
-                                <span class="stat-label">待輸體重</span>
-                            </div>
+                    </div>
+                </div>
+                
+                <!-- ===== 滿意度調查頁籤 ===== -->
+                <div id="tab-satisfaction" class="tab-panel">
+                    <div class="satisfaction-content">
+                        <h2 class="section-title">療程滿意度</h2>
+                        <p class="satisfaction-hint">請花 1 分鐘回饋您的使用體驗，幫助我們提升服務品質</p>
+                        
+                        <div id="satisfaction-form-container">
+                            <!-- 滿意度表單會由 JS 動態載入 -->
+                        </div>
+                        
+                        <div id="satisfaction-done" style="display: none; text-align: center; padding: 40px 20px;">
+                            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2" style="margin-bottom: 16px;">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                <polyline points="22 4 12 14.01 9 11.01"/>
+                            </svg>
+                            <h3 style="color: var(--success); margin-bottom: 8px;">感謝您的回饋！</h3>
+                            <p style="color: var(--text-secondary);">您的意見對我們非常重要</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 底部分頁導航 -->
+            <nav class="bottom-tabs">
+                <button class="tab-btn active" data-tab="weight">
+                    <svg class="tab-icon-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M12 6v6l4 2"/>
+                    </svg>
+                    <span class="tab-label">體重</span>
+                </button>
+                <button class="tab-btn" data-tab="sideeffect">
+                    <svg class="tab-icon-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/>
+                        <path d="M12 8v4"/>
+                        <circle cx="12" cy="16" r="1" fill="currentColor"/>
+                    </svg>
+                    <span class="tab-label">副作用</span>
+                </button>
+                <button class="tab-btn" data-tab="satisfaction">
+                    <svg class="tab-icon-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                    </svg>
+                    <span class="tab-label">滿意度</span>
+                </button>
+                <button class="tab-btn" data-tab="nutrition">
+                    <svg class="tab-icon-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 8h1a4 4 0 0 1 0 8h-1"/>
+                        <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/>
+                        <line x1="6" y1="1" x2="6" y2="4"/>
+                        <line x1="10" y1="1" x2="10" y2="4"/>
+                        <line x1="14" y1="1" x2="14" y2="4"/>
+                    </svg>
+                    <span class="tab-label">飲食</span>
+                </button>
+            </nav>
+        </div>
+
+        <!-- 掃描器畫面 -->
+        <div id="scanner-screen" class="screen" style="display: none;">
+            <div class="scanner-header">
+                <button class="btn-back" id="btn-scanner-back">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 12H5M12 19l-7-7 7-7"/>
+                    </svg>
+                </button>
+                <h1>掃描 QR Code</h1>
+            </div>
+            <div id="scanner-container"></div>
+            <p class="scanner-hint">請將 QR Code 對準框框內</p>
+        </div>
+
+        <!-- QR Code 顯示畫面 -->
+        <div id="qr-display-screen" class="screen" style="display: none;">
+            <div class="qr-display-container">
+                <h2>回傳體重記錄</h2>
+                <div id="qr-canvas-container"></div>
+                <p class="qr-info" id="qr-info">共 0 筆體重記錄</p>
+                <p class="qr-hint">請讓醫護人員掃描此 QR Code</p>
+                <button class="btn btn-outline btn-block" id="btn-close-qr">關閉</button>
+            </div>
+        </div>
+
+        <!-- 提醒設定畫面 -->
+        <div id="reminder-screen" class="screen" style="display: none;">
+            <div class="reminder-container">
+                <div class="reminder-header">
+                    <button class="btn-back" id="btn-reminder-back">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M19 12H5M12 19l-7-7 7-7"/>
+                        </svg>
+                    </button>
+                    <h1>提醒設定</h1>
+                </div>
+                
+                <div class="reminder-content">
+                    <div class="setting-item">
+                        <label class="setting-label">啟用提醒</label>
+                        <label class="toggle">
+                            <input type="checkbox" id="reminder-enabled">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <label class="setting-label">提醒時間</label>
+                        <input type="time" id="reminder-time" class="time-input" value="08:00">
+                    </div>
+                    
+                    <div class="setting-item">
+                        <label class="setting-label">提醒頻率</label>
+                        <div class="radio-group">
+                            <label class="radio-item">
+                                <input type="radio" name="frequency" value="daily" checked>
+                                <span>每天</span>
+                            </label>
+                            <label class="radio-item">
+                                <input type="radio" name="frequency" value="weekly">
+                                <span>每週</span>
+                            </label>
                         </div>
                     </div>
                     
-                    <!-- 備份提醒 -->
-                    <div id="backup-reminder" class="backup-reminder" style="display: none;">
-                        <div class="backup-reminder-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                <polyline points="7 10 12 15 17 10"></polyline>
-                                <line x1="12" y1="15" x2="12" y2="3"></line>
-                            </svg>
-                        </div>
-                        <div class="backup-reminder-text">
-                            <strong>資料備份提醒</strong>
-                            <span id="backup-reminder-msg">已超過一週未備份</span>
-                        </div>
-                        <button class="btn btn-warning btn-sm" onclick="App.doBackup()">
-                            立即備份
-                        </button>
+                    <div class="notification-status" id="notification-status">
+                        <!-- 通知權限狀態 -->
                     </div>
-                </section>
-
-                <!-- 追蹤頁 -->
-                <section class="page" id="page-tracking">
-                    <div class="page-header">
-                        <h1>治療清單</h1>
-                        <div class="tab-group">
-                            <button class="tab active" data-tab="active">治療中</button>
-                            <button class="tab" data-tab="paused">暫停中</button>
-                            <button class="tab tab-warning" data-tab="pending">需處理</button>
-                            <button class="tab tab-teal" data-tab="attention">需關注</button>
-                            <button class="tab tab-danger" data-tab="overdue">待輸體重</button>
-                        </div>
-                    </div>
-                    <div class="tracking-layout">
-                        <div class="tracking-list" id="tracking-list">
-                            <!-- 動態載入 -->
-                        </div>
-                        <div class="tracking-detail" id="tracking-detail">
-                            <div class="empty-state">
-                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                    <polyline points="14 2 14 8 20 8"></polyline>
-                                </svg>
-                                <p>點選左側病人查看詳情</p>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- 病人頁 -->
-                <section class="page" id="page-patients">
-                    <div class="page-header">
-                        <h1>資料庫</h1>
-                        <button class="btn btn-primary" id="btn-add-patient">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="12" y1="5" x2="12" y2="19"></line>
-                                <line x1="5" y1="12" x2="19" y2="12"></line>
-                            </svg>
-                            新增病人
-                        </button>
-                    </div>
-                    <!-- 篩選與搜尋區 -->
-                    <div class="filter-section" style="display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; align-items: flex-end;">
-                        <div class="form-group" style="margin: 0; min-width: 100px;">
-                            <label class="form-label">療程狀態</label>
-                            <select class="form-select" id="patient-filter-status" onchange="App.filterPatients()">
-                                <option value="all">全部</option>
-                                <option value="has_active">有治療中</option>
-                                <option value="has_paused">有暫停中</option>
-                                <option value="no_active">無進行療程</option>
-                            </select>
-                        </div>
-                        <div class="form-group" style="margin: 0; min-width: 100px;">
-                            <label class="form-label">癌別</label>
-                            <select class="form-select" id="patient-filter-cancer" onchange="App.filterPatients()">
-                                <option value="all">全部</option>
-                                <!-- 動態載入 -->
-                            </select>
-                        </div>
-                        <div class="search-box" style="flex: 1; min-width: 200px;">
-                            <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="11" cy="11" r="8"></circle>
-                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                            </svg>
-                            <input type="text" id="patient-search-input" placeholder="搜尋病歷號或姓名...">
-                            <button class="btn btn-primary" id="btn-patient-search">搜尋</button>
-                            <button class="btn btn-outline" id="btn-patient-search-clear" style="display: none;">清除</button>
-                        </div>
-                    </div>
-                    <div class="patient-list" id="patient-list">
-                        <!-- 動態載入 -->
-                    </div>
-                </section>
-
-                <!-- 報表頁 -->
-                <section class="page" id="page-reports">
-                    <div class="page-header">
-                        <h1>統計報表</h1>
-                        <div style="display: flex; gap: 8px;">
-                            <button class="btn btn-outline" id="btn-export-pdf">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                    <polyline points="14 2 14 8 20 8"></polyline>
-                                    <line x1="16" y1="13" x2="8" y2="13"></line>
-                                    <line x1="16" y1="17" x2="8" y2="17"></line>
-                                    <polyline points="10 9 9 9 8 9"></polyline>
-                                </svg>
-                                匯出 PDF
-                            </button>
-                            <button class="btn btn-outline" id="btn-export-excel">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                    <polyline points="7 10 12 15 17 10"></polyline>
-                                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                                </svg>
-                                匯出 Excel
-                            </button>
-                        </div>
-                    </div>
-                    <!-- 篩選區 -->
-                    <div class="report-filters" style="display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; align-items: flex-end;">
-                        <div class="form-group" style="margin: 0; min-width: 120px;">
-                            <label class="form-label">時間區間</label>
-                            <select class="form-select" id="report-period" onchange="Report.onFilterChange()">
-                                <option value="all">全部</option>
-                                <option value="week">本週</option>
-                                <option value="month" selected>本月</option>
-                                <option value="year">本年</option>
-                                <option value="specific_year">指定年份</option>
-                                <option value="custom">自訂日期</option>
-                            </select>
-                        </div>
-                        <div class="form-group" style="margin: 0; display: none;" id="report-year-group">
-                            <label class="form-label">年份</label>
-                            <select class="form-select" id="report-year" onchange="Report.onFilterChange()">
-                            </select>
-                        </div>
-                        <div class="form-group" style="margin: 0; display: none;" id="report-date-from-group">
-                            <label class="form-label">開始日期</label>
-                            <input type="date" class="form-input" id="report-date-from" onchange="Report.onFilterChange()">
-                        </div>
-                        <div class="form-group" style="margin: 0; display: none;" id="report-date-to-group">
-                            <label class="form-label">結束日期</label>
-                            <input type="date" class="form-input" id="report-date-to" onchange="Report.onFilterChange()">
-                        </div>
-                        <div class="form-group" style="margin: 0; min-width: 120px;">
-                            <label class="form-label">癌別</label>
-                            <select class="form-select" id="report-cancer-type" onchange="Report.onFilterChange()">
-                                <option value="all">全部</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="report-content" id="report-content">
-                        <!-- 動態載入 -->
-                    </div>
-                </section>
-
-                <!-- 成效儀表板 -->
-                <section class="page" id="page-dashboard">
-                    <div class="page-header">
-                        <h1>系統成效</h1>
-                        <div style="display: flex; gap: 8px;">
-                            <button class="btn btn-primary" onclick="Dashboard.exportPDF()">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                    <polyline points="7 10 12 15 17 10"></polyline>
-                                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                                </svg>
-                                匯出 PDF 報告
-                            </button>
-                        </div>
-                    </div>
-                    <!-- 期間選擇 -->
-                    <div class="dashboard-filters" style="display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; align-items: flex-end;">
-                        <div class="form-group" style="margin: 0; min-width: 120px;">
-                            <label class="form-label">統計期間</label>
-                            <select class="form-select" id="dashboard-period" onchange="Dashboard.onPeriodChange()">
-                                <option value="all">全部</option>
-                                <option value="month" selected>本月</option>
-                                <option value="quarter">本季</option>
-                                <option value="year">本年</option>
-                                <option value="custom">自訂日期</option>
-                            </select>
-                        </div>
-                        <div class="form-group" style="margin: 0; display: none;" id="dashboard-date-from-group">
-                            <label class="form-label">開始日期</label>
-                            <input type="date" class="form-input" id="dashboard-date-from" onchange="Dashboard.refresh()">
-                        </div>
-                        <div class="form-group" style="margin: 0; display: none;" id="dashboard-date-to-group">
-                            <label class="form-label">結束日期</label>
-                            <input type="date" class="form-input" id="dashboard-date-to" onchange="Dashboard.refresh()">
-                        </div>
-                    </div>
-                    <!-- 分項 Tab（多選） -->
-                    <div class="dashboard-tabs" style="display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;">
-                        <label class="dashboard-tab-check active">
-                            <input type="checkbox" value="overview" checked onchange="Dashboard.onTabChange()"> 總覽
-                        </label>
-                        <label class="dashboard-tab-check">
-                            <input type="checkbox" value="weight" onchange="Dashboard.onTabChange()"> 體重追蹤
-                        </label>
-                        <label class="dashboard-tab-check">
-                            <input type="checkbox" value="intervention" onchange="Dashboard.onTabChange()"> 介入成效
-                        </label>
-                        <label class="dashboard-tab-check">
-                            <input type="checkbox" value="treatment" onchange="Dashboard.onTabChange()"> 療程統計
-                        </label>
-                        <label class="dashboard-tab-check">
-                            <input type="checkbox" value="satisfaction" onchange="Dashboard.onTabChange()"> 滿意度
-                        </label>
-                    </div>
-                    <!-- KPI 卡片 -->
-                    <div class="dashboard-kpi-grid" id="dashboard-kpi">
-                        <!-- 動態載入 -->
-                    </div>
-                    <!-- 圖表區 -->
-                    <div class="dashboard-charts" id="dashboard-charts">
-                        <!-- 動態載入 -->
-                    </div>
-                </section>
-            </main>
+                    
+                    <button class="btn btn-primary btn-block" id="btn-save-reminder">
+                        儲存設定
+                    </button>
+                </div>
+            </div>
         </div>
 
-        <!-- 底部列 -->
-        <footer class="footer">
-            <span id="footer-stats">載入中...</span>
-            <span class="footer-divider">·</span>
-            <span>彰濱秀傳紀念醫院</span>
-        </footer>
-    </div>
-
-    <!-- 對話框容器 -->
-    <div class="modal-overlay" id="modal-overlay">
-        <div class="modal" id="modal">
-            <div class="modal-header">
-                <h2 class="modal-title" id="modal-title">標題</h2>
-                <button class="btn-icon modal-close" id="modal-close">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
-                </button>
-            </div>
-            <div class="modal-body" id="modal-body">
-                <!-- 動態內容 -->
-            </div>
-            <div class="modal-footer" id="modal-footer">
-                <!-- 動態按鈕 -->
+        <!-- 設定畫面 -->
+        <div id="settings-screen" class="screen" style="display: none;">
+            <div class="settings-container">
+                <div class="settings-header">
+                    <button class="btn-back" id="btn-settings-back">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M19 12H5M12 19l-7-7 7-7"/>
+                        </svg>
+                    </button>
+                    <h1>設定</h1>
+                </div>
+                
+                <div class="settings-content">
+                    <div class="settings-section">
+                        <h3>病人資訊</h3>
+                        <div class="info-row">
+                            <span>姓名</span>
+                            <span id="settings-name">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span>病歷號</span>
+                            <span id="settings-pid">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span>療程開始</span>
+                            <span id="settings-start">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span>基準體重</span>
+                            <span id="settings-baseline">-</span>
+                        </div>
+                    </div>
+                    
+                    <div class="settings-section">
+                        <h3>資料管理</h3>
+                        <button class="btn btn-outline btn-block" id="btn-rescan">
+                            重新掃描 QR Code
+                        </button>
+                        <button class="btn btn-danger btn-block" id="btn-clear-data">
+                            清除所有資料
+                        </button>
+                    </div>
+                    
+                    <!-- 療程回饋 -->
+                    <div class="settings-section" id="feedback-section">
+                        <h3>療程回饋</h3>
+                        <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
+                            請花 1 分鐘回饋您的滿意度，幫助我們提升服務品質。
+                        </p>
+                        <button class="btn btn-primary btn-block" id="btn-satisfaction" onclick="PatientApp.showSatisfactionForm()">
+                            填寫滿意度調查
+                        </button>
+                        <div id="satisfaction-status" style="display: none; margin-top: 8px; text-align: center; font-size: 13px; color: var(--success);">
+                            ✓ 已完成回饋，感謝您！
+                        </div>
+                    </div>
+                    
+                    <!-- 加到主畫面 -->
+                    <div class="settings-section" id="install-section">
+                        <h3>加到主畫面</h3>
+                        <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
+                            將此網頁加到手機主畫面，下次可以像 APP 一樣直接開啟。
+                        </p>
+                        <button class="btn btn-primary btn-block" id="btn-install">
+                            加到主畫面
+                        </button>
+                        <div id="install-instructions" style="display: none; margin-top: 12px; padding: 12px; background: var(--bg); border-radius: 8px; font-size: 13px;">
+                            <!-- iOS/Android 說明會動態填入 -->
+                        </div>
+                    </div>
+                    
+                    <div class="settings-footer">
+                        <p>彰濱秀傳放射腫瘤科<br>病人體重自我回報系統 v3.2</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Toast 通知 -->
-    <div class="toast-container" id="toast-container"></div>
+    <!-- Toast 訊息 -->
+    <div id="toast" class="toast"></div>
 
-    <!-- QR Code 掃描函式庫 -->
+    <!-- 確認對話框 -->
+    <div id="confirm-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-body" id="confirm-message"></div>
+            <div class="modal-actions">
+                <button class="btn btn-outline" id="confirm-cancel">取消</button>
+                <button class="btn btn-primary" id="confirm-ok">確定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 載入外部函式庫 -->
     <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <!-- QR Code 生成函式庫 -->
-    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script></script>
-
-    <!-- JS 模組 -->
-    <script src="js/config.js?v=6.60"></script>
-    <script src="js/db.js?v=6.60"></script>
-    <script src="js/utils.js?v=6.60"></script>
-    <script src="js/patient.js?v=6.60"></script>
-    <script src="js/treatment.js?v=6.60"></script>
-    <script src="js/weight.js?v=6.60"></script>
-    <script src="js/sideeffect.js?v=6.60"></script>
-    <script src="js/intervention.js?v=6.60"></script>
-    <script src="js/report.js?v=6.60"></script>
-    <script src="js/settings.js?v=6.60"></script>
-    <script src="js/sync.js?v=6.60"></script>
-    <script src="js/satisfaction.js?v=6.60"></script>
-    <script src="js/dashboard.js?v=6.60"></script>
-    <script src="js/demo.js?v=6.60"></script>
-    <script src="js/app.js?v=6.60"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
     
-    <!-- 登入驗證 -->
-    <script>
-    function handleLogin(e) {
-        e.preventDefault();
-        const pwd = document.getElementById('login-password').value;
-        const errorEl = document.getElementById('login-error');
-        
-        if (pwd === CONFIG.PASSWORD) {
-            // 密碼正確，儲存登入狀態
-            if (CONFIG.REMEMBER_DAYS > 0) {
-                const expires = Date.now() + (CONFIG.REMEMBER_DAYS * 24 * 60 * 60 * 1000);
-                localStorage.setItem('login_expires', expires);
-            }
-            showMainApp();
-        } else {
-            errorEl.textContent = '密碼錯誤，請重試';
-            document.getElementById('login-password').value = '';
-            document.getElementById('login-password').focus();
-        }
-        return false;
-    }
-    
-    function showMainApp() {
-        document.getElementById('login-screen').style.display = 'none';
-        document.getElementById('main-app').style.display = 'flex';
-        App.init();
-    }
-    
-    function checkLogin() {
-        const expires = localStorage.getItem('login_expires');
-        if (expires && Date.now() < parseInt(expires)) {
-            showMainApp();
-        }
-    }
-    
-    // 頁面載入時檢查登入狀態
-    checkLogin();
-    </script>
+    <!-- 應用程式 -->
+    <script src="js/patient-app.js?v=3.0"></script>
 </body>
 </html>

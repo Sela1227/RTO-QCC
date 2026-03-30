@@ -1858,6 +1858,35 @@ body {
    成效儀表板樣式
    ============================================ */
 
+/* 分項 Tab 多選 */
+.dashboard-tab-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    user-select: none;
+}
+
+.dashboard-tab-check:hover {
+    border-color: var(--primary);
+}
+
+.dashboard-tab-check.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+}
+
+.dashboard-tab-check input {
+    display: none;
+}
+
 .dashboard-kpi-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);

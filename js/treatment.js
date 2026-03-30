@@ -391,14 +391,29 @@ const Treatment = {
         const treatment = await this.getById(treatmentId);
         const patient = await Patient.getById(treatment.patient_id);
         
+        // 取得終止原因選項
+        const terminateReasons = await Settings.get('terminate_reasons', []);
+        const reasonOptions = terminateReasons.map(r => 
+            `<option value="${r.label}">${r.label}</option>`
+        ).join('');
+        
         const html = `
             <div style="margin-bottom: 16px;">
                 <strong>${patient.medical_id}</strong> ${patient.name}
             </div>
-            ${createFormGroup('終止原因（選填）', `
-                <input type="text" class="form-input" id="terminate_reason" 
-                       placeholder="例如：轉院、放棄治療">
+            ${createFormGroup('終止原因', `
+                <select class="form-select" id="terminate_reason_select" onchange="Treatment.onTerminateReasonChange()">
+                    <option value="">-- 請選擇 --</option>
+                    ${reasonOptions}
+                    <option value="__custom__">其他（自行輸入）</option>
+                </select>
             `)}
+            <div id="terminate_reason_custom_group" style="display: none;">
+                ${createFormGroup('自訂原因', `
+                    <input type="text" class="form-input" id="terminate_reason_custom" 
+                           placeholder="請輸入終止原因">
+                `)}
+            </div>
             <p style="color: var(--danger); font-size: 12px; margin-top: 8px;">
                 終止後療程將標記為「已終止」
             </p>
@@ -411,7 +426,16 @@ const Treatment = {
                 class: 'btn-danger',
                 closeOnClick: false,
                 onClick: async () => {
-                    const reason = document.getElementById('terminate_reason').value.trim();
+                    const selectVal = document.getElementById('terminate_reason_select').value;
+                    const customVal = document.getElementById('terminate_reason_custom').value.trim();
+                    
+                    let reason = '';
+                    if (selectVal === '__custom__') {
+                        reason = customVal;
+                    } else {
+                        reason = selectVal;
+                    }
+                    
                     try {
                         await Treatment.terminate(treatmentId, reason);
                         closeModal();
@@ -423,6 +447,21 @@ const Treatment = {
                 }
             }
         ]);
+    },
+    
+    /**
+     * 終止原因選擇變更
+     */
+    onTerminateReasonChange() {
+        const select = document.getElementById('terminate_reason_select');
+        const customGroup = document.getElementById('terminate_reason_custom_group');
+        
+        if (select.value === '__custom__') {
+            customGroup.style.display = 'block';
+            document.getElementById('terminate_reason_custom').focus();
+        } else {
+            customGroup.style.display = 'none';
+        }
     },
     
     /**
@@ -485,6 +524,22 @@ const Treatment = {
                 </div>
                 
                 ${createFormGroup('SDM 營養選擇', createSelect('sdm_choice', sdmOptions, treatment?.sdm_choice))}
+                
+                <div style="border-top: 1px solid var(--border); margin-top: 12px; padding-top: 12px;">
+                    <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 8px;">放射治療資訊（選填）</div>
+                    <div class="form-row">
+                        ${createFormGroup('總劑量 (Gy)', `
+                            <input type="number" step="0.1" class="form-input" id="radiation_dose" 
+                                   value="${treatment?.radiation_dose || ''}" 
+                                   placeholder="例：66">
+                        `)}
+                        ${createFormGroup('總次數', `
+                            <input type="number" step="1" class="form-input" id="radiation_fractions" 
+                                   value="${treatment?.radiation_fractions || ''}" 
+                                   placeholder="例：33">
+                        `)}
+                    </div>
+                </div>
             </form>
         `;
         
@@ -524,7 +579,11 @@ const Treatment = {
                         treatment_start: document.getElementById('treatment_start').value,
                         baseline_weight: baselineWeight ? parseFloat(baselineWeight) : null,
                         unable_to_measure: unableToMeasure,
-                        sdm_choice: document.getElementById('sdm_choice').value || null
+                        sdm_choice: document.getElementById('sdm_choice').value || null,
+                        radiation_dose: document.getElementById('radiation_dose').value 
+                            ? parseFloat(document.getElementById('radiation_dose').value) : null,
+                        radiation_fractions: document.getElementById('radiation_fractions').value 
+                            ? parseInt(document.getElementById('radiation_fractions').value) : null
                     };
                     
                     try {

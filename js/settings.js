@@ -11,6 +11,7 @@ const SettingsUI = {
         const staffList = await Settings.get('staff_list', []);
         const alertRules = await Settings.get('alert_rules', []);
         const pauseReasons = await Settings.get('pause_reasons', []);
+        const terminateReasons = await Settings.get('terminate_reasons', []);
         const patientAppUrl = await Settings.get('patient_app_url', '');
         const syncOnStartup = await Settings.get('sync_on_startup', true);
         const syncOnClose = await Settings.get('sync_on_close', true);
@@ -37,6 +38,10 @@ const SettingsUI = {
                         <button class="settings-tab" data-settings-tab="pause">
                             <span class="settings-tab-icon">⏸️</span>
                             <span class="settings-tab-text">暫停</span>
+                        </button>
+                        <button class="settings-tab" data-settings-tab="terminate">
+                            <span class="settings-tab-icon">⏹️</span>
+                            <span class="settings-tab-text">終止</span>
                         </button>
                     </div>
                 </div>
@@ -162,6 +167,30 @@ const SettingsUI = {
                         `).join('')}
                     </div>
                     <button class="btn btn-outline btn-sm" style="margin-top: 12px;" onclick="SettingsUI.addPauseReason()">
+                        + 新增原因
+                    </button>
+                </div>
+                
+                <!-- 終止原因設定 -->
+                <div class="settings-panel" id="settings-terminate" style="display: none;">
+                    <div class="settings-panel-header">
+                        <span class="settings-panel-title">終止原因</span>
+                        <span class="settings-panel-desc">提早終止療程時可快速選擇的原因</span>
+                    </div>
+                    <div class="settings-list" id="terminate-list">
+                        ${terminateReasons.map((r, i) => `
+                            <div class="settings-item" data-index="${i}">
+                                <span class="settings-item-text">${r.label}</span>
+                                <span class="settings-item-actions">
+                                    <button class="btn-mini" onclick="SettingsUI.moveTerminateReason(${i}, -1)" title="上移">▲</button>
+                                    <button class="btn-mini" onclick="SettingsUI.moveTerminateReason(${i}, 1)" title="下移">▼</button>
+                                    <button class="btn-mini" onclick="SettingsUI.editTerminateReason(${i})" title="編輯">✎</button>
+                                    <button class="btn-mini btn-mini-danger" onclick="SettingsUI.deleteTerminateReason(${i})" title="刪除">✕</button>
+                                </span>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <button class="btn btn-outline btn-sm" style="margin-top: 12px;" onclick="SettingsUI.addTerminateReason()">
                         + 新增原因
                     </button>
                 </div>
@@ -1354,6 +1383,70 @@ const SettingsUI = {
         this.show();
         setTimeout(() => {
             document.querySelector('[data-settings-tab="pause"]')?.click();
+        }, 100);
+    },
+    
+    // === 終止原因管理 ===
+    
+    async addTerminateReason() {
+        const name = prompt('請輸入終止原因：');
+        if (!name) return;
+        
+        const terminateReasons = await Settings.get('terminate_reasons', []);
+        const code = 'custom_' + Date.now();
+        terminateReasons.push({ code, label: name });
+        await Settings.set('terminate_reasons', terminateReasons);
+        
+        showToast('終止原因已新增');
+        this.show();
+        setTimeout(() => {
+            document.querySelector('[data-settings-tab="terminate"]')?.click();
+        }, 100);
+    },
+    
+    async editTerminateReason(index) {
+        const terminateReasons = await Settings.get('terminate_reasons', []);
+        const current = terminateReasons[index];
+        
+        const name = prompt('請輸入新名稱：', current.label);
+        if (!name) return;
+        
+        terminateReasons[index].label = name;
+        await Settings.set('terminate_reasons', terminateReasons);
+        
+        showToast('終止原因已更新');
+        this.show();
+        setTimeout(() => {
+            document.querySelector('[data-settings-tab="terminate"]')?.click();
+        }, 100);
+    },
+    
+    async deleteTerminateReason(index) {
+        if (!confirm('確定刪除此終止原因？')) return;
+        
+        const terminateReasons = await Settings.get('terminate_reasons', []);
+        terminateReasons.splice(index, 1);
+        await Settings.set('terminate_reasons', terminateReasons);
+        
+        showToast('終止原因已刪除');
+        this.show();
+        setTimeout(() => {
+            document.querySelector('[data-settings-tab="terminate"]')?.click();
+        }, 100);
+    },
+    
+    async moveTerminateReason(index, direction) {
+        const terminateReasons = await Settings.get('terminate_reasons', []);
+        const newIndex = index + direction;
+        
+        if (newIndex < 0 || newIndex >= terminateReasons.length) return;
+        
+        [terminateReasons[index], terminateReasons[newIndex]] = [terminateReasons[newIndex], terminateReasons[index]];
+        await Settings.set('terminate_reasons', terminateReasons);
+        
+        this.show();
+        setTimeout(() => {
+            document.querySelector('[data-settings-tab="terminate"]')?.click();
         }, 100);
     }
 };

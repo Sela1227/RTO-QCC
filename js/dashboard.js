@@ -10,6 +10,9 @@ const Dashboard = {
     // 快取的統計資料
     stats: null,
     
+    // 當前選中的 Tab
+    selectedTabs: ['overview'],
+    
     /**
      * 初始化儀表板
      */
@@ -27,6 +30,37 @@ const Dashboard = {
         if (periodSelect) {
             periodSelect.addEventListener('change', () => this.onPeriodChange());
         }
+    },
+    
+    /**
+     * Tab 選擇變更
+     */
+    onTabChange() {
+        const checkboxes = document.querySelectorAll('.dashboard-tab-check input');
+        this.selectedTabs = [];
+        
+        checkboxes.forEach(cb => {
+            const label = cb.closest('.dashboard-tab-check');
+            if (cb.checked) {
+                this.selectedTabs.push(cb.value);
+                label.classList.add('active');
+            } else {
+                label.classList.remove('active');
+            }
+        });
+        
+        // 至少要選一個
+        if (this.selectedTabs.length === 0) {
+            this.selectedTabs = ['overview'];
+            const overviewCb = document.querySelector('.dashboard-tab-check input[value="overview"]');
+            if (overviewCb) {
+                overviewCb.checked = true;
+                overviewCb.closest('.dashboard-tab-check').classList.add('active');
+            }
+        }
+        
+        this.renderKPI();
+        this.renderCharts();
     },
     
     /**
@@ -246,6 +280,39 @@ const Dashboard = {
         // 11. 暫停/終止原因統計
         const statusReasonStats = this.calculateStatusReasonStats(filteredTreatments);
         
+        // 12. 平均療程天數
+        let totalDays = 0;
+        let treatmentCountWithDays = 0;
+        filteredTreatments.forEach(t => {
+            if (t.treatment_start) {
+                const start = new Date(t.treatment_start);
+                const end = t.completed_at || t.terminated_at 
+                    ? new Date(t.completed_at || t.terminated_at)
+                    : new Date();
+                const days = Math.floor((end - start) / (1000 * 60 * 60 * 24));
+                if (days > 0 && days < 365) { // 排除異常值
+                    totalDays += days;
+                    treatmentCountWithDays++;
+                }
+            }
+        });
+        const avgTreatmentDays = treatmentCountWithDays > 0 
+            ? totalDays / treatmentCountWithDays 
+            : null;
+        
+        // 13. 平均放療劑量
+        let totalDose = 0;
+        let treatmentCountWithDose = 0;
+        filteredTreatments.forEach(t => {
+            if (t.radiation_dose && t.radiation_dose > 0) {
+                totalDose += t.radiation_dose;
+                treatmentCountWithDose++;
+            }
+        });
+        const avgRadiationDose = treatmentCountWithDose > 0 
+            ? totalDose / treatmentCountWithDose 
+            : null;
+        
         // ===== 計算圖表資料 =====
         
         // 月度趨勢
@@ -273,6 +340,8 @@ const Dashboard = {
             satisfactionStats,
             sdmStats,
             statusReasonStats,
+            avgTreatmentDays,
+            avgRadiationDose,
             monthlyStats,
             cancerStats,
             interventionTypeStats,
@@ -477,6 +546,7 @@ const Dashboard = {
         if (!container || !this.stats) return;
         
         const s = this.stats;
+        const tabs = this.selectedTabs;
         
         const formatTime = (hours) => {
             if (hours === null) return '-';
@@ -495,101 +565,45 @@ const Dashboard = {
             scale: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M5.5 8.5l13-5M18.5 8.5l-13-5"/><circle cx="5" cy="9" r="2"/><circle cx="19" cy="9" r="2"/></svg>',
             clipboard: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>',
             flag: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>',
-            star: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>'
+            star: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
+            calendar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+            zap: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>'
         };
         
-        const kpis = [
-            {
-                icon: icons.users,
-                iconClass: 'blue',
-                value: s.trackedPatients,
-                unit: '人',
-                label: '追蹤人數'
-            },
-            {
-                icon: icons.alert,
-                iconClass: 'amber',
-                value: s.alertsTriggered,
-                unit: '次',
-                label: '警示觸發'
-            },
-            {
-                icon: icons.check,
-                iconClass: 'green',
-                value: s.completionRate.toFixed(1),
-                unit: '%',
-                label: '介入完成率',
-                target: 95,
-                achieved: s.completionRate >= 95
-            },
-            {
-                icon: icons.clock,
-                iconClass: 'purple',
-                value: formatTime(s.avgResponseTime),
-                unit: '',
-                label: '平均反應時間',
-                target: '< 24hr',
-                achieved: s.avgResponseTime !== null && s.avgResponseTime <= 24
-            },
-            {
-                icon: icons.phone,
-                iconClass: 'blue',
-                value: s.selfReportRate.toFixed(1),
-                unit: '%',
-                label: '病人自填率',
-                target: 60,
-                achieved: s.selfReportRate >= 60
-            },
-            {
-                icon: icons.scale,
-                iconClass: s.maintenanceRate >= 85 ? 'green' : 'amber',
-                value: s.maintenanceRate.toFixed(1),
-                unit: '%',
-                label: '體重維持率',
-                target: 85,
-                achieved: s.maintenanceRate >= 85
-            },
-            {
-                icon: icons.clipboard,
-                iconClass: 'blue',
-                value: s.seTrackingRate.toFixed(1),
-                unit: '%',
-                label: '副作用追蹤率',
-                target: 80,
-                achieved: s.seTrackingRate >= 80
-            },
-            {
-                icon: icons.flag,
-                iconClass: 'gray',
-                value: s.completedTreatments,
-                unit: '人',
-                label: '已結案'
-            },
-            {
-                icon: icons.star,
-                iconClass: s.satisfactionStats?.overallAvg >= 4 ? 'green' : 'amber',
-                value: s.satisfactionStats?.overallAvg?.toFixed(1) || '-',
-                unit: s.satisfactionStats?.overallAvg ? '/5' : '',
-                label: '滿意度',
-                extra: s.satisfactionStats?.count ? `(${s.satisfactionStats.count}份)` : ''
-            },
-            {
-                icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                    <circle cx="8.5" cy="7" r="4"/>
-                    <polyline points="17 11 19 13 23 9"/>
-                </svg>`,
-                iconClass: s.sdmStats?.completionRate >= 80 ? 'green' : 'amber',
-                value: s.sdmStats?.completionRate?.toFixed(1) || '0',
-                unit: '%',
-                label: 'SDM 完成率',
-                target: 80,
-                achieved: s.sdmStats?.completionRate >= 80,
-                extra: s.sdmStats?.total ? `(${s.sdmStats.completed}/${s.sdmStats.total})` : ''
-            }
+        // 所有 KPI 定義，帶有分類
+        const allKpis = [
+            // 總覽
+            { tab: 'overview', icon: icons.users, iconClass: 'blue', value: s.trackedPatients, unit: '人', label: '追蹤人數' },
+            { tab: 'overview', icon: icons.flag, iconClass: 'gray', value: s.completedTreatments, unit: '人', label: '已結案' },
+            
+            // 體重追蹤
+            { tab: 'weight', icon: icons.scale, iconClass: s.maintenanceRate >= 85 ? 'green' : 'amber', value: s.maintenanceRate.toFixed(1), unit: '%', label: '體重維持率', target: 85, achieved: s.maintenanceRate >= 85 },
+            { tab: 'weight', icon: icons.phone, iconClass: 'blue', value: s.selfReportRate.toFixed(1), unit: '%', label: '病人自填率', target: 60, achieved: s.selfReportRate >= 60 },
+            { tab: 'weight', icon: icons.alert, iconClass: 'amber', value: s.alertsTriggered, unit: '次', label: '警示觸發' },
+            
+            // 介入成效
+            { tab: 'intervention', icon: icons.check, iconClass: 'green', value: s.completionRate.toFixed(1), unit: '%', label: '介入完成率', target: 95, achieved: s.completionRate >= 95 },
+            { tab: 'intervention', icon: icons.clock, iconClass: 'purple', value: formatTime(s.avgResponseTime), unit: '', label: '平均反應時間', target: '< 24hr', achieved: s.avgResponseTime !== null && s.avgResponseTime <= 24 },
+            { tab: 'intervention', icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>`, iconClass: s.sdmStats?.completionRate >= 80 ? 'green' : 'amber', value: s.sdmStats?.completionRate?.toFixed(1) || '0', unit: '%', label: 'SDM 完成率', target: 80, achieved: s.sdmStats?.completionRate >= 80, extra: s.sdmStats?.total ? `(${s.sdmStats.completed}/${s.sdmStats.total})` : '' },
+            
+            // 療程統計
+            { tab: 'treatment', icon: icons.clipboard, iconClass: 'blue', value: s.seTrackingRate.toFixed(1), unit: '%', label: '副作用追蹤率', target: 80, achieved: s.seTrackingRate >= 80 },
+            { tab: 'treatment', icon: icons.calendar, iconClass: 'gray', value: s.avgTreatmentDays?.toFixed(0) || '-', unit: '天', label: '平均療程天數' },
+            { tab: 'treatment', icon: icons.zap, iconClass: 'blue', value: s.avgRadiationDose?.toFixed(1) || '-', unit: 'Gy', label: '平均放療劑量' },
+            
+            // 滿意度
+            { tab: 'satisfaction', icon: icons.star, iconClass: s.satisfactionStats?.overallAvg >= 4 ? 'green' : 'amber', value: s.satisfactionStats?.overallAvg?.toFixed(1) || '-', unit: s.satisfactionStats?.overallAvg ? '/5' : '', label: '整體滿意度', extra: s.satisfactionStats?.count ? `(${s.satisfactionStats.count}份)` : '' }
         ];
         
-        container.innerHTML = kpis.map(kpi => `
+        // 根據選中的 Tab 過濾 KPI
+        const filteredKpis = allKpis.filter(kpi => tabs.includes(kpi.tab));
+        
+        if (filteredKpis.length === 0) {
+            container.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-hint);">請選擇至少一個統計分類</div>';
+            return;
+        }
+        
+        container.innerHTML = filteredKpis.map(kpi => `
             <div class="kpi-card">
                 <div class="kpi-icon ${kpi.iconClass}">${kpi.icon}</div>
                 <div class="kpi-content">
@@ -616,185 +630,203 @@ const Dashboard = {
         if (!container || !this.stats) return;
         
         const s = this.stats;
+        const tabs = this.selectedTabs;
         
-        // 滿意度各題分數
-        let satisfactionHtml = '';
-        if (s.satisfactionStats && s.satisfactionStats.count > 0) {
-            const avgScores = s.satisfactionStats.avgScores;
-            satisfactionHtml = `
+        let chartsHtml = '';
+        
+        // 總覽圖表：月度趨勢、癌別分布
+        if (tabs.includes('overview')) {
+            chartsHtml += `
                 <div class="chart-card">
-                    <div class="chart-title">滿意度分析 (${s.satisfactionStats.count} 份回饋)</div>
-                    <div class="stats-list" style="padding: 16px 0;">
-                        ${Object.values(avgScores).map(item => {
-                            const pct = (item.avg / 5) * 100;
-                            const color = item.avg >= 4 ? 'green' : item.avg >= 3 ? 'amber' : 'red';
+                    <div class="chart-title">月度趨勢</div>
+                    <div class="chart-container">
+                        <canvas id="chart-monthly"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-title">癌別分布</div>
+                    <div class="chart-container small">
+                        <canvas id="chart-cancer"></canvas>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // 體重追蹤圖表（暫無額外圖表，可擴展）
+        
+        // 介入成效圖表
+        if (tabs.includes('intervention')) {
+            chartsHtml += `
+                <div class="chart-card">
+                    <div class="chart-title">介入類型</div>
+                    <div class="chart-container small">
+                        <canvas id="chart-intervention"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-title">反應時間分布</div>
+                    <div class="stats-list" style="padding: 20px 0;">
+                        ${s.responseTimeDistribution.map((item, i) => {
+                            const colors = ['green', 'amber', 'red'];
                             return `
                                 <div class="stats-item">
                                     <span class="stats-label">${item.label}</span>
                                     <div class="stats-bar-container">
-                                        <div class="stats-bar ${color}" style="width: ${pct}%"></div>
+                                        <div class="stats-bar ${colors[i]}" style="width: ${item.pct}%"></div>
                                     </div>
-                                    <span class="stats-value">${item.avg.toFixed(1)}/5</span>
+                                    <span class="stats-value">${item.count} (${item.pct}%)</span>
                                 </div>
                             `;
                         }).join('')}
-                        <div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border); display: flex; justify-content: space-around; text-align: center;">
-                            <div>
-                                <div style="font-size: 24px; font-weight: 700; color: ${s.satisfactionStats.overallAvg >= 4 ? 'var(--success)' : 'var(--warning)'}">
-                                    ${s.satisfactionStats.overallAvg?.toFixed(1) || '-'}
-                                </div>
-                                <div style="font-size: 12px; color: var(--text-secondary);">整體平均</div>
-                            </div>
-                            <div>
-                                <div style="font-size: 24px; font-weight: 700; color: ${s.satisfactionStats.nps >= 50 ? 'var(--success)' : s.satisfactionStats.nps >= 0 ? 'var(--warning)' : 'var(--danger)'}">
-                                    ${s.satisfactionStats.nps !== null ? s.satisfactionStats.nps : '-'}
-                                </div>
-                                <div style="font-size: 12px; color: var(--text-secondary);">NPS 淨推薦值</div>
-                            </div>
-                        </div>
                     </div>
                 </div>
             `;
-        } else {
-            satisfactionHtml = `
-                <div class="chart-card">
-                    <div class="chart-title">滿意度分析</div>
-                    <div style="text-align: center; padding: 40px 20px; color: var(--text-hint);">
-                        <div style="font-size: 14px; margin-bottom: 8px;">[ 無資料 ]</div>
-                        <div>尚無滿意度回饋</div>
-                    </div>
-                </div>
-            `;
-        }
-        
-        // SDM 選擇分布
-        let sdmHtml = '';
-        if (s.sdmStats && s.sdmStats.total > 0) {
-            const choices = Object.values(s.sdmStats.choices).sort((a, b) => b.count - a.count);
-            sdmHtml = `
-                <div class="chart-card">
-                    <div class="chart-title">SDM 選擇分布 (${s.sdmStats.completed}/${s.sdmStats.total} 人已選)</div>
-                    <div class="stats-list" style="padding: 16px 0;">
-                        ${choices.length > 0 ? choices.map(item => {
-                            const pct = (item.count / s.sdmStats.completed) * 100;
-                            return `
-                                <div class="stats-item">
-                                    <span class="stats-label">${item.label}</span>
-                                    <div class="stats-bar-container">
-                                        <div class="stats-bar blue" style="width: ${pct}%"></div>
-                                    </div>
-                                    <span class="stats-value">${item.count} (${pct.toFixed(0)}%)</span>
-                                </div>
-                            `;
-                        }).join('') : '<div style="text-align: center; color: var(--text-hint); padding: 20px;">尚無選擇記錄</div>'}
-                    </div>
-                </div>
-            `;
-        }
-        
-        // 暫停/終止原因統計
-        let statusReasonHtml = '';
-        if (s.statusReasonStats) {
-            const paused = s.statusReasonStats.paused;
-            const terminated = s.statusReasonStats.terminated;
             
-            if (paused.total > 0 || terminated.total > 0) {
-                let reasonsHtml = '';
-                
-                if (paused.total > 0) {
-                    const pauseReasons = Object.entries(paused.reasons)
-                        .sort((a, b) => b[1] - a[1])
-                        .map(([reason, count]) => {
-                            const pct = (count / paused.total) * 100;
-                            return `
-                                <div class="stats-item">
-                                    <span class="stats-label" style="color: var(--warning);">暫停：${reason}</span>
-                                    <div class="stats-bar-container">
-                                        <div class="stats-bar amber" style="width: ${pct}%"></div>
-                                    </div>
-                                    <span class="stats-value">${count}</span>
-                                </div>
-                            `;
-                        }).join('');
-                    reasonsHtml += pauseReasons;
-                }
-                
-                if (terminated.total > 0) {
-                    const terminateReasons = Object.entries(terminated.reasons)
-                        .sort((a, b) => b[1] - a[1])
-                        .map(([reason, count]) => {
-                            const pct = (count / terminated.total) * 100;
-                            return `
-                                <div class="stats-item">
-                                    <span class="stats-label" style="color: var(--danger);">終止：${reason}</span>
-                                    <div class="stats-bar-container">
-                                        <div class="stats-bar red" style="width: ${pct}%"></div>
-                                    </div>
-                                    <span class="stats-value">${count}</span>
-                                </div>
-                            `;
-                        }).join('');
-                    reasonsHtml += terminateReasons;
-                }
-                
-                statusReasonHtml = `
+            // SDM 選擇分布
+            if (s.sdmStats && s.sdmStats.total > 0) {
+                const choices = Object.values(s.sdmStats.choices).sort((a, b) => b.count - a.count);
+                chartsHtml += `
                     <div class="chart-card">
-                        <div class="chart-title">暫停/終止原因 (暫停 ${paused.total} 人、終止 ${terminated.total} 人)</div>
+                        <div class="chart-title">SDM 選擇分布 (${s.sdmStats.completed}/${s.sdmStats.total} 人已選)</div>
                         <div class="stats-list" style="padding: 16px 0;">
-                            ${reasonsHtml}
+                            ${choices.length > 0 ? choices.map(item => {
+                                const pct = (item.count / s.sdmStats.completed) * 100;
+                                return `
+                                    <div class="stats-item">
+                                        <span class="stats-label">${item.label}</span>
+                                        <div class="stats-bar-container">
+                                            <div class="stats-bar blue" style="width: ${pct}%"></div>
+                                        </div>
+                                        <span class="stats-value">${item.count} (${pct.toFixed(0)}%)</span>
+                                    </div>
+                                `;
+                            }).join('') : '<div style="text-align: center; color: var(--text-hint); padding: 20px;">尚無選擇記錄</div>'}
                         </div>
                     </div>
                 `;
             }
         }
         
-        // 先建立圖表容器
-        container.innerHTML = `
-            <div class="chart-card">
-                <div class="chart-title">月度趨勢</div>
-                <div class="chart-container">
-                    <canvas id="chart-monthly"></canvas>
-                </div>
-            </div>
-            <div class="chart-card">
-                <div class="chart-title">癌別分布</div>
-                <div class="chart-container small">
-                    <canvas id="chart-cancer"></canvas>
-                </div>
-            </div>
-            <div class="chart-card">
-                <div class="chart-title">介入類型</div>
-                <div class="chart-container small">
-                    <canvas id="chart-intervention"></canvas>
-                </div>
-            </div>
-            <div class="chart-card">
-                <div class="chart-title">反應時間分布</div>
-                <div class="stats-list" style="padding: 20px 0;">
-                    ${s.responseTimeDistribution.map((item, i) => {
-                        const colors = ['green', 'amber', 'red'];
-                        return `
-                            <div class="stats-item">
-                                <span class="stats-label">${item.label}</span>
-                                <div class="stats-bar-container">
-                                    <div class="stats-bar ${colors[i]}" style="width: ${item.pct}%"></div>
-                                </div>
-                                <span class="stats-value">${item.count} (${item.pct}%)</span>
+        // 療程統計圖表
+        if (tabs.includes('treatment')) {
+            // 暫停/終止原因統計
+            if (s.statusReasonStats) {
+                const paused = s.statusReasonStats.paused;
+                const terminated = s.statusReasonStats.terminated;
+                
+                if (paused.total > 0 || terminated.total > 0) {
+                    let reasonsHtml = '';
+                    
+                    if (paused.total > 0) {
+                        const pauseReasons = Object.entries(paused.reasons)
+                            .sort((a, b) => b[1] - a[1])
+                            .map(([reason, count]) => {
+                                const pct = (count / paused.total) * 100;
+                                return `
+                                    <div class="stats-item">
+                                        <span class="stats-label" style="color: var(--warning);">暫停：${reason}</span>
+                                        <div class="stats-bar-container">
+                                            <div class="stats-bar amber" style="width: ${pct}%"></div>
+                                        </div>
+                                        <span class="stats-value">${count}</span>
+                                    </div>
+                                `;
+                            }).join('');
+                        reasonsHtml += pauseReasons;
+                    }
+                    
+                    if (terminated.total > 0) {
+                        const terminateReasons = Object.entries(terminated.reasons)
+                            .sort((a, b) => b[1] - a[1])
+                            .map(([reason, count]) => {
+                                const pct = (count / terminated.total) * 100;
+                                return `
+                                    <div class="stats-item">
+                                        <span class="stats-label" style="color: var(--danger);">終止：${reason}</span>
+                                        <div class="stats-bar-container">
+                                            <div class="stats-bar red" style="width: ${pct}%"></div>
+                                        </div>
+                                        <span class="stats-value">${count}</span>
+                                    </div>
+                                `;
+                            }).join('');
+                        reasonsHtml += terminateReasons;
+                    }
+                    
+                    chartsHtml += `
+                        <div class="chart-card">
+                            <div class="chart-title">暫停/終止原因 (暫停 ${paused.total} 人、終止 ${terminated.total} 人)</div>
+                            <div class="stats-list" style="padding: 16px 0;">
+                                ${reasonsHtml}
                             </div>
-                        `;
-                    }).join('')}
-                </div>
-            </div>
-            ${satisfactionHtml}
-            ${sdmHtml}
-            ${statusReasonHtml}
-        `;
+                        </div>
+                    `;
+                }
+            }
+        }
+        
+        // 滿意度圖表
+        if (tabs.includes('satisfaction')) {
+            if (s.satisfactionStats && s.satisfactionStats.count > 0) {
+                const avgScores = s.satisfactionStats.avgScores;
+                chartsHtml += `
+                    <div class="chart-card">
+                        <div class="chart-title">滿意度分析 (${s.satisfactionStats.count} 份回饋)</div>
+                        <div class="stats-list" style="padding: 16px 0;">
+                            ${Object.values(avgScores).map(item => {
+                                const pct = (item.avg / 5) * 100;
+                                const color = item.avg >= 4 ? 'green' : item.avg >= 3 ? 'amber' : 'red';
+                                return `
+                                    <div class="stats-item">
+                                        <span class="stats-label">${item.label}</span>
+                                        <div class="stats-bar-container">
+                                            <div class="stats-bar ${color}" style="width: ${pct}%"></div>
+                                        </div>
+                                        <span class="stats-value">${item.avg.toFixed(1)}/5</span>
+                                    </div>
+                                `;
+                            }).join('')}
+                            <div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border); display: flex; justify-content: space-around; text-align: center;">
+                                <div>
+                                    <div style="font-size: 24px; font-weight: 700; color: ${s.satisfactionStats.overallAvg >= 4 ? 'var(--success)' : 'var(--warning)'}">
+                                        ${s.satisfactionStats.overallAvg?.toFixed(1) || '-'}
+                                    </div>
+                                    <div style="font-size: 12px; color: var(--text-secondary);">整體平均</div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 24px; font-weight: 700; color: ${s.satisfactionStats.nps >= 50 ? 'var(--success)' : s.satisfactionStats.nps >= 0 ? 'var(--warning)' : 'var(--danger)'}">
+                                        ${s.satisfactionStats.nps !== null ? s.satisfactionStats.nps : '-'}
+                                    </div>
+                                    <div style="font-size: 12px; color: var(--text-secondary);">NPS 淨推薦值</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                chartsHtml += `
+                    <div class="chart-card">
+                        <div class="chart-title">滿意度分析</div>
+                        <div style="text-align: center; padding: 40px 20px; color: var(--text-hint);">
+                            <div style="font-size: 14px; margin-bottom: 8px;">[ 無資料 ]</div>
+                            <div>尚無滿意度回饋</div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        
+        container.innerHTML = chartsHtml || '<div style="text-align: center; padding: 40px; color: var(--text-hint);">請選擇統計分類以顯示圖表</div>';
         
         // 延遲渲染圖表
         setTimeout(() => {
-            this.renderMonthlyChart(s.monthlyStats);
-            this.renderCancerChart(s.cancerStats);
-            this.renderInterventionChart(s.interventionTypeStats);
+            if (tabs.includes('overview')) {
+                this.renderMonthlyChart(s.monthlyStats);
+                this.renderCancerChart(s.cancerStats);
+            }
+            if (tabs.includes('intervention')) {
+                this.renderInterventionChart(s.interventionTypeStats);
+            }
         }, 100);
     },
     
