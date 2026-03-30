@@ -240,6 +240,12 @@ const Dashboard = {
             console.warn('滿意度統計計算失敗:', e);
         }
         
+        // 10. SDM 選擇統計
+        const sdmStats = this.calculateSDMStats(filteredTreatments);
+        
+        // 11. 暫停/終止原因統計
+        const statusReasonStats = this.calculateStatusReasonStats(filteredTreatments);
+        
         // ===== 計算圖表資料 =====
         
         // 月度趨勢
@@ -265,6 +271,8 @@ const Dashboard = {
             completedTreatments,
             totalTreatments: filteredTreatments.length,
             satisfactionStats,
+            sdmStats,
+            statusReasonStats,
             monthlyStats,
             cancerStats,
             interventionTypeStats,
@@ -318,6 +326,85 @@ const Dashboard = {
         return result;
     },
     
+    /**
+     * 計算 SDM 選擇統計
+     */
+    calculateSDMStats(treatments) {
+        const stats = {
+            total: 0,           // 需要 SDM 的總人數（體重下降達閾值）
+            completed: 0,       // 已完成 SDM 選擇
+            choices: {}         // 各選項統計
+        };
+        
+        const sdmLabels = {
+            'oral_supplement': '口服營養補充',
+            'ng_tube': '鼻胃管',
+            'peg_endoscopic': 'PEG（內視鏡）',
+            'peg_fluoroscopic': 'PEG（透視導引）',
+            'undecided': '考慮中',
+            'refused': '病人拒絕'
+        };
+        
+        treatments.forEach(t => {
+            // 判斷是否需要 SDM（體重下降達閾值）
+            if (t.change_rate !== null && t.change_rate <= -3) {
+                stats.total++;
+                
+                if (t.sdm_choice && t.sdm_choice !== '') {
+                    stats.completed++;
+                    
+                    const choice = t.sdm_choice;
+                    if (!stats.choices[choice]) {
+                        stats.choices[choice] = {
+                            count: 0,
+                            label: sdmLabels[choice] || choice
+                        };
+                    }
+                    stats.choices[choice].count++;
+                }
+            }
+        });
+        
+        stats.completionRate = stats.total > 0 
+            ? (stats.completed / stats.total * 100) 
+            : 0;
+        
+        return stats;
+    },
+    
+    /**
+     * 計算暫停/終止原因統計
+     */
+    calculateStatusReasonStats(treatments) {
+        const stats = {
+            paused: { total: 0, reasons: {} },
+            terminated: { total: 0, reasons: {} },
+            completed: { total: 0 }
+        };
+        
+        treatments.forEach(t => {
+            if (t.status === 'paused') {
+                stats.paused.total++;
+                const reason = t.pause_reason || '未填寫';
+                if (!stats.paused.reasons[reason]) {
+                    stats.paused.reasons[reason] = 0;
+                }
+                stats.paused.reasons[reason]++;
+            } else if (t.status === 'terminated') {
+                stats.terminated.total++;
+                const reason = t.terminate_reason || '未填寫';
+                if (!stats.terminated.reasons[reason]) {
+                    stats.terminated.reasons[reason] = 0;
+                }
+                stats.terminated.reasons[reason]++;
+            } else if (t.status === 'completed') {
+                stats.completed.total++;
+            }
+        });
+        
+        return stats;
+    },
+
     /**
      * 計算癌別統計
      */
@@ -485,6 +572,20 @@ const Dashboard = {
                 unit: s.satisfactionStats?.overallAvg ? '/5' : '',
                 label: '滿意度',
                 extra: s.satisfactionStats?.count ? `(${s.satisfactionStats.count}份)` : ''
+            },
+            {
+                icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="8.5" cy="7" r="4"/>
+                    <polyline points="17 11 19 13 23 9"/>
+                </svg>`,
+                iconClass: s.sdmStats?.completionRate >= 80 ? 'green' : 'amber',
+                value: s.sdmStats?.completionRate?.toFixed(1) || '0',
+                unit: '%',
+                label: 'SDM 完成率',
+                target: 80,
+                achieved: s.sdmStats?.completionRate >= 80,
+                extra: s.sdmStats?.total ? `(${s.sdmStats.completed}/${s.sdmStats.total})` : ''
             }
         ];
         
@@ -566,6 +667,87 @@ const Dashboard = {
             `;
         }
         
+        // SDM 選擇分布
+        let sdmHtml = '';
+        if (s.sdmStats && s.sdmStats.total > 0) {
+            const choices = Object.values(s.sdmStats.choices).sort((a, b) => b.count - a.count);
+            sdmHtml = `
+                <div class="chart-card">
+                    <div class="chart-title">SDM 選擇分布 (${s.sdmStats.completed}/${s.sdmStats.total} 人已選)</div>
+                    <div class="stats-list" style="padding: 16px 0;">
+                        ${choices.length > 0 ? choices.map(item => {
+                            const pct = (item.count / s.sdmStats.completed) * 100;
+                            return `
+                                <div class="stats-item">
+                                    <span class="stats-label">${item.label}</span>
+                                    <div class="stats-bar-container">
+                                        <div class="stats-bar blue" style="width: ${pct}%"></div>
+                                    </div>
+                                    <span class="stats-value">${item.count} (${pct.toFixed(0)}%)</span>
+                                </div>
+                            `;
+                        }).join('') : '<div style="text-align: center; color: var(--text-hint); padding: 20px;">尚無選擇記錄</div>'}
+                    </div>
+                </div>
+            `;
+        }
+        
+        // 暫停/終止原因統計
+        let statusReasonHtml = '';
+        if (s.statusReasonStats) {
+            const paused = s.statusReasonStats.paused;
+            const terminated = s.statusReasonStats.terminated;
+            
+            if (paused.total > 0 || terminated.total > 0) {
+                let reasonsHtml = '';
+                
+                if (paused.total > 0) {
+                    const pauseReasons = Object.entries(paused.reasons)
+                        .sort((a, b) => b[1] - a[1])
+                        .map(([reason, count]) => {
+                            const pct = (count / paused.total) * 100;
+                            return `
+                                <div class="stats-item">
+                                    <span class="stats-label" style="color: var(--warning);">暫停：${reason}</span>
+                                    <div class="stats-bar-container">
+                                        <div class="stats-bar amber" style="width: ${pct}%"></div>
+                                    </div>
+                                    <span class="stats-value">${count}</span>
+                                </div>
+                            `;
+                        }).join('');
+                    reasonsHtml += pauseReasons;
+                }
+                
+                if (terminated.total > 0) {
+                    const terminateReasons = Object.entries(terminated.reasons)
+                        .sort((a, b) => b[1] - a[1])
+                        .map(([reason, count]) => {
+                            const pct = (count / terminated.total) * 100;
+                            return `
+                                <div class="stats-item">
+                                    <span class="stats-label" style="color: var(--danger);">終止：${reason}</span>
+                                    <div class="stats-bar-container">
+                                        <div class="stats-bar red" style="width: ${pct}%"></div>
+                                    </div>
+                                    <span class="stats-value">${count}</span>
+                                </div>
+                            `;
+                        }).join('');
+                    reasonsHtml += terminateReasons;
+                }
+                
+                statusReasonHtml = `
+                    <div class="chart-card">
+                        <div class="chart-title">暫停/終止原因 (暫停 ${paused.total} 人、終止 ${terminated.total} 人)</div>
+                        <div class="stats-list" style="padding: 16px 0;">
+                            ${reasonsHtml}
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        
         // 先建立圖表容器
         container.innerHTML = `
             <div class="chart-card">
@@ -604,6 +786,8 @@ const Dashboard = {
                 </div>
             </div>
             ${satisfactionHtml}
+            ${sdmHtml}
+            ${statusReasonHtml}
         `;
         
         // 延遲渲染圖表

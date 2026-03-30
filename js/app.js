@@ -660,6 +660,23 @@ const App = {
         const patient = treatment.patient;
         const age = calculateAge(patient.birth_date);
         
+        // 取得更多統計資料
+        const interventions = await Intervention.getByTreatment(treatment.id);
+        const sideEffects = await DB.getAll('side_effects');
+        const treatmentSE = sideEffects.filter(s => s.treatment_id === treatment.id && !s.deleted);
+        
+        // 計算療程天數
+        const startDate = new Date(treatment.treatment_start);
+        const endDate = treatment.completed_at || treatment.terminated_at || new Date();
+        const dayCount = Math.floor((new Date(endDate) - startDate) / (1000 * 60 * 60 * 24));
+        
+        // 介入統計
+        const interventionStats = {
+            total: interventions.length,
+            executed: interventions.filter(i => i.status === 'executed').length,
+            pending: interventions.filter(i => i.status === 'pending' || i.status === 'contacted').length
+        };
+        
         // 待處理介入
         let pendingHtml = '';
         if (treatment.pending_interventions?.length > 0) {
@@ -682,6 +699,30 @@ const App = {
                             </div>
                         `;
                     }).join('')}
+                </div>
+            `;
+        }
+        
+        // 暫停/終止原因提示
+        let statusReasonHtml = '';
+        if (treatment.status === 'paused' && treatment.pause_reason) {
+            statusReasonHtml = `
+                <div style="background: rgba(228, 185, 90, 0.1); padding: 8px 10px; border-radius: 6px; margin-bottom: 10px;">
+                    <strong style="color: var(--warning); font-size: 12px;">暫停原因</strong>
+                    <p style="margin: 4px 0 0; font-size: 12px;">${treatment.pause_reason}</p>
+                    <p style="margin: 2px 0 0; font-size: 11px; color: var(--text-hint);">
+                        ${formatDate(treatment.paused_at, 'YYYY-MM-DD HH:mm')}
+                    </p>
+                </div>
+            `;
+        } else if (treatment.status === 'terminated' && treatment.terminate_reason) {
+            statusReasonHtml = `
+                <div style="background: rgba(217, 123, 123, 0.1); padding: 8px 10px; border-radius: 6px; margin-bottom: 10px;">
+                    <strong style="color: var(--danger); font-size: 12px;">終止原因</strong>
+                    <p style="margin: 4px 0 0; font-size: 12px;">${treatment.terminate_reason}</p>
+                    <p style="margin: 2px 0 0; font-size: 11px; color: var(--text-hint);">
+                        ${formatDate(treatment.terminated_at, 'YYYY-MM-DD HH:mm')}
+                    </p>
                 </div>
             `;
         }
@@ -727,6 +768,14 @@ const App = {
                 </div>
             `;
         }
+        
+        // 治療目的標籤
+        const intentLabel = {
+            'curative': '根治性',
+            'palliative': '緩和性',
+            'adjuvant': '輔助性',
+            'neoadjuvant': '前導性'
+        }[treatment.treatment_intent] || treatment.treatment_intent || '-';
         
         container.innerHTML = `
             <div class="detail-header">
@@ -790,26 +839,53 @@ const App = {
             </div>
             
             ${pendingHtml}
+            ${statusReasonHtml}
             
             <div class="detail-section">
                 <div class="detail-section-title">基本資訊</div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; font-size: 13px;">
                     <div class="detail-row" style="padding: 2px 0;">
-                        <span>基準</span>
+                        <span>治療目的</span>
+                        <span>${intentLabel}</span>
+                    </div>
+                    <div class="detail-row" style="padding: 2px 0;">
+                        <span>療程天數</span>
+                        <span>${dayCount} 天</span>
+                    </div>
+                    <div class="detail-row" style="padding: 2px 0;">
+                        <span>基準體重</span>
                         <span>${treatment.baseline_weight ? treatment.baseline_weight + ' kg' : '-'}</span>
                     </div>
                     <div class="detail-row" style="padding: 2px 0;">
-                        <span>目前</span>
+                        <span>目前體重</span>
                         <span>${treatment.latest_weight ? treatment.latest_weight.weight + ' kg' : '-'}</span>
                     </div>
                     <div class="detail-row" style="padding: 2px 0;">
-                        <span>變化</span>
+                        <span>體重變化</span>
                         <span class="${getRateClass(treatment.change_rate)}">${formatChangeRate(treatment.change_rate)}</span>
                     </div>
                     <div class="detail-row" style="padding: 2px 0;">
-                        <span>開始</span>
-                        <span>${formatDate(treatment.treatment_start, 'MM/DD')}</span>
+                        <span>開始日期</span>
+                        <span>${formatDate(treatment.treatment_start, 'YYYY-MM-DD')}</span>
                     </div>
+                    <div class="detail-row" style="padding: 2px 0;">
+                        <span>體重記錄</span>
+                        <span>${treatment.weight_records?.length || 0} 筆</span>
+                    </div>
+                    <div class="detail-row" style="padding: 2px 0;">
+                        <span>副作用評估</span>
+                        <span>${treatmentSE.length} 筆</span>
+                    </div>
+                    <div class="detail-row" style="padding: 2px 0;">
+                        <span>介入記錄</span>
+                        <span>${interventionStats.executed}/${interventionStats.total} 已執行</span>
+                    </div>
+                    ${patient.phone ? `
+                    <div class="detail-row" style="padding: 2px 0;">
+                        <span>聯絡電話</span>
+                        <span><a href="tel:${patient.phone}" style="color: var(--primary);">${patient.phone}</a></span>
+                    </div>
+                    ` : ''}
                 </div>
                 
                 <!-- SDM 選擇 -->
@@ -818,6 +894,7 @@ const App = {
                     <span style="display: flex; align-items: center; gap: 6px; font-size: 13px;">
                         ${treatment.sdm_choice ? `
                             <span class="tag tag-blue" style="font-size: 11px;">${formatSDMChoice(treatment.sdm_choice)}</span>
+                            ${treatment.sdm_choice_date ? `<span style="font-size: 10px; color: var(--text-hint);">${formatDate(treatment.sdm_choice_date, 'MM/DD')}</span>` : ''}
                         ` : '<span style="color: var(--text-hint);">未選擇</span>'}
                         <button class="btn-icon" style="padding: 2px;" onclick="Intervention.showSDMComparison(${treatment.id})" title="編輯 SDM 選擇">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
