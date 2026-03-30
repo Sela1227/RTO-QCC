@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>彰濱放腫體重監控預防系統</title>
-    <link rel="stylesheet" href="css/style.css?v=6.70">
+    <link rel="stylesheet" href="css/style.css?v=6.71">
     <!-- 外部套件 -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -93,7 +93,7 @@
                 </ul>
                 <div class="nav-footer">
                     <img src="logo.png" alt="SELA" class="nav-logo" width="48" height="48" style="width:48px;height:48px;max-width:48px;max-height:48px;">
-                    <span class="version">v6.7.0 Web</span>
+                    <span class="version">v6.7.1 Web</span>
                 </div>
             </nav>
 
@@ -343,16 +343,22 @@
                             <input type="checkbox" value="all" checked onchange="Report.onTabChange(event)"> 全部
                         </label>
                         <label class="dashboard-tab-check">
-                            <input type="checkbox" value="overview" onchange="Report.onTabChange(event)"> 總覽
-                        </label>
-                        <label class="dashboard-tab-check">
-                            <input type="checkbox" value="weight" onchange="Report.onTabChange(event)"> 體重追蹤
-                        </label>
-                        <label class="dashboard-tab-check">
-                            <input type="checkbox" value="intervention" onchange="Report.onTabChange(event)"> 介入成效
-                        </label>
-                        <label class="dashboard-tab-check">
                             <input type="checkbox" value="treatment" onchange="Report.onTabChange(event)"> 療程統計
+                        </label>
+                        <label class="dashboard-tab-check">
+                            <input type="checkbox" value="cancer" onchange="Report.onTabChange(event)"> 癌別分布
+                        </label>
+                        <label class="dashboard-tab-check">
+                            <input type="checkbox" value="weight" onchange="Report.onTabChange(event)"> 體重統計
+                        </label>
+                        <label class="dashboard-tab-check">
+                            <input type="checkbox" value="intervention" onchange="Report.onTabChange(event)"> 介入統計
+                        </label>
+                        <label class="dashboard-tab-check">
+                            <input type="checkbox" value="demographic" onchange="Report.onTabChange(event)"> 人口統計
+                        </label>
+                        <label class="dashboard-tab-check">
+                            <input type="checkbox" value="sideeffect" onchange="Report.onTabChange(event)"> 副作用
                         </label>
                         <label class="dashboard-tab-check">
                             <input type="checkbox" value="satisfaction" onchange="Report.onTabChange(event)"> 滿意度
@@ -470,21 +476,21 @@
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script></script>
 
     <!-- JS 模組 -->
-    <script src="js/config.js?v=6.70"></script>
-    <script src="js/db.js?v=6.70"></script>
-    <script src="js/utils.js?v=6.70"></script>
-    <script src="js/patient.js?v=6.70"></script>
-    <script src="js/treatment.js?v=6.70"></script>
-    <script src="js/weight.js?v=6.70"></script>
-    <script src="js/sideeffect.js?v=6.70"></script>
-    <script src="js/intervention.js?v=6.70"></script>
-    <script src="js/report.js?v=6.70"></script>
-    <script src="js/settings.js?v=6.70"></script>
-    <script src="js/sync.js?v=6.70"></script>
-    <script src="js/satisfaction.js?v=6.70"></script>
-    <script src="js/dashboard.js?v=6.70"></script>
-    <script src="js/demo.js?v=6.70"></script>
-    <script src="js/app.js?v=6.70"></script>
+    <script src="js/config.js?v=6.71"></script>
+    <script src="js/db.js?v=6.71"></script>
+    <script src="js/utils.js?v=6.71"></script>
+    <script src="js/patient.js?v=6.71"></script>
+    <script src="js/treatment.js?v=6.71"></script>
+    <script src="js/weight.js?v=6.71"></script>
+    <script src="js/sideeffect.js?v=6.71"></script>
+    <script src="js/intervention.js?v=6.71"></script>
+    <script src="js/report.js?v=6.71"></script>
+    <script src="js/settings.js?v=6.71"></script>
+    <script src="js/sync.js?v=6.71"></script>
+    <script src="js/satisfaction.js?v=6.71"></script>
+    <script src="js/dashboard.js?v=6.71"></script>
+    <script src="js/demo.js?v=6.71"></script>
+    <script src="js/app.js?v=6.71"></script>
     
     <!-- 登入驗證 -->
     <script>

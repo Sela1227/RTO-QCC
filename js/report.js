@@ -541,8 +541,8 @@ const Report = {
             <div class="report-grid">
         `;
         
-        // 總覽：療程統計、癌別分布
-        if (showAll || tabs.includes('overview')) {
+        // 療程統計
+        if (showAll || tabs.includes('treatment')) {
             html += `
                 <div class="report-card">
                     <div class="report-card-title">療程統計</div>
@@ -578,7 +578,12 @@ const Report = {
                         </div>
                     ` : ''}
                 </div>
-                
+            `;
+        }
+        
+        // 癌別分布
+        if (showAll || tabs.includes('cancer')) {
+            html += `
                 <div class="report-card">
                     <div class="report-card-title">癌別分布</div>
                     <div class="chart-container">
@@ -588,7 +593,7 @@ const Report = {
             `;
         }
         
-        // 體重追蹤：體重變化分布、體重統計
+        // 體重變化分布
         if (showAll || tabs.includes('weight')) {
             html += `
                 <div class="report-card">
@@ -629,7 +634,7 @@ const Report = {
             `;
         }
         
-        // 介入成效：介入統計
+        // 介入統計
         if (showAll || tabs.includes('intervention')) {
             html += `
                 <div class="report-card">
@@ -666,8 +671,8 @@ const Report = {
             `;
         }
         
-        // 療程統計：年齡分布、副作用評估
-        if (showAll || tabs.includes('treatment')) {
+        // 人口統計（年齡、性別）
+        if (showAll || tabs.includes('demographic')) {
             html += `
                 <div class="report-card">
                     <div class="report-card-title">年齡分布</div>
@@ -691,7 +696,12 @@ const Report = {
                         <strong>${stats.genderDistribution['女']}</strong>
                     </div>
                 </div>
-                
+            `;
+        }
+        
+        // 副作用評估統計
+        if (showAll || tabs.includes('sideeffect')) {
+            html += `
                 <div class="report-card">
                     <div class="report-card-title">副作用評估統計</div>
                     <div class="detail-row">
@@ -734,7 +744,7 @@ const Report = {
             `;
         }
         
-        // 滿意度（如果有滿意度資料）
+        // 滿意度
         if (showAll || tabs.includes('satisfaction')) {
             if (stats.satisfactionStats) {
                 html += `
@@ -784,11 +794,16 @@ const Report = {
         
         html += '</div>';
         
+        // 如果沒有任何內容
+        if (!showAll && tabs.length === 0) {
+            html = '<div style="text-align: center; padding: 40px; color: var(--text-hint);">請選擇至少一個統計分類</div>';
+        }
+        
         container.innerHTML = html;
         
         // 渲染圖表
         setTimeout(() => {
-            if (showAll || tabs.includes('overview')) {
+            if (showAll || tabs.includes('cancer')) {
                 this.renderCancerChart(cancerLabels, cancerData);
             }
             if (showAll || tabs.includes('weight')) {
