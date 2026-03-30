@@ -642,7 +642,7 @@ const Intervention = {
                 closeOnClick: false,
                 onClick: () => {
                     closeModal();
-                    setTimeout(() => Intervention.showSDMComparison(), 100);
+                    setTimeout(() => Intervention.showSDMComparison(treatmentId), 100);
                 }
             },
             {
@@ -899,8 +899,16 @@ const Intervention = {
     
     /**
      * 顯示 SDM 比較表（鼻胃管 vs 胃造廔術）
+     * @param {number} treatmentId - 療程 ID（用於儲存選擇）
      */
-    showSDMComparison() {
+    async showSDMComparison(treatmentId = null) {
+        // 如果有 treatmentId，取得現有選擇
+        let currentChoice = '';
+        if (treatmentId) {
+            const treatment = await Treatment.getById(treatmentId);
+            currentChoice = treatment?.sdm_choice || '';
+        }
+        
         const html = `
             <div class="sdm-comparison">
                 <div style="text-align: center; margin-bottom: 20px;">
@@ -1006,16 +1014,16 @@ const Intervention = {
                     <p style="font-weight: 500; margin-bottom: 12px;">您目前比較想要選擇的方式是：</p>
                     <div style="display: flex; flex-direction: column; gap: 8px;">
                         <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                            <input type="radio" name="sdm_choice" value="ng_tube"> 鼻胃管
+                            <input type="radio" name="sdm_choice" value="ng_tube" ${currentChoice === 'ng_tube' ? 'checked' : ''}> 鼻胃管
                         </label>
                         <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                            <input type="radio" name="sdm_choice" value="peg_endoscopic"> 經皮內視鏡胃造廔術
+                            <input type="radio" name="sdm_choice" value="peg_endoscopic" ${currentChoice === 'peg_endoscopic' ? 'checked' : ''}> 經皮內視鏡胃造廔術
                         </label>
                         <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                            <input type="radio" name="sdm_choice" value="peg_fluoroscopic"> 經皮透視攝影導引胃造廔術
+                            <input type="radio" name="sdm_choice" value="peg_fluoroscopic" ${currentChoice === 'peg_fluoroscopic' ? 'checked' : ''}> 經皮透視攝影導引胃造廔術
                         </label>
                         <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                            <input type="radio" name="sdm_choice" value="undecided"> 目前無法決定，想與家人或醫療團隊討論
+                            <input type="radio" name="sdm_choice" value="undecided" ${currentChoice === 'undecided' ? 'checked' : ''}> 目前無法決定，想與家人或醫療團隊討論
                         </label>
                     </div>
                 </div>
@@ -1028,15 +1036,53 @@ const Intervention = {
             </div>
         `;
         
-        openModal('SDM 共享決策 - 進食管路選擇', html, [
+        const buttons = [
             { 
                 text: '列印', 
                 class: 'btn-outline',
                 closeOnClick: false,
                 onClick: () => this.printSDMComparison()
-            },
-            { text: '關閉', class: 'btn-primary' }
-        ], { width: '700px' });
+            }
+        ];
+        
+        // 如果有 treatmentId，添加儲存按鈕
+        if (treatmentId) {
+            buttons.push({
+                text: '儲存選擇',
+                class: 'btn-primary',
+                closeOnClick: false,
+                onClick: async () => {
+                    const selected = document.querySelector('input[name="sdm_choice"]:checked');
+                    if (!selected) {
+                        showToast('請選擇一個選項', 'error');
+                        return;
+                    }
+                    await this.saveSDMChoice(treatmentId, selected.value);
+                    closeModal();
+                    showToast('已儲存 SDM 選擇', 'success');
+                    // 刷新頁面
+                    if (typeof App !== 'undefined') {
+                        App.renderContent();
+                    }
+                }
+            });
+        } else {
+            buttons.push({ text: '關閉', class: 'btn-primary' });
+        }
+        
+        openModal('SDM 共享決策 - 進食管路選擇', html, buttons, { width: '700px' });
+    },
+    
+    /**
+     * 儲存 SDM 選擇
+     */
+    async saveSDMChoice(treatmentId, choice) {
+        const treatment = await Treatment.getById(treatmentId);
+        if (treatment) {
+            treatment.sdm_choice = choice;
+            treatment.sdm_choice_date = new Date().toISOString();
+            await DB.update('treatments', treatment);
+        }
     },
     
     /**

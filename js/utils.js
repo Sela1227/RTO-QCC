@@ -152,6 +152,21 @@ function formatInterventionStatus(status) {
 }
 
 /**
+ * 格式化 SDM 選擇
+ */
+function formatSDMChoice(choice) {
+    const map = {
+        'oral_supplement': '口服營養補充',
+        'ng_tube': '鼻胃管',
+        'peg_endoscopic': 'PEG（內視鏡）',
+        'peg_fluoroscopic': 'PEG（透視導引）',
+        'undecided': '考慮中',
+        'refused': '病人拒絕'
+    };
+    return map[choice] || choice || '未選擇';
+}
+
+/**
  * 顯示 Toast 通知
  */
 function showToast(message, type = 'info', duration = 3000) {

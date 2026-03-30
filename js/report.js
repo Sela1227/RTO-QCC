@@ -761,6 +761,8 @@ const Report = {
                 '目前體重': latestWeight?.weight || '-',
                 '變化率': changeRate !== null ? formatChangeRate(changeRate) : '-',
                 '最後量測': latestWeight?.measure_date || '-',
+                'SDM選擇': formatSDMChoice(t.sdm_choice),
+                'SDM選擇日期': t.sdm_choice_date ? formatDate(t.sdm_choice_date, 'YYYY-MM-DD') : '-',
                 '狀態': formatTreatmentStatus(t.status)
             });
         }

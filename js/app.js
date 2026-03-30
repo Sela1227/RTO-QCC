@@ -320,11 +320,17 @@ const App = {
     async updateStats() {
         const activeTreatments = await Treatment.getActive();
         const pausedTreatments = await Treatment.getPaused();
+        const alertRules = await Settings.get('alert_rules', []);
         
-        // 計算有待處理介入的人數（而非介入次數）
-        const pendingCount = activeTreatments.filter(t => 
-            t.pending_interventions?.length > 0
-        ).length;
+        // 計算需處理人數：體重下降達 3% 或 5% 閾值
+        const pendingCount = activeTreatments.filter(t => {
+            if (t.change_rate === null) return false;
+            const rule = alertRules.find(r => r.cancer_type === t.cancer_type) || 
+                         alertRules.find(r => r.cancer_type === 'default') ||
+                         { sdm_threshold: -3, nutrition_threshold: -5 };
+            // 體重下降達 SDM 閾值（通常 -3%）就需處理
+            return t.change_rate <= rule.sdm_threshold;
+        }).length;
         
         // 計算待輸體重的人數
         const overdueCount = activeTreatments.filter(t => 
@@ -469,6 +475,16 @@ const App = {
         // 取得療程列表
         let treatments = [];
         let tabTitle = '';
+        const alertRules = await Settings.get('alert_rules', []);
+        
+        // 判斷是否達警示閾值的函數
+        const needsIntervention = (t) => {
+            if (t.change_rate === null) return false;
+            const rule = alertRules.find(r => r.cancer_type === t.cancer_type) || 
+                         alertRules.find(r => r.cancer_type === 'default') ||
+                         { sdm_threshold: -3, nutrition_threshold: -5 };
+            return t.change_rate <= rule.sdm_threshold;
+        };
         
         if (this.currentTrackingTab === 'active') {
             treatments = await Treatment.getActive();
@@ -477,9 +493,9 @@ const App = {
             treatments = await Treatment.getPaused();
             tabTitle = '暫停中';
         } else if (this.currentTrackingTab === 'pending') {
-            // 需處理：從治療中篩選有待處理介入的
+            // 需處理：體重下降達閾值（-3% 或 -5%）
             treatments = await Treatment.getActive();
-            treatments = treatments.filter(t => t.pending_interventions?.length > 0);
+            treatments = treatments.filter(needsIntervention);
             tabTitle = '需處理';
         } else if (this.currentTrackingTab === 'overdue') {
             // 待輸體重：從治療中篩選超過追蹤週期的
@@ -488,9 +504,9 @@ const App = {
             tabTitle = '待輸體重';
         }
         
-        // 如果是從儀表板來的篩選（相容舊邏輯）
+        // 如果是從儀表板來的篩選
         if (this.trackingFilter === 'pending') {
-            treatments = treatments.filter(t => t.pending_interventions?.length > 0);
+            treatments = treatments.filter(needsIntervention);
         } else if (this.trackingFilter === 'overdue') {
             treatments = treatments.filter(t => t.tracking_status?.status === 'overdue');
         }
@@ -539,29 +555,34 @@ const App = {
         for (const t of treatments) {
             const rateClass = getRateClass(t.change_rate);
             const isSelected = t.id === this.selectedTreatmentId;
-            const hasPending = t.pending_interventions?.length > 0;
             const isOverdue = t.tracking_status?.status === 'overdue';
             
-            // 檢查介入類型
-            const hasNutrition = t.pending_interventions?.some(i => i.type === 'nutrition');
-            const hasSdm = t.pending_interventions?.some(i => i.type === 'sdm');
+            // 取得此癌別的警示閾值
+            const rule = alertRules.find(r => r.cancer_type === t.cancer_type) || 
+                         alertRules.find(r => r.cancer_type === 'default') ||
+                         { sdm_threshold: -3, nutrition_threshold: -5 };
+            
+            // 檢查體重變化是否達閾值
+            const needsNutrition = t.change_rate !== null && t.change_rate <= rule.nutrition_threshold;
+            const needsSdm = t.change_rate !== null && t.change_rate <= rule.sdm_threshold && !needsNutrition;
+            const needsIntervention = needsNutrition || needsSdm;
             
             let cardClass = 'patient-card';
             if (isSelected) cardClass += ' active';
-            if (hasNutrition) {
+            if (needsNutrition) {
                 cardClass += ' alert-danger';  // 營養師用紅色
-            } else if (hasSdm) {
+            } else if (needsSdm) {
                 cardClass += ' alert-warning'; // SDM 用橘色
             }
             if (isOverdue) cardClass += ' alert-overdue';
             
             // 生成標籤
             let tagsHtml = '';
-            if (hasPending || isOverdue) {
+            if (needsIntervention || isOverdue) {
                 tagsHtml = '<div class="patient-card-tags">';
-                if (hasNutrition) {
+                if (needsNutrition) {
                     tagsHtml += '<span class="tag tag-red" style="font-size: 10px; padding: 1px 5px;">需營養師</span>';
-                } else if (hasSdm) {
+                } else if (needsSdm) {
                     tagsHtml += '<span class="tag tag-amber" style="font-size: 10px; padding: 1px 5px;">需SDM</span>';
                 }
                 if (isOverdue) {
@@ -780,6 +801,22 @@ const App = {
                         <span>開始</span>
                         <span>${formatDate(treatment.treatment_start, 'MM/DD')}</span>
                     </div>
+                </div>
+                
+                <!-- SDM 選擇 -->
+                <div class="detail-row" style="padding: 6px 0; margin-top: 4px; border-top: 1px solid var(--border);">
+                    <span style="font-size: 13px;">SDM 選擇</span>
+                    <span style="display: flex; align-items: center; gap: 6px; font-size: 13px;">
+                        ${treatment.sdm_choice ? `
+                            <span class="tag tag-blue" style="font-size: 11px;">${formatSDMChoice(treatment.sdm_choice)}</span>
+                        ` : '<span style="color: var(--text-hint);">未選擇</span>'}
+                        <button class="btn-icon" style="padding: 2px;" onclick="Intervention.showSDMComparison(${treatment.id})" title="編輯 SDM 選擇">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                            </svg>
+                        </button>
+                    </span>
                 </div>
             </div>
             

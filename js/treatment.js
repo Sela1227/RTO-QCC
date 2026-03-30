@@ -437,6 +437,17 @@ const Treatment = {
         
         const isUnableToMeasure = treatment?.unable_to_measure || false;
         
+        // SDM 選擇選項
+        const sdmOptions = [
+            { code: '', label: '-- 尚未選擇 --' },
+            { code: 'oral_supplement', label: '口服營養補充' },
+            { code: 'ng_tube', label: '鼻胃管' },
+            { code: 'peg_endoscopic', label: '經皮內視鏡胃造廔術 (PEG)' },
+            { code: 'peg_fluoroscopic', label: '經皮透視導引胃造廔術' },
+            { code: 'undecided', label: '尚在考慮中' },
+            { code: 'refused', label: '病人拒絕' }
+        ];
+        
         const html = `
             <form id="treatment-form">
                 <div style="background: var(--bg); padding: 12px; border-radius: 8px; margin-bottom: 16px;">
@@ -472,6 +483,8 @@ const Treatment = {
                         </label>
                     </div>
                 </div>
+                
+                ${createFormGroup('SDM 營養選擇', createSelect('sdm_choice', sdmOptions, treatment?.sdm_choice))}
             </form>
         `;
         
@@ -510,7 +523,8 @@ const Treatment = {
                         cancer_type: document.getElementById('cancer_type').value,
                         treatment_start: document.getElementById('treatment_start').value,
                         baseline_weight: baselineWeight ? parseFloat(baselineWeight) : null,
-                        unable_to_measure: unableToMeasure
+                        unable_to_measure: unableToMeasure,
+                        sdm_choice: document.getElementById('sdm_choice').value || null
                     };
                     
                     try {
