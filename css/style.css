@@ -330,13 +330,19 @@ body {
     max-width: 640px;
 }
 
+.stats-grid-5 {
+    grid-template-columns: repeat(5, 1fr);
+    max-width: 900px;
+    gap: var(--space-md);
+}
+
 .stat-card {
     background: var(--bg-card);
     border-radius: var(--radius-lg);
-    padding: 28px 36px;
+    padding: 20px 16px;
     display: flex;
     align-items: center;
-    gap: var(--space-xl);
+    gap: var(--space-md);
     box-shadow: var(--shadow-sm);
     cursor: pointer;
     transition: var(--transition);
@@ -347,18 +353,27 @@ body {
     transform: translateY(-2px);
 }
 
+.stat-card-warning {
+    background: rgba(228, 185, 90, 0.08);
+}
+
+.stat-card-danger {
+    background: rgba(217, 123, 123, 0.08);
+}
+
 .stat-icon {
-    width: 64px;
-    height: 64px;
+    width: 48px;
+    height: 48px;
     border-radius: var(--radius-md);
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
 }
 
 .stat-icon svg {
-    width: 32px;
-    height: 32px;
+    width: 24px;
+    height: 24px;
 }
 
 .stat-icon-blue {
@@ -381,22 +396,28 @@ body {
     color: var(--text-secondary);
 }
 
+.stat-icon-teal {
+    background: rgba(107, 191, 138, 0.12);
+    color: var(--success);
+}
+
 .stat-info {
     display: flex;
     flex-direction: column;
+    min-width: 0;
 }
 
 .stat-value {
-    font-size: 42px;
+    font-size: 32px;
     font-weight: 700;
     color: var(--text);
     line-height: 1.2;
 }
 
 .stat-label {
-    font-size: var(--font-size-lg);
+    font-size: var(--font-size-sm);
     color: var(--text-secondary);
-    margin-top: 4px;
+    margin-top: 2px;
 }
 
 /* === 搜尋區 === */
@@ -608,6 +629,15 @@ body {
 .tab.tab-danger.active {
     background: rgba(217, 123, 123, 0.15);
     color: var(--danger);
+}
+
+.tab.tab-teal {
+    color: var(--success);
+}
+
+.tab.tab-teal.active {
+    background: rgba(107, 191, 138, 0.15);
+    color: var(--success);
 }
 
 /* === 追蹤頁面佈局 === */
@@ -1446,7 +1476,8 @@ body {
     }
     
     .stats-grid,
-    .stats-grid-2x2 {
+    .stats-grid-2x2,
+    .stats-grid-5 {
         grid-template-columns: 1fr 1fr;
         gap: 10px;
         max-width: 100%;

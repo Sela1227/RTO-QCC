@@ -221,31 +221,13 @@ const App = {
                 const filter = card.dataset.filter;
                 this.navigate('tracking');
                 
-                // 根據 filter 切換頁籤或篩選
+                // 直接切換到對應頁籤
                 setTimeout(() => {
-                    if (filter === 'active') {
-                        // 切換到治療中頁籤
-                        document.querySelectorAll('#page-tracking .tab').forEach(t => {
-                            t.classList.toggle('active', t.dataset.tab === 'active');
-                        });
-                        this.currentTrackingTab = 'active';
-                        this.renderTracking();
-                    } else if (filter === 'paused') {
-                        // 切換到暫停中頁籤
-                        document.querySelectorAll('#page-tracking .tab').forEach(t => {
-                            t.classList.toggle('active', t.dataset.tab === 'paused');
-                        });
-                        this.currentTrackingTab = 'paused';
-                        this.renderTracking();
-                    } else if (filter === 'pending' || filter === 'overdue') {
-                        // 需處理或待輸體重，保持在治療中頁籤但標記篩選狀態
-                        document.querySelectorAll('#page-tracking .tab').forEach(t => {
-                            t.classList.toggle('active', t.dataset.tab === 'active');
-                        });
-                        this.currentTrackingTab = 'active';
-                        this.trackingFilter = filter;
-                        this.renderTracking();
-                    }
+                    document.querySelectorAll('#page-tracking .tab').forEach(t => {
+                        t.classList.toggle('active', t.dataset.tab === filter);
+                    });
+                    this.currentTrackingTab = filter;
+                    this.renderTracking();
                 }, 100);
             };
         });
@@ -321,18 +303,40 @@ const App = {
         const activeTreatments = await Treatment.getActive();
         const pausedTreatments = await Treatment.getPaused();
         const alertRules = await Settings.get('alert_rules', []);
+        const allInterventions = await DB.getAll('interventions');
+        const now = new Date();
+        const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
         
-        // 計算需處理人數：體重下降達 3% 或 5% 閾值
-        const pendingCount = activeTreatments.filter(t => {
+        // 判斷是否達警示閾值
+        const reachesThreshold = (t) => {
             if (t.change_rate === null) return false;
             const rule = alertRules.find(r => r.cancer_type === t.cancer_type) || 
                          alertRules.find(r => r.cancer_type === 'default') ||
                          { sdm_threshold: -3, nutrition_threshold: -5 };
-            // 體重下降達 SDM 閾值（通常 -3%）就需處理
             return t.change_rate <= rule.sdm_threshold;
-        }).length;
+        };
         
-        // 計算待輸體重的人數
+        // 判斷7天內是否有處置
+        const hasRecentIntervention = (treatmentId) => {
+            return allInterventions.some(i => 
+                i.treatment_id === treatmentId && 
+                !i.deleted &&
+                (i.status === 'executed' || i.contacted_at) &&
+                new Date(i.executed_at || i.contacted_at) >= sevenDaysAgo
+            );
+        };
+        
+        // 需處理：達閾值且7天內未處置
+        const pendingCount = activeTreatments.filter(t => 
+            reachesThreshold(t) && !hasRecentIntervention(t.id)
+        ).length;
+        
+        // 需關注：達閾值但7天內已處置
+        const attentionCount = activeTreatments.filter(t => 
+            reachesThreshold(t) && hasRecentIntervention(t.id)
+        ).length;
+        
+        // 待輸體重
         const overdueCount = activeTreatments.filter(t => 
             t.tracking_status?.status === 'overdue'
         ).length;
@@ -340,6 +344,7 @@ const App = {
         document.getElementById('stat-active').textContent = activeTreatments.length;
         document.getElementById('stat-paused').textContent = pausedTreatments.length;
         document.getElementById('stat-pending').textContent = pendingCount;
+        document.getElementById('stat-attention').textContent = attentionCount;
         document.getElementById('stat-overdue').textContent = overdueCount;
         
         // 檢查備份提醒
@@ -476,14 +481,37 @@ const App = {
         let treatments = [];
         let tabTitle = '';
         const alertRules = await Settings.get('alert_rules', []);
+        const allInterventions = await DB.getAll('interventions');
+        const now = new Date();
+        const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
         
-        // 判斷是否達警示閾值的函數
-        const needsIntervention = (t) => {
+        // 判斷是否達警示閾值
+        const reachesThreshold = (t) => {
             if (t.change_rate === null) return false;
             const rule = alertRules.find(r => r.cancer_type === t.cancer_type) || 
                          alertRules.find(r => r.cancer_type === 'default') ||
                          { sdm_threshold: -3, nutrition_threshold: -5 };
             return t.change_rate <= rule.sdm_threshold;
+        };
+        
+        // 判斷7天內是否有處置
+        const hasRecentIntervention = (treatmentId) => {
+            return allInterventions.some(i => 
+                i.treatment_id === treatmentId && 
+                !i.deleted &&
+                (i.status === 'executed' || i.contacted_at) &&
+                new Date(i.executed_at || i.contacted_at) >= sevenDaysAgo
+            );
+        };
+        
+        // 需處理：達閾值且7天內未處置
+        const needsIntervention = (t) => {
+            return reachesThreshold(t) && !hasRecentIntervention(t.id);
+        };
+        
+        // 需關注：達閾值但7天內已處置
+        const needsAttention = (t) => {
+            return reachesThreshold(t) && hasRecentIntervention(t.id);
         };
         
         if (this.currentTrackingTab === 'active') {
@@ -493,10 +521,15 @@ const App = {
             treatments = await Treatment.getPaused();
             tabTitle = '暫停中';
         } else if (this.currentTrackingTab === 'pending') {
-            // 需處理：體重下降達閾值（-3% 或 -5%）
+            // 需處理：達閾值且7天內未處置
             treatments = await Treatment.getActive();
             treatments = treatments.filter(needsIntervention);
             tabTitle = '需處理';
+        } else if (this.currentTrackingTab === 'attention') {
+            // 需關注：達閾值但7天內已處置
+            treatments = await Treatment.getActive();
+            treatments = treatments.filter(needsAttention);
+            tabTitle = '需關注';
         } else if (this.currentTrackingTab === 'overdue') {
             // 待輸體重：從治療中篩選超過追蹤週期的
             treatments = await Treatment.getActive();
@@ -504,34 +537,10 @@ const App = {
             tabTitle = '待輸體重';
         }
         
-        // 如果是從儀表板來的篩選
-        if (this.trackingFilter === 'pending') {
-            treatments = treatments.filter(needsIntervention);
-        } else if (this.trackingFilter === 'overdue') {
-            treatments = treatments.filter(t => t.tracking_status?.status === 'overdue');
-        }
-        
-        // 清除篩選狀態（只用一次）
-        const currentFilter = this.trackingFilter;
-        this.trackingFilter = null;
-        
-        // 顯示篩選提示（從儀表板來的）
-        let filterNotice = '';
-        if (currentFilter === 'pending') {
-            filterNotice = `<div style="padding: 8px 12px; background: rgba(228, 185, 90, 0.1); border-radius: 8px; margin-bottom: 12px; font-size: 13px; color: var(--warning);">
-                顯示需處理的病人（${treatments.length} 人）
-            </div>`;
-        } else if (currentFilter === 'overdue') {
-            filterNotice = `<div style="padding: 8px 12px; background: rgba(217, 123, 123, 0.1); border-radius: 8px; margin-bottom: 12px; font-size: 13px; color: var(--danger);">
-                顯示待輸體重的病人（${treatments.length} 人）
-            </div>`;
-        }
-        
         if (treatments.length === 0) {
             let emptyMsg = `目前沒有${tabTitle}的病人`;
             
             listContainer.innerHTML = `
-                ${filterNotice}
                 <div class="empty-state" style="width: 100%;">
                     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                         <circle cx="12" cy="12" r="10"></circle>
@@ -551,7 +560,7 @@ const App = {
         }
         
         // 渲染卡片列表
-        let cardsHtml = filterNotice;
+        let cardsHtml = '';
         for (const t of treatments) {
             const rateClass = getRateClass(t.change_rate);
             const isSelected = t.id === this.selectedTreatmentId;
