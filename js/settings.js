@@ -617,6 +617,10 @@ const SettingsUI = {
                         <strong>${data.interventions?.length || 0}</strong>
                     </div>
                     <div class="detail-row">
+                        <span>滿意度調查</span>
+                        <strong>${data.satisfaction?.length || 0}</strong>
+                    </div>
+                    <div class="detail-row">
                         <span>設定項目</span>
                         <strong>${data.settings?.length || 0}</strong>
                     </div>

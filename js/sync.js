@@ -91,7 +91,8 @@ const Sync = {
                 treatments: await DB.getAll('treatments'),
                 weights: await DB.getAll('weight_records'),
                 sideEffects: await DB.getAll('side_effects'),
-                interventions: await DB.getAll('interventions')
+                interventions: await DB.getAll('interventions'),
+                satisfaction: await DB.getAll('satisfaction')
             };
             
             // 分析同步內容
@@ -120,9 +121,9 @@ const Sync = {
      */
     async analyzeSync(importData, localData) {
         const result = {
-            toAdd: { patients: [], treatments: [], weights: [], sideEffects: [], interventions: [] },
-            toDelete: { patients: [], treatments: [], weights: [], sideEffects: [], interventions: [] },
-            toSkip: { patients: 0, treatments: 0, weights: 0, sideEffects: 0, interventions: 0 },
+            toAdd: { patients: [], treatments: [], weights: [], sideEffects: [], interventions: [], satisfaction: [] },
+            toDelete: { patients: [], treatments: [], weights: [], sideEffects: [], interventions: [], satisfaction: [] },
+            toSkip: { patients: 0, treatments: 0, weights: 0, sideEffects: 0, interventions: 0, satisfaction: 0 },
             conflicts: []
         };
         
@@ -131,6 +132,7 @@ const Sync = {
         const importWeights = importData.weight_records || [];
         const importSideEffects = importData.side_effects || [];
         const importInterventions = importData.interventions || [];
+        const importSatisfaction = importData.satisfaction || [];
         
         // 建立本地索引（包含已刪除的，用於同步刪除狀態）
         const localPatientMap = new Map(localData.patients.map(p => [p.medical_id, p]));
@@ -346,6 +348,45 @@ const Sync = {
             }
         }
         
+        // 分析滿意度調查
+        const localSatisfactionMap = new Map();
+        for (const s of (localData.satisfaction || [])) {
+            const treatment = localData.treatments.find(t => t.id === s.treatment_id);
+            if (treatment) {
+                const patient = localData.patients.find(p => p.id === treatment.patient_id);
+                if (patient) {
+                    const key = `${patient.medical_id}_${treatment.treatment_start}`;
+                    localSatisfactionMap.set(key, s);
+                }
+            }
+        }
+        
+        for (const s of importSatisfaction) {
+            const importTreatment = importTreatments.find(t => t.id === s.treatment_id);
+            if (!importTreatment) continue;
+            
+            const importPatient = importPatients.find(p => p.id === importTreatment.patient_id);
+            if (!importPatient) continue;
+            
+            const key = `${importPatient.medical_id}_${importTreatment.treatment_start}`;
+            
+            if (localSatisfactionMap.has(key)) {
+                const localS = localSatisfactionMap.get(key);
+                
+                // 處理刪除同步
+                if (s.deleted && !localS.deleted) {
+                    result.toDelete.satisfaction.push({
+                        local: localS,
+                        import: s
+                    });
+                }
+                result.toSkip.satisfaction++;
+            } else if (!s.deleted) {
+                // 只新增未刪除的
+                result.toAdd.satisfaction.push({ ...s, _importTreatmentId: s.treatment_id });
+            }
+        }
+        
         return result;
     },
     
@@ -447,9 +488,9 @@ const Sync = {
             showToast('正在同步...', 'info');
             
             const stats = {
-                added: { patients: 0, treatments: 0, weights: 0, sideEffects: 0, interventions: 0 },
-                updated: { patients: 0, treatments: 0, weights: 0, sideEffects: 0, interventions: 0 },
-                deleted: { patients: 0, treatments: 0, weights: 0, sideEffects: 0, interventions: 0 },
+                added: { patients: 0, treatments: 0, weights: 0, sideEffects: 0, interventions: 0, satisfaction: 0 },
+                updated: { patients: 0, treatments: 0, weights: 0, sideEffects: 0, interventions: 0, satisfaction: 0 },
+                deleted: { patients: 0, treatments: 0, weights: 0, sideEffects: 0, interventions: 0, satisfaction: 0 },
                 skipped: analysis.toSkip
             };
             
@@ -621,6 +662,27 @@ const Sync = {
                 }
             }
             
+            // 15. 同步刪除滿意度（軟刪除）
+            for (const item of (analysis.toDelete.satisfaction || [])) {
+                item.local.deleted = true;
+                item.local.deleted_at = item.import.deleted_at;
+                await DB.update('satisfaction', item.local);
+                stats.deleted.satisfaction++;
+            }
+            
+            // 16. 新增滿意度
+            for (const s of (analysis.toAdd.satisfaction || [])) {
+                const newS = { ...s };
+                delete newS.id;
+                const treatmentId = treatmentIdMap.get(s._importTreatmentId);
+                delete newS._importTreatmentId;
+                newS.treatment_id = treatmentId;
+                if (newS.treatment_id) {
+                    await DB.add('satisfaction', newS);
+                    stats.added.satisfaction++;
+                }
+            }
+            
             // 顯示結果
             this.showSyncResult(stats, resolvedConflicts.length);
             
@@ -640,11 +702,11 @@ const Sync = {
      */
     showSyncResult(stats, conflictCount) {
         const totalAdded = stats.added.patients + stats.added.treatments + 
-                          stats.added.weights + stats.added.sideEffects + stats.added.interventions;
+                          stats.added.weights + stats.added.sideEffects + stats.added.interventions + stats.added.satisfaction;
         const totalUpdated = stats.updated.patients + stats.updated.treatments + 
-                            stats.updated.weights + stats.updated.sideEffects + stats.updated.interventions;
+                            stats.updated.weights + stats.updated.sideEffects + stats.updated.interventions + stats.updated.satisfaction;
         const totalDeleted = stats.deleted.patients + stats.deleted.treatments + 
-                            stats.deleted.weights + stats.deleted.sideEffects + stats.deleted.interventions;
+                            stats.deleted.weights + stats.deleted.sideEffects + stats.deleted.interventions + stats.deleted.satisfaction;
         
         // 格式化統計行
         const formatRow = (label, added, updated, deleted) => {

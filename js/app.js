@@ -725,6 +725,9 @@ const App = {
                 <button class="btn btn-outline btn-sm" onclick="Intervention.showList(${treatment.id})">
                     介入記錄
                 </button>
+                <button class="btn btn-outline btn-sm" onclick="Satisfaction.showForm(${treatment.id})" title="滿意度調查">
+                    😊 滿意度
+                </button>
                 ${treatment.status === 'active' ? `
                     <button class="btn btn-outline btn-sm" style="color: var(--warning); border-color: var(--warning);" 
                             onclick="Treatment.confirmPause(${treatment.id})">

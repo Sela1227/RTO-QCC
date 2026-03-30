@@ -232,6 +232,14 @@ const Dashboard = {
         // 8. 結案人數
         const completedTreatments = filteredTreatments.filter(t => t.status === 'completed').length;
         
+        // 9. 滿意度統計
+        let satisfactionStats = null;
+        try {
+            satisfactionStats = await Satisfaction.calculateStats(startDate, endDate);
+        } catch (e) {
+            console.warn('滿意度統計計算失敗:', e);
+        }
+        
         // ===== 計算圖表資料 =====
         
         // 月度趨勢
@@ -256,6 +264,7 @@ const Dashboard = {
             seTrackingRate,
             completedTreatments,
             totalTreatments: filteredTreatments.length,
+            satisfactionStats,
             monthlyStats,
             cancerStats,
             interventionTypeStats,
@@ -455,6 +464,14 @@ const Dashboard = {
                 value: s.completedTreatments,
                 unit: '人',
                 label: '已結案'
+            },
+            {
+                icon: '😊',
+                iconClass: s.satisfactionStats?.overallAvg >= 4 ? 'green' : 'amber',
+                value: s.satisfactionStats?.overallAvg?.toFixed(1) || '-',
+                unit: s.satisfactionStats?.overallAvg ? '/5' : '',
+                label: '滿意度',
+                extra: s.satisfactionStats?.count ? `(${s.satisfactionStats.count}份)` : ''
             }
         ];
         
@@ -464,6 +481,7 @@ const Dashboard = {
                 <div class="kpi-content">
                     <div class="kpi-value">
                         ${kpi.value}<span class="unit">${kpi.unit}</span>
+                        ${kpi.extra ? `<span class="unit">${kpi.extra}</span>` : ''}
                     </div>
                     <div class="kpi-label">${kpi.label}</div>
                     ${kpi.target !== undefined ? `
@@ -484,6 +502,56 @@ const Dashboard = {
         if (!container || !this.stats) return;
         
         const s = this.stats;
+        
+        // 滿意度各題分數
+        let satisfactionHtml = '';
+        if (s.satisfactionStats && s.satisfactionStats.count > 0) {
+            const avgScores = s.satisfactionStats.avgScores;
+            satisfactionHtml = `
+                <div class="chart-card">
+                    <div class="chart-title">😊 滿意度分析 (${s.satisfactionStats.count} 份回饋)</div>
+                    <div class="stats-list" style="padding: 16px 0;">
+                        ${Object.values(avgScores).map(item => {
+                            const pct = (item.avg / 5) * 100;
+                            const color = item.avg >= 4 ? 'green' : item.avg >= 3 ? 'amber' : 'red';
+                            return `
+                                <div class="stats-item">
+                                    <span class="stats-label">${item.label}</span>
+                                    <div class="stats-bar-container">
+                                        <div class="stats-bar ${color}" style="width: ${pct}%"></div>
+                                    </div>
+                                    <span class="stats-value">${item.avg.toFixed(1)}/5</span>
+                                </div>
+                            `;
+                        }).join('')}
+                        <div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border); display: flex; justify-content: space-around; text-align: center;">
+                            <div>
+                                <div style="font-size: 24px; font-weight: 700; color: ${s.satisfactionStats.overallAvg >= 4 ? 'var(--success)' : 'var(--warning)'}">
+                                    ${s.satisfactionStats.overallAvg?.toFixed(1) || '-'}
+                                </div>
+                                <div style="font-size: 12px; color: var(--text-secondary);">整體平均</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 24px; font-weight: 700; color: ${s.satisfactionStats.nps >= 50 ? 'var(--success)' : s.satisfactionStats.nps >= 0 ? 'var(--warning)' : 'var(--danger)'}">
+                                    ${s.satisfactionStats.nps !== null ? s.satisfactionStats.nps : '-'}
+                                </div>
+                                <div style="font-size: 12px; color: var(--text-secondary);">NPS 淨推薦值</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else {
+            satisfactionHtml = `
+                <div class="chart-card">
+                    <div class="chart-title">😊 滿意度分析</div>
+                    <div style="text-align: center; padding: 40px 20px; color: var(--text-hint);">
+                        <div style="font-size: 32px; margin-bottom: 8px;">📝</div>
+                        <div>尚無滿意度回饋</div>
+                    </div>
+                </div>
+            `;
+        }
         
         // 先建立圖表容器
         container.innerHTML = `
@@ -522,6 +590,7 @@ const Dashboard = {
                     }).join('')}
                 </div>
             </div>
+            ${satisfactionHtml}
         `;
         
         // 延遲渲染圖表

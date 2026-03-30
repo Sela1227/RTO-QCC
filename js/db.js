@@ -289,6 +289,8 @@ async function exportAllData() {
         side_effects: await DB.getAll('side_effects'),
         // 介入記錄
         interventions: await DB.getAll('interventions'),
+        // 滿意度調查
+        satisfaction: await DB.getAll('satisfaction'),
         // 所有設定
         settings: await DB.getAll('settings')
     };
@@ -311,7 +313,9 @@ async function exportPatientData() {
         // 副作用評估
         side_effects: await DB.getAll('side_effects'),
         // 介入記錄
-        interventions: await DB.getAll('interventions')
+        interventions: await DB.getAll('interventions'),
+        // 滿意度調查
+        satisfaction: await DB.getAll('satisfaction')
     };
     return data;
 }
@@ -326,6 +330,7 @@ async function importAllData(data) {
     await DB.clear('weight_records');
     await DB.clear('side_effects');
     await DB.clear('interventions');
+    await DB.clear('satisfaction');
     await DB.clear('settings');
     
     // 匯入病人
@@ -348,6 +353,10 @@ async function importAllData(data) {
     for (const intervention of (data.interventions || [])) {
         await DB.update('interventions', intervention);
     }
+    // 匯入滿意度調查
+    for (const sat of (data.satisfaction || [])) {
+        await DB.update('satisfaction', sat);
+    }
     // 匯入設定
     for (const setting of (data.settings || [])) {
         await DB.update('settings', setting);
@@ -366,6 +375,7 @@ async function importPatientData(data) {
     await DB.clear('weight_records');
     await DB.clear('side_effects');
     await DB.clear('interventions');
+    await DB.clear('satisfaction');
     
     // 匯入病人
     for (const patient of (data.patients || [])) {
@@ -386,6 +396,10 @@ async function importPatientData(data) {
     // 匯入介入記錄
     for (const intervention of (data.interventions || [])) {
         await DB.update('interventions', intervention);
+    }
+    // 匯入滿意度調查
+    for (const sat of (data.satisfaction || [])) {
+        await DB.update('satisfaction', sat);
     }
     
     return true;
