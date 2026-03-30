@@ -1386,19 +1386,18 @@ const App = {
                     <strong>${patient.medical_id}</strong> ${patient.name}
                     ${recordInfo}
                 </div>
-                <div id="patient-qr-container" style="background: white; padding: 16px; border-radius: 8px; display: inline-block;">
-                    <canvas id="patient-qr-canvas"></canvas>
+                <div id="patient-qr-container" style="background: white; padding: 16px; border-radius: 8px; display: inline-block; min-width: 200px; min-height: 200px;">
                 </div>
                 ${patientAppUrl ? `
                     <p style="color: var(--success); font-size: 13px; margin-top: 12px;">
-                        ✓ 掃描後會自動開啟填報網頁
+                        V 掃描後會自動開啟填報網頁
                     </p>
                 ` : `
                     <p style="color: var(--warning); font-size: 13px; margin-top: 12px;">
                         尚未設定病人端網址
                     </p>
                     <p style="color: var(--text-hint); font-size: 12px;">
-                        請到設定 → 病人端 填入網址
+                        請到設定 - 病人端 填入網址
                     </p>
                 `}
             </div>
@@ -1414,35 +1413,40 @@ const App = {
             { text: '關閉', class: 'btn-primary' }
         ]);
         
-        // 使用 QRCode 庫生成 QR Code
-        setTimeout(async () => {
-            const canvas = document.getElementById('patient-qr-canvas');
+        // 使用 qrcodejs 庫生成 QR Code
+        setTimeout(() => {
             const container = document.getElementById('patient-qr-container');
             
-            if (!canvas || !container) {
+            if (!container) {
                 console.error('找不到 QR Code 容器');
                 return;
             }
             
+            // 清空容器
+            container.innerHTML = '';
+            
             // 檢查 QRCode 庫是否載入
-            if (typeof QRCode !== 'undefined' && QRCode.toCanvas) {
+            if (typeof QRCode !== 'undefined') {
                 try {
-                    await QRCode.toCanvas(canvas, qrContent, {
+                    new QRCode(container, {
+                        text: qrContent,
                         width: 200,
-                        margin: 2,
-                        errorCorrectionLevel: 'L' // 使用低糾錯等級減少資料量
+                        height: 200,
+                        colorDark: '#000000',
+                        colorLight: '#ffffff',
+                        correctLevel: QRCode.CorrectLevel.L
                     });
                     console.log('QR Code 生成成功');
                 } catch (error) {
                     console.error('QR Code 生成失敗:', error);
                     // 回退到外部 API
                     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrContent)}`;
-                    container.innerHTML = `<img src="${qrUrl}" alt="QR Code" style="display: block; width: 200px; height: 200px;" onerror="this.parentElement.innerHTML='<div style=\\'padding:40px;color:#999;\\'>QR Code 產生失敗</div>'">`;
+                    container.innerHTML = `<img src="${qrUrl}" alt="QR Code" style="display: block; width: 200px; height: 200px;">`;
                 }
             } else {
                 console.warn('QRCode 庫未載入，使用外部 API');
                 const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrContent)}`;
-                container.innerHTML = `<img src="${qrUrl}" alt="QR Code" style="display: block; width: 200px; height: 200px;" onerror="this.parentElement.innerHTML='<div style=\\'padding:40px;color:#999;\\'>QR Code 產生失敗</div>'">`;
+                container.innerHTML = `<img src="${qrUrl}" alt="QR Code" style="display: block; width: 200px; height: 200px;">`;
             }
         }, 200);
     },

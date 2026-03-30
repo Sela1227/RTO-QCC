@@ -697,7 +697,8 @@ const Dashboard = {
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false,
+                maintainAspectRatio: true,
+                aspectRatio: 1, // 保持正方形
                 plugins: {
                     legend: {
                         position: 'right',

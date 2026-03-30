@@ -1943,6 +1943,8 @@ body {
 
 .chart-container.small {
     height: 180px;
+    width: 180px; /* 保持正方形 */
+    margin: 0 auto;
 }
 
 /* 統計列表 */
