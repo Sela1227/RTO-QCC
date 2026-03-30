@@ -483,6 +483,47 @@ const Report = {
             default: periodLabel = '全部時間';
         }
         
+        // SDM 選擇統計
+        const sdmStats = {
+            total: 0,
+            completed: 0,
+            choices: {}
+        };
+        
+        const sdmChoiceLabels = {
+            'oral_supplement': '口服營養補充',
+            'ng_tube': '鼻胃管',
+            'peg_endoscopic': '經皮內視鏡胃造廔術',
+            'peg_fluoroscopic': '經皮透視導引胃造廔術',
+            'undecided': '尚在考慮中',
+            'refused': '病人拒絕'
+        };
+        
+        filteredTreatments.forEach(t => {
+            // 檢查是否有體重下降達閾值（需要 SDM）
+            const records = filteredWeightRecords.filter(r => r.treatment_id === t.id);
+            if (records.length > 0 && t.baseline_weight) {
+                const latestWeight = records.sort((a, b) => new Date(b.measure_date) - new Date(a.measure_date))[0];
+                const changeRate = ((latestWeight.weight - t.baseline_weight) / t.baseline_weight) * 100;
+                
+                if (changeRate <= -3) {
+                    sdmStats.total++;
+                    
+                    if (t.sdm_choice && t.sdm_choice !== 'undecided') {
+                        sdmStats.completed++;
+                        
+                        const label = sdmChoiceLabels[t.sdm_choice] || t.sdm_choice;
+                        if (!sdmStats.choices[t.sdm_choice]) {
+                            sdmStats.choices[t.sdm_choice] = { code: t.sdm_choice, label, count: 0 };
+                        }
+                        sdmStats.choices[t.sdm_choice].count++;
+                    }
+                }
+            }
+        });
+        
+        sdmStats.completionRate = sdmStats.total > 0 ? (sdmStats.completed / sdmStats.total) * 100 : 0;
+        
         return {
             periodLabel,
             totalTreatments: filteredTreatments.length,
@@ -512,7 +553,9 @@ const Report = {
             // 副作用統計
             sideEffectStats,
             // 滿意度統計
-            satisfactionStats
+            satisfactionStats,
+            // SDM 選擇統計
+            sdmStats
         };
     },
     
@@ -667,6 +710,32 @@ const Report = {
                             <strong>${count}</strong>
                         </div>
                     `).join('') || '<div style="color: var(--text-hint); font-size: 12px;">無資料</div>'}
+                </div>
+                
+                <div class="report-card">
+                    <div class="report-card-title">SDM 選擇統計</div>
+                    <div class="detail-row">
+                        <span>需 SDM 人數</span>
+                        <strong>${stats.sdmStats.total}</strong>
+                    </div>
+                    <div class="detail-row">
+                        <span>已完成選擇</span>
+                        <strong style="color: var(--success);">${stats.sdmStats.completed}</strong>
+                    </div>
+                    <div class="detail-row">
+                        <span>完成率</span>
+                        <strong>${stats.sdmStats.completionRate.toFixed(1)}%</strong>
+                    </div>
+                    ${Object.keys(stats.sdmStats.choices).length > 0 ? `
+                        <hr style="margin: 8px 0; border: none; border-top: 1px solid var(--border);">
+                        <div class="report-card-title" style="font-size: 12px; margin-bottom: 4px;">選擇分布</div>
+                        ${Object.values(stats.sdmStats.choices).sort((a, b) => b.count - a.count).map(item => `
+                            <div class="detail-row" style="font-size: 13px;">
+                                <span>${item.label}</span>
+                                <strong>${item.count}</strong>
+                            </div>
+                        `).join('')}
+                    ` : ''}
                 </div>
             `;
         }

@@ -7,25 +7,27 @@
 :root {
     --primary: #4A90D9;
     --primary-dark: #3A7BC8;
+    --primary-light: #E8F2FC;
     --danger: #D97B7B;
     --warning: #E4B95A;
     --success: #6BBF8A;
     --purple: #9370DB;
     
-    --bg: #1a1a2e;
-    --bg-card: #252542;
-    --bg-input: #2d2d4a;
-    --border: #3a3a5c;
+    --bg: #F5F7FA;
+    --bg-card: #FFFFFF;
+    --bg-input: #F0F2F5;
+    --border: #E0E4E8;
     
-    --text: #e8e8f0;
-    --text-secondary: #a8a8b8;
-    --text-hint: #6a6a7a;
+    --text: #2C3E50;
+    --text-secondary: #5A6A7A;
+    --text-hint: #8A9AAA;
     
     --radius-sm: 8px;
     --radius-md: 12px;
     --radius-lg: 16px;
     
-    --shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    --shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.12);
     
     --space-xs: 4px;
     --space-sm: 8px;
