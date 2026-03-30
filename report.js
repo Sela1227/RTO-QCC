@@ -1,445 +1,1844 @@
 /**
- * 彰濱放腫體重監控預防系統 - IndexedDB 資料庫模組
- * 負責所有資料的本地儲存
+ * 體重追蹤 - 病人端樣式
+ * v1.0
  */
 
-const DB_NAME = 'sela_weight_tracker';
-const DB_VERSION = 1;
-
-// 資料庫實例
-let db = null;
-
-/**
- * 初始化資料庫
- */
-async function initDB() {
-    return new Promise((resolve, reject) => {
-        const request = indexedDB.open(DB_NAME, DB_VERSION);
-        
-        request.onerror = () => {
-            console.error('資料庫開啟失敗', request.error);
-            reject(request.error);
-        };
-        
-        request.onsuccess = () => {
-            db = request.result;
-            console.log('資料庫已連線');
-            resolve(db);
-        };
-        
-        request.onupgradeneeded = (event) => {
-            const database = event.target.result;
-            
-            // 病人資料表
-            if (!database.objectStoreNames.contains('patients')) {
-                const patientStore = database.createObjectStore('patients', { 
-                    keyPath: 'id', 
-                    autoIncrement: true 
-                });
-                patientStore.createIndex('medical_id', 'medical_id', { unique: true });
-                patientStore.createIndex('name', 'name', { unique: false });
-            }
-            
-            // 療程資料表
-            if (!database.objectStoreNames.contains('treatments')) {
-                const treatmentStore = database.createObjectStore('treatments', { 
-                    keyPath: 'id', 
-                    autoIncrement: true 
-                });
-                treatmentStore.createIndex('patient_id', 'patient_id', { unique: false });
-                treatmentStore.createIndex('status', 'status', { unique: false });
-            }
-            
-            // 體重記錄表
-            if (!database.objectStoreNames.contains('weight_records')) {
-                const weightStore = database.createObjectStore('weight_records', { 
-                    keyPath: 'id', 
-                    autoIncrement: true 
-                });
-                weightStore.createIndex('treatment_id', 'treatment_id', { unique: false });
-                weightStore.createIndex('measure_date', 'measure_date', { unique: false });
-            }
-            
-            // 介入記錄表
-            if (!database.objectStoreNames.contains('interventions')) {
-                const interventionStore = database.createObjectStore('interventions', { 
-                    keyPath: 'id', 
-                    autoIncrement: true 
-                });
-                interventionStore.createIndex('treatment_id', 'treatment_id', { unique: false });
-                interventionStore.createIndex('status', 'status', { unique: false });
-            }
-            
-            // 設定表
-            if (!database.objectStoreNames.contains('settings')) {
-                database.createObjectStore('settings', { keyPath: 'key' });
-            }
-            
-            console.log('資料庫結構已建立');
-        };
-    });
+/* === 變數 === */
+:root {
+    --primary: #4A90D9;
+    --primary-dark: #3A7BC8;
+    --danger: #D97B7B;
+    --warning: #E4B95A;
+    --success: #6BBF8A;
+    --purple: #9370DB;
+    
+    --bg: #1a1a2e;
+    --bg-card: #252542;
+    --bg-input: #2d2d4a;
+    --border: #3a3a5c;
+    
+    --text: #e8e8f0;
+    --text-secondary: #a8a8b8;
+    --text-hint: #6a6a7a;
+    
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    
+    --shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    
+    --space-xs: 4px;
+    --space-sm: 8px;
+    --space-md: 16px;
+    --space-lg: 24px;
+    --space-xl: 32px;
 }
 
-/**
- * 通用 CRUD 操作
- */
-const DB = {
-    /**
-     * 新增記錄
-     */
-    async add(storeName, data) {
-        return new Promise((resolve, reject) => {
-            const transaction = db.transaction([storeName], 'readwrite');
-            const store = transaction.objectStore(storeName);
-            
-            // 加入時間戳
-            data.created_at = new Date().toISOString();
-            data.updated_at = new Date().toISOString();
-            
-            const request = store.add(data);
-            
-            request.onsuccess = () => {
-                data.id = request.result;
-                resolve(data);
-            };
-            request.onerror = () => reject(request.error);
-        });
-    },
-    
-    /**
-     * 更新記錄
-     */
-    async update(storeName, data) {
-        return new Promise((resolve, reject) => {
-            const transaction = db.transaction([storeName], 'readwrite');
-            const store = transaction.objectStore(storeName);
-            
-            data.updated_at = new Date().toISOString();
-            
-            const request = store.put(data);
-            
-            request.onsuccess = () => resolve(data);
-            request.onerror = () => reject(request.error);
-        });
-    },
-    
-    /**
-     * 刪除記錄
-     */
-    async delete(storeName, id) {
-        return new Promise((resolve, reject) => {
-            const transaction = db.transaction([storeName], 'readwrite');
-            const store = transaction.objectStore(storeName);
-            const request = store.delete(id);
-            
-            request.onsuccess = () => resolve(true);
-            request.onerror = () => reject(request.error);
-        });
-    },
-    
-    /**
-     * 取得單筆記錄
-     */
-    async get(storeName, id) {
-        return new Promise((resolve, reject) => {
-            const transaction = db.transaction([storeName], 'readonly');
-            const store = transaction.objectStore(storeName);
-            const request = store.get(id);
-            
-            request.onsuccess = () => resolve(request.result);
-            request.onerror = () => reject(request.error);
-        });
-    },
-    
-    /**
-     * 取得所有記錄
-     */
-    async getAll(storeName) {
-        return new Promise((resolve, reject) => {
-            const transaction = db.transaction([storeName], 'readonly');
-            const store = transaction.objectStore(storeName);
-            const request = store.getAll();
-            
-            request.onsuccess = () => resolve(request.result || []);
-            request.onerror = () => reject(request.error);
-        });
-    },
-    
-    /**
-     * 依索引查詢
-     */
-    async getByIndex(storeName, indexName, value) {
-        return new Promise((resolve, reject) => {
-            const transaction = db.transaction([storeName], 'readonly');
-            const store = transaction.objectStore(storeName);
-            const index = store.index(indexName);
-            const request = index.getAll(value);
-            
-            request.onsuccess = () => resolve(request.result || []);
-            request.onerror = () => reject(request.error);
-        });
-    },
-    
-    /**
-     * 依索引查詢單筆
-     */
-    async getOneByIndex(storeName, indexName, value) {
-        return new Promise((resolve, reject) => {
-            const transaction = db.transaction([storeName], 'readonly');
-            const store = transaction.objectStore(storeName);
-            const index = store.index(indexName);
-            const request = index.get(value);
-            
-            request.onsuccess = () => resolve(request.result);
-            request.onerror = () => reject(request.error);
-        });
-    },
-    
-    /**
-     * 清空資料表
-     */
-    async clear(storeName) {
-        return new Promise((resolve, reject) => {
-            const transaction = db.transaction([storeName], 'readwrite');
-            const store = transaction.objectStore(storeName);
-            const request = store.clear();
-            
-            request.onsuccess = () => resolve(true);
-            request.onerror = () => reject(request.error);
-        });
-    },
-    
-    /**
-     * 計數
-     */
-    async count(storeName) {
-        return new Promise((resolve, reject) => {
-            const transaction = db.transaction([storeName], 'readonly');
-            const store = transaction.objectStore(storeName);
-            const request = store.count();
-            
-            request.onsuccess = () => resolve(request.result);
-            request.onerror = () => reject(request.error);
-        });
-    }
-};
-
-/**
- * 設定存取
- */
-const Settings = {
-    async get(key, defaultValue = null) {
-        const result = await DB.get('settings', key);
-        return result ? result.value : defaultValue;
-    },
-    
-    async set(key, value) {
-        return DB.update('settings', { key, value, updated_at: new Date().toISOString() });
-    },
-    
-    async getAll() {
-        const all = await DB.getAll('settings');
-        const result = {};
-        all.forEach(item => {
-            result[item.key] = item.value;
-        });
-        return result;
-    }
-};
-
-/**
- * 匯出所有資料（備份）
- */
-async function exportAllData() {
-    const data = {
-        version: DB_VERSION,
-        exported_at: new Date().toISOString(),
-        patients: await DB.getAll('patients'),
-        treatments: await DB.getAll('treatments'),
-        weight_records: await DB.getAll('weight_records'),
-        interventions: await DB.getAll('interventions'),
-        settings: await DB.getAll('settings')
-    };
-    return data;
+/* === 基礎 === */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
 
-/**
- * 匯入資料（還原）
- */
-async function importAllData(data) {
-    // 清空現有資料
-    await DB.clear('patients');
-    await DB.clear('treatments');
-    await DB.clear('weight_records');
-    await DB.clear('interventions');
-    await DB.clear('settings');
-    
-    // 匯入新資料
-    for (const patient of (data.patients || [])) {
-        await DB.update('patients', patient);
-    }
-    for (const treatment of (data.treatments || [])) {
-        await DB.update('treatments', treatment);
-    }
-    for (const record of (data.weight_records || [])) {
-        await DB.update('weight_records', record);
-    }
-    for (const intervention of (data.interventions || [])) {
-        await DB.update('interventions', intervention);
-    }
-    for (const setting of (data.settings || [])) {
-        await DB.update('settings', setting);
-    }
-    
-    return true;
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    min-height: 100vh;
+    overflow-x: hidden;
 }
 
-/**
- * 初始化預設設定
- */
-async function initDefaultSettings() {
-    const existing = await Settings.get('initialized');
-    if (existing) return;
-    
-    // 癌別
-    await Settings.set('cancer_types', [
-        { code: 'head_neck', label: '頭頸癌' },
-        { code: 'lung', label: '肺癌' },
-        { code: 'breast', label: '乳癌' },
-        { code: 'esophagus', label: '食道癌' },
-        { code: 'liver', label: '肝癌' },
-        { code: 'colorectal', label: '大腸直腸癌' },
-        { code: 'prostate', label: '攝護腺癌' },
-        { code: 'cervical', label: '子宮頸癌' },
-        { code: 'other', label: '其他' }
-    ]);
-    
-    // 人員
-    await Settings.set('staff_list', ['王孝宇', '陳詩韻', '廖芝穎']);
-    
-    // 警示規則
-    await Settings.set('alert_rules', [
-        { cancer_type: 'default', sdm_threshold: -3, nutrition_threshold: -5 },
-        { cancer_type: 'head_neck', sdm_threshold: -3, nutrition_threshold: -5 }
-    ]);
-    
-    // 治療目的
-    await Settings.set('treatment_intents', [
-        { code: 'curative', label: '根治性' },
-        { code: 'palliative', label: '緩和性' },
-        { code: 'adjuvant', label: '輔助性' }
-    ]);
-    
-    // 無法測量原因
-    await Settings.set('unable_reasons', [
-        { code: 'bedridden', label: '臥床' },
-        { code: 'wheelchair', label: '輪椅' },
-        { code: 'refused', label: '拒測' },
-        { code: 'other', label: '其他' }
-    ]);
-    
-    // 暫停療程原因
-    await Settings.set('pause_reasons', [
-        { code: 'side_effect', label: '副作用' },
-        { code: 'infection', label: '感染' },
-        { code: 'hospitalized', label: '住院中' },
-        { code: 'patient_request', label: '病人要求' },
-        { code: 'other', label: '其他（手填）' }
-    ]);
-    
-    await Settings.set('initialized', true);
-    console.log('預設設定已初始化');
-    
-    // 初始化測試資料
-    await initDemoData();
+#app {
+    max-width: 480px;
+    margin: 0 auto;
+    min-height: 100vh;
 }
 
-/**
- * 初始化測試資料（10位病人）
- */
-async function initDemoData() {
-    const patientCount = await DB.count('patients');
-    if (patientCount > 0) return; // 已有資料則不重複建立
-    
-    const today = new Date();
-    const formatDate = (d) => d.toISOString().split('T')[0];
-    const daysAgo = (n) => {
-        const d = new Date(today);
-        d.setDate(d.getDate() - n);
-        return formatDate(d);
-    };
-    
-    // 測試病人資料
-    const testPatients = [
-        { medical_id: '1001234', name: '王大明', gender: 'M', birth_date: '1958-03-15', cancer: 'head_neck', baseline: 68.5, weights: [68.5, 67.8, 67.2, 66.5, 65.8] },
-        { medical_id: '1001235', name: '李美玲', gender: 'F', birth_date: '1965-07-22', cancer: 'breast', baseline: 55.0, weights: [55.0, 54.8, 54.5, 54.2] },
-        { medical_id: '1001236', name: '張志明', gender: 'M', birth_date: '1952-11-08', cancer: 'lung', baseline: 72.0, weights: [72.0, 70.5, 69.0, 67.5, 66.0, 64.5] },
-        { medical_id: '1001237', name: '陳淑芬', gender: 'F', birth_date: '1970-04-30', cancer: 'cervical', baseline: 58.0, weights: [58.0, 57.5, 57.8, 57.2] },
-        { medical_id: '1001238', name: '林建宏', gender: 'M', birth_date: '1948-09-12', cancer: 'prostate', baseline: 75.5, weights: [75.5, 75.0, 74.8] },
-        { medical_id: '1001239', name: '黃雅婷', gender: 'F', birth_date: '1975-01-25', cancer: 'head_neck', baseline: 52.0, weights: [52.0, 51.5, 50.8, 50.0, 49.2] },
-        { medical_id: '1001240', name: '吳俊傑', gender: 'M', birth_date: '1960-06-18', cancer: 'esophagus', baseline: 65.0, weights: [65.0, 63.5, 62.0, 60.5] },
-        { medical_id: '1001241', name: '許惠珍', gender: 'F', birth_date: '1968-12-05', cancer: 'colorectal', baseline: 60.5, weights: [60.5, 60.2, 60.0, 59.8, 59.5] },
-        { medical_id: '1001242', name: '鄭文彬', gender: 'M', birth_date: '1955-08-20', cancer: 'liver', baseline: 70.0, weights: [70.0, 69.5, 69.0] },
-        { medical_id: '1001243', name: '蔡佳蓉', gender: 'F', birth_date: '1972-02-14', cancer: 'lung', baseline: 48.5, weights: [48.5, 47.8, 47.0, 46.2, 45.5] }
-    ];
-    
-    for (let i = 0; i < testPatients.length; i++) {
-        const p = testPatients[i];
-        
-        // 建立病人
-        const patient = await DB.add('patients', {
-            medical_id: p.medical_id,
-            name: p.name,
-            gender: p.gender,
-            birth_date: p.birth_date,
-            created_at: new Date().toISOString()
-        });
-        
-        // 決定療程狀態
-        let status = 'active';
-        if (i === 7) status = 'paused'; // 第8位病人暫停中
-        if (i === 9) status = 'completed'; // 第10位病人已完成
-        
-        // 建立療程
-        const startDays = 30 + i * 3; // 療程開始日期
-        const treatment = await DB.add('treatments', {
-            patient_id: patient.id,
-            cancer_type: p.cancer,
-            treatment_intent: 'curative',
-            treatment_start: daysAgo(startDays),
-            baseline_weight: p.baseline,
-            status: status,
-            created_at: new Date().toISOString()
-        });
-        
-        // 建立體重記錄
-        for (let j = 0; j < p.weights.length; j++) {
-            const weight = p.weights[j];
-            const changeRate = ((weight - p.baseline) / p.baseline) * 100;
-            
-            await DB.add('weight_records', {
-                treatment_id: treatment.id,
-                weight: weight,
-                measure_date: daysAgo(startDays - j * 7), // 每週記錄一次
-                change_rate: changeRate,
-                created_at: new Date().toISOString()
-            });
-        }
-        
-        // 部分病人建立待處理介入
-        if (i === 0 || i === 2 || i === 5) {
-            const lastWeight = p.weights[p.weights.length - 1];
-            const changeRate = ((lastWeight - p.baseline) / p.baseline) * 100;
-            
-            await DB.add('interventions', {
-                treatment_id: treatment.id,
-                type: changeRate < -5 ? 'nutrition' : 'sdm',
-                trigger_rate: changeRate,
-                status: 'pending',
-                created_at: new Date().toISOString()
-            });
-        }
+.screen {
+    min-height: 100vh;
+    padding: var(--space-md);
+    padding-bottom: calc(var(--space-xl) + 80px);
+}
+
+/* === 初始化畫面 === */
+#init-screen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.init-container {
+    text-align: center;
+    padding: var(--space-xl);
+}
+
+.init-icon {
+    font-size: 64px;
+    margin-bottom: var(--space-lg);
+}
+
+.init-container h1 {
+    font-size: 28px;
+    margin-bottom: var(--space-md);
+    color: var(--text);
+}
+
+.init-container p {
+    color: var(--text-secondary);
+    margin-bottom: var(--space-lg);
+    line-height: 1.6;
+}
+
+.init-subtitle {
+    font-size: 14px;
+    color: var(--primary);
+    margin-bottom: var(--space-sm) !important;
+}
+
+.init-hint {
+    font-size: 13px;
+    color: var(--text-hint);
+    margin-top: var(--space-lg) !important;
+}
+
+/* === 頂部 === */
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-sm) 0;
+    margin-bottom: var(--space-md);
+}
+
+.header-title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.header-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.header-main {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.header-sub {
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+
+.hospital-icon {
+    font-size: 28px;
+}
+
+/* === 病人資訊卡 === */
+.patient-info-card {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+    margin-bottom: var(--space-md);
+}
+
+.patient-name {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: var(--space-sm);
+}
+
+.patient-details {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.patient-details strong {
+    color: var(--text);
+}
+
+/* === 警示區 === */
+.alert-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-md);
+    padding: var(--space-md);
+    background: rgba(217, 123, 123, 0.15);
+    border: 1px solid rgba(217, 123, 123, 0.3);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-md);
+}
+
+.alert-banner.warning {
+    background: rgba(228, 185, 90, 0.15);
+    border-color: rgba(228, 185, 90, 0.3);
+}
+
+.alert-icon {
+    font-size: 24px;
+    flex-shrink: 0;
+}
+
+.alert-content {
+    flex: 1;
+}
+
+.alert-title {
+    font-weight: 600;
+    color: var(--danger);
+    margin-bottom: var(--space-xs);
+}
+
+.alert-banner.warning .alert-title {
+    color: var(--warning);
+}
+
+.alert-message {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+/* === 警示說明 === */
+.alert-legend {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: var(--space-sm) var(--space-md);
+    margin-bottom: var(--space-md);
+    font-size: 13px;
+}
+
+.alert-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.alert-legend-item .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.alert-legend-item.warning .legend-dot {
+    background: var(--warning);
+}
+
+.alert-legend-item.danger .legend-dot {
+    background: var(--danger);
+}
+
+/* === 輸入區 === */
+.input-section {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+    margin-bottom: var(--space-md);
+}
+
+.input-section h2 {
+    font-size: 16px;
+    margin-bottom: var(--space-md);
+    color: var(--text-secondary);
+}
+
+.weight-input-group {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    margin-bottom: var(--space-md);
+}
+
+.weight-input {
+    flex: 1;
+    background: var(--bg-input);
+    border: 2px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: var(--space-md) var(--space-lg);
+    font-size: 32px;
+    font-weight: 600;
+    color: var(--text);
+    text-align: center;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.weight-input:focus {
+    border-color: var(--primary);
+}
+
+.weight-input::placeholder {
+    color: var(--text-hint);
+}
+
+.weight-unit {
+    font-size: 24px;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.input-date {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-md);
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.date-input {
+    flex: 1;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: var(--space-sm) var(--space-md);
+    font-size: 14px;
+    color: var(--text);
+    outline: none;
+}
+
+.date-input:focus {
+    border-color: var(--primary);
+}
+
+/* === 歷史記錄 === */
+.history-section {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+    margin-bottom: var(--space-md);
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-md);
+}
+
+.section-header h2 {
+    font-size: 16px;
+    color: var(--text-secondary);
+}
+
+.record-count {
+    font-size: 13px;
+    color: var(--text-hint);
+}
+
+.history-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    max-height: 240px;
+    overflow-y: auto;
+}
+
+.history-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-sm) var(--space-md);
+    background: var(--bg-input);
+    border-radius: var(--radius-sm);
+    gap: 8px;
+}
+
+.history-main {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+}
+
+.history-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.history-actions .btn-mini {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--text-hint);
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.history-actions .btn-mini:hover {
+    background: var(--bg);
+    color: var(--text);
+}
+
+.history-actions .btn-mini-danger:hover {
+    background: rgba(217, 123, 123, 0.2);
+    color: var(--danger);
+}
+
+.history-date {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.history-weight {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.history-rate {
+    font-size: 13px;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.history-rate.normal {
+    color: var(--success);
+    background: rgba(107, 191, 138, 0.15);
+}
+
+.history-rate.warning {
+    color: var(--warning);
+    background: rgba(228, 185, 90, 0.15);
+}
+
+.history-rate.danger {
+    color: var(--danger);
+    background: rgba(217, 123, 123, 0.15);
+}
+
+.history-empty {
+    text-align: center;
+    padding: var(--space-lg);
+    color: var(--text-hint);
+    font-size: 14px;
+}
+
+/* === 圖表區 === */
+.chart-section {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+    margin-bottom: var(--space-md);
+}
+
+.chart-section h2 {
+    font-size: 16px;
+    margin-bottom: var(--space-md);
+    color: var(--text-secondary);
+}
+
+.chart-container {
+    height: 200px;
+    position: relative;
+}
+
+.chart-legend {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 12px;
+    font-size: 11px;
+}
+
+.chart-legend .legend-item {
+    white-space: nowrap;
+}
+
+/* === 底部操作 === */
+.bottom-actions {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 480px;
+    display: flex;
+    gap: var(--space-sm);
+    padding: var(--space-md);
+    background: linear-gradient(transparent, var(--bg) 20%);
+    padding-top: var(--space-xl);
+}
+
+.bottom-actions .btn {
+    flex: 1;
+}
+
+/* === 按鈕 === */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+    padding: var(--space-md) var(--space-lg);
+    border-radius: var(--radius-md);
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background: var(--primary);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--primary-dark);
+}
+
+.btn-primary:active {
+    transform: scale(0.98);
+}
+
+.btn-outline {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+}
+
+.btn-outline:hover {
+    background: var(--bg-card);
+}
+
+.btn-danger {
+    background: var(--danger);
+    color: white;
+}
+
+.btn-lg {
+    padding: var(--space-lg) var(--space-xl);
+    font-size: 17px;
+}
+
+.btn-block {
+    width: 100%;
+}
+
+.btn-icon {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: var(--space-sm);
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+}
+
+.btn-icon:hover {
+    background: var(--bg-card);
+    color: var(--text);
+}
+
+.btn-back {
+    background: transparent;
+    border: none;
+    color: var(--text);
+    padding: var(--space-sm);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+/* === 掃描器 === */
+.scanner-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-md) 0;
+    margin-bottom: var(--space-md);
+}
+
+.scanner-header h1 {
+    font-size: 18px;
+}
+
+#scanner-container {
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+.scanner-hint {
+    text-align: center;
+    color: var(--text-secondary);
+    margin-top: var(--space-md);
+    font-size: 14px;
+}
+
+/* === QR Code 顯示 === */
+.qr-display-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: var(--space-xl);
+    text-align: center;
+}
+
+.qr-display-container h2 {
+    font-size: 20px;
+    margin-bottom: var(--space-lg);
+}
+
+#qr-canvas-container {
+    background: white;
+    padding: var(--space-lg);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--space-md);
+}
+
+#qr-canvas-container canvas {
+    display: block;
+}
+
+.qr-info {
+    font-size: 16px;
+    color: var(--text);
+    margin-bottom: var(--space-sm);
+}
+
+.qr-hint {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: var(--space-lg);
+}
+
+/* === 提醒設定 === */
+.reminder-container,
+.settings-container {
+    padding-top: var(--space-md);
+}
+
+.reminder-header,
+.settings-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    margin-bottom: var(--space-xl);
+}
+
+.reminder-header h1,
+.settings-header h1 {
+    font-size: 18px;
+}
+
+.reminder-content,
+.settings-content {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+}
+
+.setting-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-md) 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.setting-item:last-of-type {
+    border-bottom: none;
+}
+
+.setting-label {
+    font-size: 15px;
+}
+
+/* Toggle 開關 */
+.toggle {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 28px;
+}
+
+.toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--bg-input);
+    border-radius: 28px;
+    transition: 0.3s;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 22px;
+    width: 22px;
+    left: 3px;
+    bottom: 3px;
+    background: var(--text-secondary);
+    border-radius: 50%;
+    transition: 0.3s;
+}
+
+.toggle input:checked + .toggle-slider {
+    background: var(--primary);
+}
+
+.toggle input:checked + .toggle-slider:before {
+    transform: translateX(22px);
+    background: white;
+}
+
+/* 時間輸入 */
+.time-input {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: var(--space-sm) var(--space-md);
+    font-size: 15px;
+    color: var(--text);
+    outline: none;
+}
+
+/* Radio 按鈕組 */
+.radio-group {
+    display: flex;
+    gap: var(--space-md);
+}
+
+.radio-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    cursor: pointer;
+}
+
+.radio-item input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--primary);
+}
+
+.notification-status {
+    margin-top: var(--space-md);
+    padding: var(--space-md);
+    background: var(--bg-input);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    text-align: center;
+}
+
+.notification-status.granted {
+    color: var(--success);
+}
+
+.notification-status.denied {
+    color: var(--danger);
+}
+
+/* === 設定頁 === */
+.settings-section {
+    margin-bottom: var(--space-lg);
+}
+
+.settings-section h3 {
+    font-size: 13px;
+    color: var(--text-hint);
+    margin-bottom: var(--space-md);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: var(--space-sm) 0;
+    font-size: 14px;
+}
+
+.info-row span:first-child {
+    color: var(--text-secondary);
+}
+
+.settings-section .btn {
+    margin-bottom: var(--space-sm);
+}
+
+.settings-footer {
+    text-align: center;
+    padding-top: var(--space-lg);
+    color: var(--text-hint);
+    font-size: 12px;
+}
+
+/* === Toast === */
+.toast {
+    position: fixed;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--bg-card);
+    color: var(--text);
+    padding: var(--space-md) var(--space-lg);
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    box-shadow: var(--shadow);
+    opacity: 0;
+    transition: all 0.3s;
+    z-index: 1000;
+    max-width: 80%;
+    text-align: center;
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+.toast.error {
+    background: var(--danger);
+    color: white;
+}
+
+.toast.success {
+    background: var(--success);
+    color: white;
+}
+
+/* === Modal === */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: var(--space-lg);
+}
+
+.modal-content {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+    max-width: 320px;
+    width: 100%;
+}
+
+.modal-body {
+    font-size: 15px;
+    line-height: 1.6;
+    margin-bottom: var(--space-lg);
+    text-align: center;
+}
+
+.modal-actions {
+    display: flex;
+    gap: var(--space-sm);
+}
+
+.modal-actions .btn {
+    flex: 1;
+}
+
+/* === 滾動條 === */
+::-webkit-scrollbar {
+    width: 4px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 4px;
+}
+
+/* === RWD === */
+@media (max-width: 360px) {
+    .weight-input {
+        font-size: 28px;
+        padding: var(--space-sm) var(--space-md);
     }
     
-    console.log('測試資料已初始化（10位病人）');
+    .weight-unit {
+        font-size: 20px;
+    }
+    
+    .bottom-actions {
+        flex-direction: column;
+    }
 }
+
+/* === 安裝提示 Modal === */
+.install-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    padding: 20px;
+}
+
+.install-modal-content {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: var(--space-xl);
+    max-width: 320px;
+    width: 100%;
+    text-align: center;
+}
+
+.install-modal-header {
+    margin-bottom: var(--space-md);
+}
+
+.install-modal-header h3 {
+    margin-top: var(--space-sm);
+    font-size: 18px;
+}
+
+.install-modal-content > p {
+    color: var(--text-secondary);
+    margin-bottom: var(--space-lg);
+    line-height: 1.6;
+}
+
+.install-steps {
+    background: var(--bg);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    margin-bottom: var(--space-lg);
+    text-align: left;
+}
+
+.install-step {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+    font-size: 14px;
+}
+
+.install-step:not(:last-child) {
+    border-bottom: 1px solid var(--border);
+}
+
+.step-icon {
+    width: 24px;
+    height: 24px;
+    background: var(--primary);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: bold;
+    flex-shrink: 0;
+}
+
+.install-modal-buttons {
+    display: flex;
+    gap: 12px;
+}
+
+.install-modal-buttons .btn {
+    flex: 1;
+}
+
+/* === 底部分頁導航 === */
+.bottom-tabs {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    background: var(--bg-card);
+    border-top: 1px solid var(--border);
+    padding: 8px 0;
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+    z-index: 100;
+}
+
+.tab-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 8px;
+    background: none;
+    border: none;
+    color: var(--text-hint);
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.tab-btn.active {
+    color: var(--primary);
+}
+
+.tab-icon {
+    font-size: 20px;
+}
+
+.tab-label {
+    font-size: 11px;
+}
+
+/* === 分頁內容 === */
+.tab-content {
+    padding-bottom: 80px; /* 為底部導航留空間 */
+}
+
+.tab-panel {
+    display: none;
+}
+
+.tab-panel.active {
+    display: block;
+}
+
+.tab-actions {
+    display: flex;
+    gap: 12px;
+    padding: var(--space-md);
+    margin-top: var(--space-md);
+}
+
+.tab-actions .btn {
+    flex: 1;
+}
+
+/* === 衛教頁籤 === */
+.education-content {
+    padding: var(--space-md);
+}
+
+.section-title {
+    font-size: 18px;
+    margin-bottom: var(--space-lg);
+    color: var(--text);
+}
+
+.edu-card {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+    margin-bottom: var(--space-md);
+}
+
+.edu-card h3 {
+    font-size: 15px;
+    margin-bottom: var(--space-md);
+    color: var(--text);
+}
+
+.edu-card ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.edu-card li {
+    position: relative;
+    padding-left: 20px;
+    margin-bottom: 8px;
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.edu-card li::before {
+    content: '•';
+    position: absolute;
+    left: 0;
+    color: var(--primary);
+}
+
+/* === 營養諮詢頁籤 === */
+.nutrition-content {
+    padding: var(--space-md);
+}
+
+.nutrition-hint {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin-bottom: var(--space-lg);
+}
+
+.photo-upload-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: var(--space-xl);
+}
+
+.photo-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 16px;
+    font-size: 16px;
+}
+
+.food-records-section {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+}
+
+.food-records-section .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-md);
+}
+
+.food-records-section h3 {
+    font-size: 15px;
+    margin: 0;
+}
+
+.food-records-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.food-records-list .empty-hint {
+    text-align: center;
+    color: var(--text-hint);
+    padding: var(--space-xl);
+    line-height: 1.6;
+}
+
+.food-record-item {
+    display: flex;
+    gap: 12px;
+    padding: var(--space-md);
+    background: var(--bg);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-sm);
+}
+
+.food-record-item img {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: var(--radius-sm);
+}
+
+.food-record-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.food-record-date {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 4px;
+}
+
+.food-record-time {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.food-record-note {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+.food-record-actions {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+}
+
+.food-record-actions .btn-mini {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--text-hint);
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.food-record-actions .btn-mini:hover {
+    background: var(--bg-card);
+    color: var(--text);
+}
+
+.food-record-actions .btn-mini-danger:hover {
+    background: rgba(217, 123, 123, 0.2);
+    color: var(--danger);
+}
+
+/* 照片預覽 Modal */
+.photo-preview-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    padding: 20px;
+}
+
+.photo-preview-modal img {
+    max-width: 100%;
+    max-height: 70vh;
+    object-fit: contain;
+    border-radius: var(--radius-md);
+}
+
+.photo-preview-actions {
+    margin-top: 20px;
+    display: flex;
+    gap: 12px;
+}
+
+/* 新增備註輸入 */
+.note-input-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    padding: 20px;
+}
+
+.note-input-content {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: var(--space-xl);
+    width: 100%;
+    max-width: 320px;
+}
+
+.note-input-content h3 {
+    margin-bottom: var(--space-md);
+}
+
+.note-input-content input,
+.note-input-content textarea {
+    width: 100%;
+    padding: var(--space-md);
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text);
+    font-size: 14px;
+    margin-bottom: var(--space-md);
+}
+
+.note-input-content textarea {
+    min-height: 80px;
+    resize: vertical;
+}
+
+.note-input-buttons {
+    display: flex;
+    gap: 12px;
+}
+
+.note-input-buttons .btn {
+    flex: 1;
+}
+
+/* === 副作用自我評估 === */
+.sideeffect-content {
+    padding: var(--space-md);
+}
+
+.sideeffect-hint {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin-bottom: var(--space-lg);
+}
+
+.assessment-records-section {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+    margin-bottom: var(--space-lg);
+}
+
+.assessment-records-section .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-md);
+}
+
+.assessment-records-section h3 {
+    font-size: 15px;
+    margin: 0;
+}
+
+.assessment-records-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.assessment-records-list .empty-hint {
+    text-align: center;
+    color: var(--text-hint);
+    padding: var(--space-xl);
+    line-height: 1.6;
+}
+
+.assessment-record-item {
+    background: var(--bg);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    margin-bottom: var(--space-sm);
+}
+
+.assessment-record-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-sm);
+}
+
+.assessment-record-date {
+    font-weight: 500;
+    color: var(--text);
+}
+
+.assessment-record-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.assessment-record-symptoms {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.symptom-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    background: var(--bg-card);
+}
+
+.symptom-tag.severity-0 {
+    opacity: 0.5;
+}
+
+.symptom-tag.severity-1 {
+    background: rgba(107, 191, 138, 0.2);
+    color: #6BBF8A;
+}
+
+.symptom-tag.severity-2 {
+    background: rgba(228, 185, 90, 0.2);
+    color: #E4B95A;
+}
+
+.symptom-tag.severity-3 {
+    background: rgba(217, 123, 123, 0.2);
+    color: #D97B7B;
+}
+
+/* 嚴重程度說明 */
+.assessment-legend {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+}
+
+.assessment-legend h3 {
+    font-size: 14px;
+    margin-bottom: var(--space-md);
+    color: var(--text);
+}
+
+.legend-items {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.severity-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+}
+
+.severity-dot.severity-0 {
+    background: var(--text-hint);
+}
+
+.severity-dot.severity-1 {
+    background: #6BBF8A;
+}
+
+.severity-dot.severity-2 {
+    background: #E4B95A;
+}
+
+.severity-dot.severity-3 {
+    background: #D97B7B;
+}
+
+/* 評估表單 Modal */
+.assessment-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    z-index: 10000;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.assessment-modal-content {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: var(--space-xl);
+    width: 100%;
+    max-width: 400px;
+    margin: 20px 0;
+}
+
+.assessment-modal-content h3 {
+    margin-bottom: var(--space-lg);
+    text-align: center;
+}
+
+.symptom-item {
+    background: var(--bg);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    margin-bottom: var(--space-sm);
+}
+
+.symptom-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-sm);
+}
+
+.symptom-name {
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.severity-buttons {
+    display: flex;
+    gap: 6px;
+}
+
+.severity-btn {
+    width: 36px;
+    height: 36px;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-hint);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.severity-btn:hover {
+    border-color: var(--primary);
+}
+
+.severity-btn.active {
+    border-color: transparent;
+    color: white;
+}
+
+.severity-btn.active[data-level="0"] {
+    background: var(--text-hint);
+}
+
+.severity-btn.active[data-level="1"] {
+    background: #6BBF8A;
+}
+
+.severity-btn.active[data-level="2"] {
+    background: #E4B95A;
+}
+
+.severity-btn.active[data-level="3"] {
+    background: #D97B7B;
+}
+
+/* 疼痛 0-10 量表（病人端） */
+.symptom-pain-item {
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.symptom-pain-item .symptom-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-sm);
+}
+
+.pain-display {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--primary);
+}
+
+.pain-slider-container {
+    padding: 0 var(--space-sm);
+}
+
+.pain-slider-input {
+    width: 100%;
+    height: 10px;
+    border-radius: 5px;
+    background: linear-gradient(to right, 
+        #6BBF8A 0%, #6BBF8A 30%, 
+        #E4B95A 30%, #E4B95A 60%, 
+        #D97B7B 60%, #D97B7B 100%);
+    -webkit-appearance: none;
+    appearance: none;
+    cursor: pointer;
+}
+
+.pain-slider-input::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: white;
+    border: 3px solid var(--primary);
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+.pain-slider-input::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: white;
+    border: 3px solid var(--primary);
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+.pain-scale-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 4px;
+    font-size: 11px;
+    color: var(--text-hint);
+}
+
+.assessment-modal-buttons {
+    display: flex;
+    gap: 12px;
+    margin-top: var(--space-lg);
+}
+
+.assessment-modal-buttons .btn {
+    flex: 1;
+}
+
+/* ============================================
+   滿意度問卷樣式
+   ============================================ */
+
+.satisfaction-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    padding: 20px;
+}
+
+.satisfaction-modal-content {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    max-width: 400px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.satisfaction-modal-content h3 {
+    text-align: center;
+    margin-bottom: 8px;
+    font-size: 18px;
+}
+
+.satisfaction-question {
+    margin-bottom: 20px;
+}
+
+.question-text {
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 10px;
+    color: var(--text);
+}
+
+.satisfaction-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+}
+
+.satisfaction-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: white;
+    font-size: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.satisfaction-btn:hover {
+    border-color: var(--primary);
+    transform: scale(1.1);
+}
+
+.satisfaction-btn.active {
+    border-color: var(--primary);
+    background: var(--primary-light);
+    transform: scale(1.15);
+}
+
+.satisfaction-btn.na-btn {
+    font-size: 16px;
+    color: var(--text-hint);
+}
+
+.satisfaction-btn.na-btn.active {
+    background: var(--bg);
+}
+
+.satisfaction-question textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    resize: vertical;
+    font-family: inherit;
+}
+
+.satisfaction-buttons-footer {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.satisfaction-buttons-footer .btn {
+    flex: 1;
+}
+
+/* ===== 導航 SVG 圖標 ===== */
+.tab-icon-svg {
+    display: block;
+    margin: 0 auto 4px;
+}
+
+/* ===== 滿意度 Tab 頁面樣式 ===== */
+.satisfaction-content {
+    padding: 16px;
+}
+
+.satisfaction-hint {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 13px;
+    margin-bottom: 20px;
+}
+
+.sat-question-card {
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+    box-shadow: var(--shadow-sm);
+}
+
+.sat-question-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background: var(--primary);
+    color: white;
+    border-radius: 50%;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.sat-question-text {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 12px;
+    line-height: 1.4;
+}
+
+.sat-rating-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.sat-rating-btn {
+    flex: 1;
+    min-width: 56px;
+    padding: 10px 6px;
+    background: var(--bg);
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+}
+
+.sat-rating-btn:active {
+    transform: scale(0.95);
+}
+
+.sat-rating-btn.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+}
+
+.sat-rating-num {
+    display: block;
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+
+.sat-rating-btn.active .sat-rating-num {
+    color: white;
+}
+
+.sat-rating-label {
+    display: block;
+    font-size: 10px;
+    color: var(--text-secondary);
+    line-height: 1.2;
+}
+
+.sat-rating-btn.active .sat-rating-label {
+    color: rgba(255,255,255,0.9);
+}
+
+.sat-na-btn {
+    flex: 0 0 auto;
+    min-width: 60px;
+    background: var(--bg-input);
+}
+
+.sat-na-btn.active {
+    background: var(--text-secondary);
+    border-color: var(--text-secondary);
+}
+
+.sat-feedback-input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    resize: vertical;
+    font-family: inherit;
+    background: var(--bg);
+}
+

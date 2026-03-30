@@ -1,614 +1,852 @@
 /**
- * 彰濱放腫體重監控預防系統 - 療程管理模組
+ * 彰濱放腫體重監控預防系統 - 報表模組
  */
 
-const Treatment = {
+const Report = {
+    // 圖表實例
+    weightChart: null,
+    cancerChart: null,
+    
+    // 篩選狀態
+    filters: {
+        period: 'month',
+        dateFrom: null,
+        dateTo: null,
+        cancerType: 'all'
+    },
+    
     /**
-     * 依 ID 取得療程
+     * 初始化篩選器
      */
-    async getById(id) {
-        const treatment = await DB.get('treatments', id);
-        if (treatment) {
-            // 附加癌別標籤
-            const cancerTypes = await Settings.get('cancer_types', []);
-            const ct = cancerTypes.find(c => c.code === treatment.cancer_type);
-            treatment.cancer_type_label = ct ? ct.label : treatment.cancer_type;
+    async initFilters() {
+        // 載入癌別選項
+        const cancerTypes = await Settings.get('cancer_types', []);
+        const select = document.getElementById('report-cancer-type');
+        select.innerHTML = '<option value="all">全部</option>' + 
+            cancerTypes.map(c => `<option value="${c.code}">${c.label}</option>`).join('');
+        
+        // 設定預設日期
+        const today = new Date();
+        const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+        document.getElementById('report-date-from').value = formatDate(monthStart);
+        document.getElementById('report-date-to').value = formatDate(today);
+        
+        // 載入年份選項（從最早療程到今年）
+        const allTreatments = await DB.getAll('treatments');
+        const currentYear = today.getFullYear();
+        let minYear = currentYear;
+        
+        allTreatments.forEach(t => {
+            if (t.treatment_start) {
+                const year = new Date(t.treatment_start).getFullYear();
+                if (year < minYear) minYear = year;
+            }
+        });
+        
+        const yearSelect = document.getElementById('report-year');
+        let yearOptions = '';
+        for (let y = currentYear; y >= minYear; y--) {
+            yearOptions += `<option value="${y}">${y} 年</option>`;
+        }
+        yearSelect.innerHTML = yearOptions;
+    },
+    
+    /**
+     * 篩選條件變更
+     */
+    onFilterChange() {
+        const period = document.getElementById('report-period').value;
+        this.filters.period = period;
+        this.filters.cancerType = document.getElementById('report-cancer-type').value;
+        
+        // 顯示/隱藏相關欄位
+        const showCustom = period === 'custom';
+        const showYear = period === 'specific_year';
+        
+        document.getElementById('report-date-from-group').style.display = showCustom ? 'block' : 'none';
+        document.getElementById('report-date-to-group').style.display = showCustom ? 'block' : 'none';
+        document.getElementById('report-year-group').style.display = showYear ? 'block' : 'none';
+        
+        if (showCustom) {
+            this.filters.dateFrom = document.getElementById('report-date-from').value;
+            this.filters.dateTo = document.getElementById('report-date-to').value;
+        } else if (showYear) {
+            const selectedYear = parseInt(document.getElementById('report-year').value);
+            this.filters.dateFrom = `${selectedYear}-01-01`;
+            this.filters.dateTo = `${selectedYear}-12-31`;
+        } else {
+            // 計算日期範圍
+            const today = new Date();
+            let dateFrom = null;
+            let dateTo = formatDate(today);
             
-            // 附加治療目的標籤
-            const intents = await Settings.get('treatment_intents', []);
-            const intent = intents.find(i => i.code === treatment.treatment_intent);
-            treatment.treatment_intent_label = intent ? intent.label : treatment.treatment_intent;
-        }
-        return treatment;
-    },
-    
-    /**
-     * 依病人取得療程
-     */
-    async getByPatient(patientId) {
-        const treatments = await DB.getByIndex('treatments', 'patient_id', patientId);
-        const cancerTypes = await Settings.get('cancer_types', []);
-        
-        return treatments.map(t => {
-            const ct = cancerTypes.find(c => c.code === t.cancer_type);
-            t.cancer_type_label = ct ? ct.label : t.cancer_type;
-            return t;
-        }).sort((a, b) => new Date(b.treatment_start) - new Date(a.treatment_start));
-    },
-    
-    /**
-     * 取得所有進行中療程
-     */
-    async getActive() {
-        const all = await DB.getByIndex('treatments', 'status', 'active');
-        return this.enrichTreatments(all);
-    },
-    
-    /**
-     * 取得所有暫停中療程
-     */
-    async getPaused() {
-        const all = await DB.getByIndex('treatments', 'status', 'paused');
-        return this.enrichTreatments(all);
-    },
-    
-    /**
-     * 取得單一療程的詳細資料（含體重記錄）
-     */
-    async getWithDetails(treatmentId) {
-        const t = await this.getById(treatmentId);
-        if (!t) return null;
-        
-        const cancerTypes = await Settings.get('cancer_types', []);
-        
-        // 病人資料
-        const patient = await Patient.getById(t.patient_id);
-        t.patient = patient;
-        
-        // 癌別標籤
-        const ct = cancerTypes.find(c => c.code === t.cancer_type);
-        t.cancer_type_label = ct ? ct.label : t.cancer_type;
-        
-        // 體重記錄
-        const weights = await Weight.getByTreatment(t.id);
-        t.weight_records = weights;
-        t.latest_weight = weights[0] || null;
-        
-        // 計算變化率
-        if (t.latest_weight && t.baseline_weight) {
-            t.change_rate = calculateWeightChangeRate(t.latest_weight.weight, t.baseline_weight);
+            switch (period) {
+                case 'week':
+                    const weekStart = new Date(today);
+                    weekStart.setDate(today.getDate() - today.getDay());
+                    dateFrom = formatDate(weekStart);
+                    break;
+                case 'month':
+                    dateFrom = formatDate(new Date(today.getFullYear(), today.getMonth(), 1));
+                    break;
+                case 'year':
+                    dateFrom = formatDate(new Date(today.getFullYear(), 0, 1));
+                    break;
+                case 'all':
+                    dateFrom = null;
+                    dateTo = null;
+                    break;
+            }
+            
+            this.filters.dateFrom = dateFrom;
+            this.filters.dateTo = dateTo;
         }
         
-        return t;
+        this.render();
     },
     
     /**
-     * 擴充療程資料（加入病人資訊、最新體重等）
+     * 取得篩選後的統計資料
      */
-    async enrichTreatments(treatments) {
+    async getStats() {
+        const allTreatments = await DB.getAll('treatments');
+        const allPatients = await DB.getAll('patients');
+        const allInterventions = await DB.getAll('interventions');
+        const allWeightRecords = await DB.getAll('weight_records');
         const cancerTypes = await Settings.get('cancer_types', []);
-        const alertRules = await Settings.get('alert_rules', []);
         
-        const enriched = [];
+        // 篩選療程
+        let filteredTreatments = allTreatments;
+        
+        // 癌別篩選
+        if (this.filters.cancerType !== 'all') {
+            filteredTreatments = filteredTreatments.filter(t => 
+                t.cancer_type === this.filters.cancerType
+            );
+        }
+        
+        // 日期篩選（根據療程開始日期）
+        if (this.filters.dateFrom) {
+            filteredTreatments = filteredTreatments.filter(t => 
+                t.treatment_start >= this.filters.dateFrom
+            );
+        }
+        if (this.filters.dateTo) {
+            filteredTreatments = filteredTreatments.filter(t => 
+                t.treatment_start <= this.filters.dateTo
+            );
+        }
+        
+        const filteredTreatmentIds = new Set(filteredTreatments.map(t => t.id));
+        
+        // 篩選相關的體重記錄
+        const filteredWeightRecords = allWeightRecords.filter(w => 
+            filteredTreatmentIds.has(w.treatment_id)
+        );
+        
+        // 篩選相關的介入
+        const filteredInterventions = allInterventions.filter(i => 
+            filteredTreatmentIds.has(i.treatment_id)
+        );
+        
+        // 篩選相關的副作用評估
+        const allSideEffects = await DB.getAll('side_effects');
+        const filteredSideEffects = allSideEffects.filter(se => 
+            filteredTreatmentIds.has(se.treatment_id)
+        );
+        
+        // 計算統計
+        const activeCount = filteredTreatments.filter(t => t.status === 'active').length;
+        const pausedCount = filteredTreatments.filter(t => t.status === 'paused').length;
+        const completedCount = filteredTreatments.filter(t => t.status === 'completed').length;
+        const terminatedCount = filteredTreatments.filter(t => t.status === 'terminated').length;
+        
+        // 待介入（只看治療中）
+        const activeTreatmentIds = new Set(
+            filteredTreatments.filter(t => t.status === 'active').map(t => t.id)
+        );
+        const pendingInterventions = filteredInterventions.filter(i => 
+            i.status === 'pending' && activeTreatmentIds.has(i.treatment_id)
+        );
+        
+        // 癌別分布
+        const cancerDistribution = {};
+        filteredTreatments.forEach(t => {
+            const label = cancerTypes.find(c => c.code === t.cancer_type)?.label || t.cancer_type;
+            cancerDistribution[label] = (cancerDistribution[label] || 0) + 1;
+        });
+        
+        // 體重變化分布（只看有基準體重的）
+        const weightDistribution = {
+            '正常 (≥0%)': 0,
+            '輕微 (0~-3%)': 0,
+            '中度 (-3~-5%)': 0,
+            '嚴重 (-5~-10%)': 0,
+            '極嚴重 (<-10%)': 0
+        };
+        
+        for (const t of filteredTreatments) {
+            if (!t.baseline_weight) continue;
+            
+            // 找最新體重（排除無法測量的）
+            const weights = filteredWeightRecords
+                .filter(w => w.treatment_id === t.id && !w.unable_to_measure && w.weight)
+                .sort((a, b) => new Date(b.measure_date) - new Date(a.measure_date));
+            
+            if (weights.length === 0) continue;
+            
+            const rate = calculateWeightChangeRate(weights[0].weight, t.baseline_weight);
+            
+            if (rate >= 0) {
+                weightDistribution['正常 (≥0%)']++;
+            } else if (rate > -3) {
+                weightDistribution['輕微 (0~-3%)']++;
+            } else if (rate > -5) {
+                weightDistribution['中度 (-3~-5%)']++;
+            } else if (rate > -10) {
+                weightDistribution['嚴重 (-5~-10%)']++;
+            } else {
+                weightDistribution['極嚴重 (<-10%)']++;
+            }
+        }
+        
+        // 介入統計
+        const executedInterventions = filteredInterventions.filter(i => i.status === 'executed').length;
+        const skippedInterventions = filteredInterventions.filter(i => i.status === 'skipped').length;
+        const pendingInterventionsCount = filteredInterventions.filter(i => i.status === 'pending').length;
+        const totalInterventions = filteredInterventions.length;
+        const interventionRate = totalInterventions > 0 
+            ? Math.round(executedInterventions / totalInterventions * 100) 
+            : 0;
+        
+        // 介入類型統計（只統計已執行的）
+        const interventionByType = {
+            'SDM': 0,
+            '營養師': 0,
+            '鼻胃管': 0,
+            '胃造廔': 0,
+            '其他': 0
+        };
+        
+        const typeLabels = {
+            'sdm': 'SDM',
+            'nutrition': '營養師',
+            'ng_tube': '鼻胃管',
+            'gastrostomy': '胃造廔'
+        };
+        
+        filteredInterventions.filter(i => i.status === 'executed').forEach(i => {
+            const label = typeLabels[i.type] || '其他';
+            interventionByType[label] = (interventionByType[label] || 0) + 1;
+        });
+        
+        // 移除數量為0的類型
+        Object.keys(interventionByType).forEach(key => {
+            if (interventionByType[key] === 0) delete interventionByType[key];
+        });
+        
+        // === 新增統計 ===
+        
+        // 建立病人 ID 映射
+        const patientMap = {};
+        allPatients.forEach(p => patientMap[p.id] = p);
+        
+        // 年齡分布
+        const ageDistribution = {
+            '< 40 歲': 0,
+            '40-49 歲': 0,
+            '50-59 歲': 0,
+            '60-69 歲': 0,
+            '70-79 歲': 0,
+            '≥ 80 歲': 0
+        };
+        
+        // 性別分布
+        const genderDistribution = { '男': 0, '女': 0 };
+        
+        // 體重相關統計
+        let totalBaselineWeight = 0;
+        let baselineWeightCount = 0;
+        let totalChangeRate = 0;
+        let changeRateCount = 0;
+        let minChangeRate = 0;
+        let maxChangeRate = 0;
+        
+        // 療程時長統計（已結案的）
+        let totalDuration = 0;
+        let durationCount = 0;
+        
+        filteredTreatments.forEach(t => {
+            const patient = patientMap[t.patient_id];
+            if (!patient) return;
+            
+            // 年齡分布
+            if (patient.birth_date) {
+                const age = calculateAge(patient.birth_date);
+                if (age < 40) ageDistribution['< 40 歲']++;
+                else if (age < 50) ageDistribution['40-49 歲']++;
+                else if (age < 60) ageDistribution['50-59 歲']++;
+                else if (age < 70) ageDistribution['60-69 歲']++;
+                else if (age < 80) ageDistribution['70-79 歲']++;
+                else ageDistribution['≥ 80 歲']++;
+            }
+            
+            // 性別分布
+            if (patient.gender === 'M') genderDistribution['男']++;
+            else if (patient.gender === 'F') genderDistribution['女']++;
+            
+            // 基準體重
+            if (t.baseline_weight) {
+                totalBaselineWeight += t.baseline_weight;
+                baselineWeightCount++;
+            }
+            
+            // 體重變化率
+            const weights = filteredWeightRecords
+                .filter(w => w.treatment_id === t.id && !w.unable_to_measure && w.weight)
+                .sort((a, b) => new Date(b.measure_date) - new Date(a.measure_date));
+            
+            if (weights.length > 0 && t.baseline_weight) {
+                const rate = calculateWeightChangeRate(weights[0].weight, t.baseline_weight);
+                totalChangeRate += rate;
+                changeRateCount++;
+                if (rate < minChangeRate) minChangeRate = rate;
+                if (rate > maxChangeRate) maxChangeRate = rate;
+            }
+            
+            // 療程時長（已結案）
+            if ((t.status === 'completed' || t.status === 'terminated') && t.treatment_start && t.treatment_end) {
+                const start = new Date(t.treatment_start);
+                const end = new Date(t.treatment_end);
+                const days = Math.round((end - start) / (1000 * 60 * 60 * 24));
+                if (days > 0) {
+                    totalDuration += days;
+                    durationCount++;
+                }
+            }
+        });
+        
+        // 移除空的年齡分布
+        Object.keys(ageDistribution).forEach(key => {
+            if (ageDistribution[key] === 0) delete ageDistribution[key];
+        });
+        
+        const avgBaselineWeight = baselineWeightCount > 0 ? (totalBaselineWeight / baselineWeightCount).toFixed(1) : '-';
+        const avgChangeRate = changeRateCount > 0 ? (totalChangeRate / changeRateCount).toFixed(1) : '-';
+        const avgDuration = durationCount > 0 ? Math.round(totalDuration / durationCount) : '-';
+        
+        // === 副作用統計 ===
+        const sideEffectStats = {
+            total: filteredSideEffects.length,
+            bySymptom: {},
+            byMaxSeverity: { mild: 0, moderate: 0, severe: 0 },
+            avgPainScore: 0
+        };
+        
+        // 症狀名稱對照
+        const symptomNames = {
+            'N': '噁心嘔吐', 'F': '疲勞', 'O': '口腔黏膜炎', 'S': '皮膚反應',
+            'W': '吞嚥困難', 'A': '食慾下降', 'D': '腹瀉', 'P': '疼痛'
+        };
+        
+        let totalPainScore = 0;
+        let painCount = 0;
+        
+        filteredSideEffects.forEach(se => {
+            if (!se.symptoms) return;
+            
+            let maxLevel = 0;
+            
+            se.symptoms.forEach(s => {
+                // 統計各症狀出現次數（有症狀的）
+                if (s.level > 0) {
+                    const name = symptomNames[s.code] || s.code;
+                    sideEffectStats.bySymptom[name] = (sideEffectStats.bySymptom[name] || 0) + 1;
+                }
+                
+                // 疼痛分數統計
+                if (s.code === 'P' && s.level > 0) {
+                    totalPainScore += s.level;
+                    painCount++;
+                    // 疼痛轉換為標準化等級
+                    const painNormalized = s.level <= 3 ? 1 : (s.level <= 6 ? 2 : 3);
+                    maxLevel = Math.max(maxLevel, painNormalized);
+                } else if (s.level > 0) {
+                    maxLevel = Math.max(maxLevel, s.level);
+                }
+            });
+            
+            // 統計最嚴重程度分布
+            if (maxLevel === 1) sideEffectStats.byMaxSeverity.mild++;
+            else if (maxLevel === 2) sideEffectStats.byMaxSeverity.moderate++;
+            else if (maxLevel >= 3) sideEffectStats.byMaxSeverity.severe++;
+        });
+        
+        sideEffectStats.avgPainScore = painCount > 0 ? (totalPainScore / painCount).toFixed(1) : '-';
+        
+        // 時間區間顯示
+        let periodLabel = '';
+        switch (this.filters.period) {
+            case 'week': periodLabel = '本週'; break;
+            case 'month': periodLabel = '本月'; break;
+            case 'year': periodLabel = '本年'; break;
+            case 'custom': 
+                periodLabel = `${this.filters.dateFrom} ~ ${this.filters.dateTo}`; 
+                break;
+            default: periodLabel = '全部時間';
+        }
+        
+        return {
+            periodLabel,
+            totalTreatments: filteredTreatments.length,
+            activeCount,
+            pausedCount,
+            completedCount,
+            terminatedCount,
+            pendingCount: pendingInterventions.length,
+            weightRecordCount: filteredWeightRecords.length,
+            cancerDistribution,
+            weightDistribution,
+            interventionRate,
+            executedInterventions,
+            skippedInterventions,
+            pendingInterventionsCount,
+            totalInterventions,
+            interventionByType,
+            // 新增統計
+            ageDistribution,
+            genderDistribution,
+            avgBaselineWeight,
+            avgChangeRate,
+            minChangeRate: changeRateCount > 0 ? minChangeRate.toFixed(1) : '-',
+            maxChangeRate: changeRateCount > 0 ? maxChangeRate.toFixed(1) : '-',
+            avgDuration,
+            patientCount: new Set(filteredTreatments.map(t => t.patient_id)).size,
+            // 副作用統計
+            sideEffectStats
+        };
+    },
+    
+    /**
+     * 渲染報表頁面
+     */
+    async render() {
+        const container = document.getElementById('report-content');
+        const stats = await this.getStats();
+        
+        // 癌別分布圖表資料
+        const cancerLabels = Object.keys(stats.cancerDistribution);
+        const cancerData = Object.values(stats.cancerDistribution);
+        
+        // 體重分布圖表資料
+        const weightLabels = Object.keys(stats.weightDistribution);
+        const weightData = Object.values(stats.weightDistribution);
+        
+        container.innerHTML = `
+            <div style="margin-bottom: 16px; color: var(--text-secondary);">
+                統計區間：${stats.periodLabel}
+                ${this.filters.cancerType !== 'all' ? ` · 癌別篩選中` : ''}
+            </div>
+            
+            <div class="report-grid">
+                <div class="report-card">
+                    <div class="report-card-title">療程統計</div>
+                    <div class="detail-row">
+                        <span>病人數</span>
+                        <strong>${stats.patientCount}</strong>
+                    </div>
+                    <div class="detail-row">
+                        <span>療程總數</span>
+                        <strong>${stats.totalTreatments}</strong>
+                    </div>
+                    <div class="detail-row">
+                        <span>治療中</span>
+                        <strong style="color: var(--primary);">${stats.activeCount}</strong>
+                    </div>
+                    <div class="detail-row">
+                        <span>暫停中</span>
+                        <strong style="color: var(--warning);">${stats.pausedCount}</strong>
+                    </div>
+                    <div class="detail-row">
+                        <span>已結案</span>
+                        <strong style="color: var(--success);">${stats.completedCount}</strong>
+                    </div>
+                    <div class="detail-row">
+                        <span>已終止</span>
+                        <strong>${stats.terminatedCount}</strong>
+                    </div>
+                    ${stats.avgDuration !== '-' ? `
+                        <hr style="margin: 8px 0; border: none; border-top: 1px solid var(--border);">
+                        <div class="detail-row">
+                            <span>平均療程</span>
+                            <strong>${stats.avgDuration} 天</strong>
+                        </div>
+                    ` : ''}
+                </div>
+                
+                <div class="report-card">
+                    <div class="report-card-title">體重變化分布</div>
+                    <div class="chart-container">
+                        <canvas id="weight-chart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="report-card">
+                    <div class="report-card-title">癌別分布</div>
+                    <div class="chart-container">
+                        <canvas id="cancer-chart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="report-card">
+                    <div class="report-card-title">介入統計</div>
+                    <div class="detail-row">
+                        <span>待處理</span>
+                        <strong style="color: var(--warning);">${stats.pendingCount}</strong>
+                    </div>
+                    <div class="detail-row">
+                        <span>已執行</span>
+                        <strong style="color: var(--success);">${stats.executedInterventions}</strong>
+                    </div>
+                    <div class="detail-row">
+                        <span>不執行</span>
+                        <strong style="color: var(--text-hint);">${stats.skippedInterventions}</strong>
+                    </div>
+                    <div class="detail-row">
+                        <span>介入總數</span>
+                        <strong>${stats.totalInterventions}</strong>
+                    </div>
+                    <div class="detail-row">
+                        <span>執行率</span>
+                        <strong>${stats.interventionRate}%</strong>
+                    </div>
+                    <hr style="margin: 8px 0; border: none; border-top: 1px solid var(--border);">
+                    <div class="report-card-title" style="font-size: 12px; margin-bottom: 4px;">已執行介入類型</div>
+                    ${Object.entries(stats.interventionByType).map(([type, count]) => `
+                        <div class="detail-row" style="font-size: 13px;">
+                            <span>${type}</span>
+                            <strong>${count}</strong>
+                        </div>
+                    `).join('') || '<div style="color: var(--text-hint); font-size: 12px;">無資料</div>'}
+                </div>
+                
+                <div class="report-card">
+                    <div class="report-card-title">體重統計</div>
+                    <div class="detail-row">
+                        <span>平均基準體重</span>
+                        <strong>${stats.avgBaselineWeight} kg</strong>
+                    </div>
+                    <div class="detail-row">
+                        <span>平均變化率</span>
+                        <strong class="${parseFloat(stats.avgChangeRate) < -3 ? 'text-danger' : ''}">${stats.avgChangeRate}%</strong>
+                    </div>
+                    <div class="detail-row">
+                        <span>最大下降</span>
+                        <strong class="text-danger">${stats.minChangeRate}%</strong>
+                    </div>
+                    <div class="detail-row">
+                        <span>最大上升</span>
+                        <strong style="color: var(--success);">${stats.maxChangeRate}%</strong>
+                    </div>
+                    <hr style="margin: 8px 0; border: none; border-top: 1px solid var(--border);">
+                    <div class="detail-row">
+                        <span>體重記錄數</span>
+                        <strong>${stats.weightRecordCount}</strong>
+                    </div>
+                    <div class="detail-row">
+                        <span>平均每療程</span>
+                        <strong>${stats.totalTreatments > 0 ? (stats.weightRecordCount / stats.totalTreatments).toFixed(1) : 0} 筆</strong>
+                    </div>
+                </div>
+                
+                <div class="report-card">
+                    <div class="report-card-title">年齡分布</div>
+                    ${Object.entries(stats.ageDistribution).length > 0 ? 
+                        Object.entries(stats.ageDistribution).map(([age, count]) => `
+                            <div class="detail-row" style="font-size: 13px;">
+                                <span>${age}</span>
+                                <strong>${count}</strong>
+                            </div>
+                        `).join('') : 
+                        '<div style="color: var(--text-hint); font-size: 12px;">無資料</div>'
+                    }
+                    <hr style="margin: 8px 0; border: none; border-top: 1px solid var(--border);">
+                    <div class="report-card-title" style="font-size: 12px; margin-bottom: 4px;">性別分布</div>
+                    <div class="detail-row" style="font-size: 13px;">
+                        <span>男</span>
+                        <strong>${stats.genderDistribution['男']}</strong>
+                    </div>
+                    <div class="detail-row" style="font-size: 13px;">
+                        <span>女</span>
+                        <strong>${stats.genderDistribution['女']}</strong>
+                    </div>
+                </div>
+                
+                <div class="report-card">
+                    <div class="report-card-title">副作用評估統計</div>
+                    <div class="detail-row">
+                        <span>評估記錄數</span>
+                        <strong>${stats.sideEffectStats.total}</strong>
+                    </div>
+                    <div class="detail-row">
+                        <span>平均疼痛分數</span>
+                        <strong>${stats.sideEffectStats.avgPainScore}/10</strong>
+                    </div>
+                    <hr style="margin: 8px 0; border: none; border-top: 1px solid var(--border);">
+                    <div class="report-card-title" style="font-size: 12px; margin-bottom: 4px;">最嚴重程度分布</div>
+                    <div class="detail-row" style="font-size: 13px;">
+                        <span style="color: #6BBF8A;">輕微</span>
+                        <strong>${stats.sideEffectStats.byMaxSeverity.mild}</strong>
+                    </div>
+                    <div class="detail-row" style="font-size: 13px;">
+                        <span style="color: #E4B95A;">中等</span>
+                        <strong>${stats.sideEffectStats.byMaxSeverity.moderate}</strong>
+                    </div>
+                    <div class="detail-row" style="font-size: 13px;">
+                        <span style="color: #D97B7B;">嚴重</span>
+                        <strong>${stats.sideEffectStats.byMaxSeverity.severe}</strong>
+                    </div>
+                    <hr style="margin: 8px 0; border: none; border-top: 1px solid var(--border);">
+                    <div class="report-card-title" style="font-size: 12px; margin-bottom: 4px;">常見症狀</div>
+                    ${Object.entries(stats.sideEffectStats.bySymptom).length > 0 ? 
+                        Object.entries(stats.sideEffectStats.bySymptom)
+                            .sort((a, b) => b[1] - a[1])
+                            .slice(0, 5)
+                            .map(([symptom, count]) => `
+                                <div class="detail-row" style="font-size: 13px;">
+                                    <span>${symptom}</span>
+                                    <strong>${count}</strong>
+                                </div>
+                            `).join('') : 
+                        '<div style="color: var(--text-hint); font-size: 12px;">無資料</div>'
+                    }
+                </div>
+            </div>
+        `;
+        
+        // 渲染圖表
+        setTimeout(() => {
+            this.renderWeightChart(weightLabels, weightData);
+            this.renderCancerChart(cancerLabels, cancerData);
+        }, 100);
+    },
+    
+    /**
+     * 渲染體重分布圖
+     */
+    renderWeightChart(labels, data) {
+        const ctx = document.getElementById('weight-chart');
+        if (!ctx) return;
+        
+        // 銷毀舊圖表
+        if (this.weightChart) {
+            this.weightChart.destroy();
+        }
+        
+        this.weightChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    backgroundColor: [
+                        '#6BAF8D',  // 正常 - 綠
+                        '#7BA7C9',  // 輕微 - 藍
+                        '#E4B95A',  // 中度 - 黃
+                        '#D97B7B',  // 嚴重 - 淺紅
+                        '#8B0000'   // 極嚴重 - 深紅
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 12,
+                            font: { size: 11 }
+                        }
+                    }
+                }
+            }
+        });
+    },
+    
+    /**
+     * 渲染癌別分布圖
+     */
+    renderCancerChart(labels, data) {
+        const ctx = document.getElementById('cancer-chart');
+        if (!ctx) return;
+        
+        // 銷毀舊圖表
+        if (this.cancerChart) {
+            this.cancerChart.destroy();
+        }
+        
+        this.cancerChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    backgroundColor: '#5B8FB9',
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 1 }
+                    }
+                }
+            }
+        });
+    },
+    
+    /**
+     * 匯出 Excel
+     */
+    async exportExcel() {
+        // 取得篩選後的療程
+        const allTreatments = await DB.getAll('treatments');
+        const cancerTypes = await Settings.get('cancer_types', []);
+        
+        let treatments = allTreatments;
+        
+        // 套用篩選
+        if (this.filters.cancerType !== 'all') {
+            treatments = treatments.filter(t => t.cancer_type === this.filters.cancerType);
+        }
+        if (this.filters.dateFrom) {
+            treatments = treatments.filter(t => t.treatment_start >= this.filters.dateFrom);
+        }
+        if (this.filters.dateTo) {
+            treatments = treatments.filter(t => t.treatment_start <= this.filters.dateTo);
+        }
+        
+        const data = [];
+        
         for (const t of treatments) {
-            // 病人資料
             const patient = await Patient.getById(t.patient_id);
             if (!patient) continue;
             
-            t.patient = patient;
-            
-            // 癌別標籤
-            const ct = cancerTypes.find(c => c.code === t.cancer_type);
-            t.cancer_type_label = ct ? ct.label : t.cancer_type;
-            
-            // 最新體重記錄
             const weights = await Weight.getByTreatment(t.id);
-            t.weight_records = weights;
-            t.latest_weight = weights[0] || null;
+            const latestWeight = weights[0];
             
-            // 計算變化率
-            if (t.latest_weight && t.baseline_weight) {
-                t.change_rate = calculateWeightChangeRate(t.latest_weight.weight, t.baseline_weight);
-            } else {
-                t.change_rate = null;
+            let changeRate = null;
+            if (latestWeight && t.baseline_weight) {
+                changeRate = calculateWeightChangeRate(latestWeight.weight, t.baseline_weight);
             }
             
-            // 追蹤狀態
-            const lastDate = t.latest_weight?.measure_date || t.treatment_start;
-            t.tracking_status = getTrackingStatus(lastDate);
+            const cancerLabel = cancerTypes.find(c => c.code === t.cancer_type)?.label || t.cancer_type;
             
-            // 待處理介入
-            const interventions = await Intervention.getByTreatment(t.id);
-            t.pending_interventions = interventions.filter(i => i.status === 'pending');
-            
-            enriched.push(t);
+            data.push({
+                '病歷號': patient.medical_id,
+                '姓名': patient.name,
+                '性別': formatGender(patient.gender),
+                '年齡': calculateAge(patient.birth_date),
+                '癌別': cancerLabel,
+                '治療開始': t.treatment_start,
+                '基準體重': t.baseline_weight || '-',
+                '目前體重': latestWeight?.weight || '-',
+                '變化率': changeRate !== null ? formatChangeRate(changeRate) : '-',
+                '最後量測': latestWeight?.measure_date || '-',
+                'SDM選擇': formatSDMChoice(t.sdm_choice),
+                'SDM選擇日期': t.sdm_choice_date ? formatDate(t.sdm_choice_date, 'YYYY-MM-DD') : '-',
+                '狀態': formatTreatmentStatus(t.status)
+            });
         }
         
-        // 依病歷號排序
-        return enriched.sort((a, b) => 
-            a.patient.medical_id.localeCompare(b.patient.medical_id)
-        );
-    },
-    
-    /**
-     * 新增療程
-     */
-    async create(data) {
-        // 檢查是否有未結束療程
-        const existing = await this.getByPatient(data.patient_id);
-        const ongoing = existing.find(t => t.status === 'active' || t.status === 'paused');
+        // 建立工作表
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, '療程報表');
         
-        if (ongoing) {
-            const statusText = ongoing.status === 'active' ? '進行中' : '暫停中';
-            throw new Error(`此病人已有${statusText}的療程，請先結案或終止`);
+        // 檔名含篩選條件
+        let filename = `體重追蹤報表_${today()}`;
+        if (this.filters.cancerType !== 'all') {
+            const cancerLabel = cancerTypes.find(c => c.code === this.filters.cancerType)?.label;
+            filename += `_${cancerLabel}`;
         }
+        filename += '.xlsx';
         
-        data.status = 'active';
-        return DB.add('treatments', data);
+        XLSX.writeFile(wb, filename);
+        showToast('Excel 已下載');
     },
     
     /**
-     * 更新療程
+     * 匯出 PDF（截圖報表區域）
      */
-    async update(data) {
-        return DB.update('treatments', data);
-    },
-    
-    /**
-     * 暫停療程
-     */
-    async pause(treatmentId, reason = '') {
-        const treatment = await this.getById(treatmentId);
-        if (!treatment) throw new Error('找不到療程');
-        
-        treatment.status = 'paused';
-        treatment.pause_reason = reason;
-        treatment.paused_at = new Date().toISOString();
-        
-        return this.update(treatment);
-    },
-    
-    /**
-     * 確認暫停療程
-     */
-    async confirmPause(treatmentId) {
-        const treatment = await this.getById(treatmentId);
-        const patient = await Patient.getById(treatment.patient_id);
-        const pauseReasons = await Settings.get('pause_reasons', []);
-        
-        // 建立原因選項
-        const reasonOptions = pauseReasons.map(r => 
-            `<option value="${r.label}">${r.label}</option>`
-        ).join('');
-        
-        const html = `
-            <div style="margin-bottom: 16px;">
-                <strong>${patient.medical_id}</strong> ${patient.name}
-            </div>
-            ${createFormGroup('暫停原因', `
-                <select class="form-select" id="pause_reason_select" onchange="Treatment.onPauseReasonChange()">
-                    <option value="">請選擇原因</option>
-                    ${reasonOptions}
-                </select>
-            `)}
-            <div id="pause_reason_custom_group" style="display: none;">
-                ${createFormGroup('自訂原因', `
-                    <input type="text" class="form-input" id="pause_reason_custom" 
-                           placeholder="請輸入暫停原因">
-                `)}
-            </div>
-            <p style="color: var(--text-hint); font-size: 12px;">
-                暫停後病人會從「治療中」移到「暫停中」清單
-            </p>
-        `;
-        
-        openModal('暫停療程', html, [
-            { text: '取消', class: 'btn-outline' },
-            {
-                text: '確定暫停',
-                class: 'btn-warning',
-                closeOnClick: false,
-                onClick: async () => {
-                    const selectVal = document.getElementById('pause_reason_select').value;
-                    const customVal = document.getElementById('pause_reason_custom').value.trim();
-                    
-                    // 判斷使用哪個原因
-                    let reason = selectVal;
-                    if (selectVal.includes('其他') || selectVal.includes('手填')) {
-                        reason = customVal || selectVal;
-                    }
-                    
-                    try {
-                        await Treatment.pause(treatmentId, reason);
-                        closeModal();
-                        showToast('療程已暫停');
-                        App.refresh();
-                    } catch (e) {
-                        showToast(e.message, 'error');
-                    }
-                }
-            }
-        ]);
-    },
-    
-    /**
-     * 暫停原因選擇變更
-     */
-    onPauseReasonChange() {
-        const select = document.getElementById('pause_reason_select');
-        const customGroup = document.getElementById('pause_reason_custom_group');
-        
-        // 如果選擇包含「其他」或「手填」，顯示自訂輸入框
-        if (select.value.includes('其他') || select.value.includes('手填')) {
-            customGroup.style.display = 'block';
-            document.getElementById('pause_reason_custom').focus();
-        } else {
-            customGroup.style.display = 'none';
-        }
-    },
-    
-    /**
-     * 確認恢復療程
-     */
-    async confirmResume(treatmentId) {
-        const treatment = await this.getById(treatmentId);
-        const patient = await Patient.getById(treatment.patient_id);
-        
-        let pauseInfo = '';
-        if (treatment.pause_reason) {
-            pauseInfo = `<p style="color: var(--text-secondary); margin-top: 8px;">暫停原因：${treatment.pause_reason}</p>`;
-        }
-        if (treatment.paused_at) {
-            pauseInfo += `<p style="color: var(--text-hint); font-size: 12px;">暫停時間：${formatDate(treatment.paused_at)}</p>`;
-        }
-        
-        const html = `
-            <div style="margin-bottom: 16px;">
-                <strong>${patient.medical_id}</strong> ${patient.name}
-                ${pauseInfo}
-            </div>
-            <p>確定要恢復此療程嗎？</p>
-            <p style="color: var(--text-hint); font-size: 12px; margin-top: 8px;">
-                恢復後病人會回到「治療中」清單
-            </p>
-        `;
-        
-        openModal('恢復療程', html, [
-            { text: '取消', class: 'btn-outline' },
-            {
-                text: '確定恢復',
-                class: 'btn-primary',
-                closeOnClick: false,
-                onClick: async () => {
-                    try {
-                        await Treatment.resume(treatmentId);
-                        closeModal();
-                        showToast('療程已恢復');
-                        App.refresh();
-                    } catch (e) {
-                        showToast(e.message, 'error');
-                    }
-                }
-            }
-        ]);
-    },
-    
-    /**
-     * 恢復療程
-     */
-    async resume(treatmentId) {
-        const treatment = await this.getById(treatmentId);
-        if (!treatment) throw new Error('找不到療程');
-        
-        treatment.status = 'active';
-        treatment.pause_reason = null;
-        treatment.paused_at = null;
-        
-        return this.update(treatment);
-    },
-    
-    /**
-     * 結案療程
-     */
-    async complete(treatmentId) {
-        const treatment = await this.getById(treatmentId);
-        if (!treatment) throw new Error('找不到療程');
-        
-        treatment.status = 'completed';
-        treatment.treatment_end = today();
-        
-        return this.update(treatment);
-    },
-    
-    /**
-     * 確認結案療程
-     */
-    async confirmComplete(treatmentId) {
-        const treatment = await this.getById(treatmentId);
-        const patient = await Patient.getById(treatment.patient_id);
-        
-        const html = `
-            <div style="margin-bottom: 16px;">
-                <strong>${patient.medical_id}</strong> ${patient.name}
-            </div>
-            <p>確定要結案此療程嗎？</p>
-            <p style="color: var(--text-hint); font-size: 12px; margin-top: 8px;">
-                結案後療程將標記為「已完成」
-            </p>
-        `;
-        
-        openModal('結案療程', html, [
-            { text: '取消', class: 'btn-outline' },
-            {
-                text: '確定結案',
-                class: 'btn-primary',
-                closeOnClick: false,
-                onClick: async () => {
-                    try {
-                        await Treatment.complete(treatmentId);
-                        closeModal();
-                        showToast('療程已結案');
-                        App.refresh();
-                    } catch (e) {
-                        showToast(e.message, 'error');
-                    }
-                }
-            }
-        ]);
-    },
-    
-    /**
-     * 終止療程
-     */
-    async terminate(treatmentId, reason = '') {
-        const treatment = await this.getById(treatmentId);
-        if (!treatment) throw new Error('找不到療程');
-        
-        treatment.status = 'terminated';
-        treatment.treatment_end = today();
-        treatment.terminate_reason = reason;
-        
-        return this.update(treatment);
-    },
-    
-    /**
-     * 確認終止療程
-     */
-    async confirmTerminate(treatmentId) {
-        const treatment = await this.getById(treatmentId);
-        const patient = await Patient.getById(treatment.patient_id);
-        
-        const html = `
-            <div style="margin-bottom: 16px;">
-                <strong>${patient.medical_id}</strong> ${patient.name}
-            </div>
-            ${createFormGroup('終止原因（選填）', `
-                <input type="text" class="form-input" id="terminate_reason" 
-                       placeholder="例如：轉院、放棄治療">
-            `)}
-            <p style="color: var(--danger); font-size: 12px; margin-top: 8px;">
-                終止後療程將標記為「已終止」
-            </p>
-        `;
-        
-        openModal('提早終止療程', html, [
-            { text: '取消', class: 'btn-outline' },
-            {
-                text: '確定終止',
-                class: 'btn-danger',
-                closeOnClick: false,
-                onClick: async () => {
-                    const reason = document.getElementById('terminate_reason').value.trim();
-                    try {
-                        await Treatment.terminate(treatmentId, reason);
-                        closeModal();
-                        showToast('療程已終止');
-                        App.refresh();
-                    } catch (e) {
-                        showToast(e.message, 'error');
-                    }
-                }
-            }
-        ]);
-    },
-    
-    /**
-     * 顯示新增療程對話框
-     */
-    async showForm(patient, treatment = null) {
-        const isEdit = !!treatment;
-        const title = isEdit ? '編輯療程' : '新增療程';
-        
-        const cancerTypes = await Settings.get('cancer_types', []);
-        const intents = await Settings.get('treatment_intents', []);
-        
-        const isUnableToMeasure = treatment?.unable_to_measure || false;
-        
-        const html = `
-            <form id="treatment-form">
-                <div style="background: var(--bg); padding: 12px; border-radius: 8px; margin-bottom: 16px;">
-                    <strong>${patient.medical_id}</strong> ${patient.name}
-                    <span style="color: var(--text-secondary); margin-left: 8px;">
-                        ${formatGender(patient.gender)} · ${calculateAge(patient.birth_date)}歲
-                    </span>
-                </div>
-                
-                <div class="form-row">
-                    ${createFormGroup('治療目的', createSelect('treatment_intent', intents, treatment?.treatment_intent), true)}
-                    ${createFormGroup('癌別', createSelect('cancer_type', cancerTypes, treatment?.cancer_type), true)}
-                </div>
-                
-                ${createFormGroup('開始日期', `
-                    <input type="date" class="form-input" id="treatment_start" 
-                           value="${treatment?.treatment_start || today()}">
-                `, true)}
-                
-                <div class="form-row">
-                    ${createFormGroup('基準體重 (kg)', `
-                        <input type="number" step="0.1" class="form-input" id="baseline_weight" 
-                               value="${isUnableToMeasure ? '' : (treatment?.baseline_weight || '')}" 
-                               placeholder="輸入體重"
-                               ${isUnableToMeasure ? 'disabled' : ''}>
-                    `)}
-                    <div class="form-group" style="display: flex; align-items: flex-end; padding-bottom: 8px;">
-                        <label class="form-checkbox">
-                            <input type="checkbox" id="unable_to_measure" 
-                                   ${isUnableToMeasure ? 'checked' : ''}
-                                   onchange="Treatment.toggleWeightInput(this.checked)">
-                            <span>無法測量</span>
-                        </label>
-                    </div>
-                </div>
-            </form>
-        `;
-        
-        openModal(title, html, [
-            { text: '取消', class: 'btn-outline' },
-            {
-                text: isEdit ? '儲存' : '建立療程',
-                class: 'btn-primary',
-                closeOnClick: false,
-                onClick: async () => {
-                    const valid = validateRequired([
-                        { id: 'treatment_intent', label: '治療目的' },
-                        { id: 'cancer_type', label: '癌別' },
-                        { id: 'treatment_start', label: '開始日期' }
-                    ]);
-                    if (!valid) return;
-                    
-                    const unableToMeasure = document.getElementById('unable_to_measure').checked;
-                    const baselineWeight = document.getElementById('baseline_weight').value;
-                    
-                    // 驗證：無法測量時不能填體重
-                    if (unableToMeasure && baselineWeight) {
-                        showToast('勾選無法測量時不能填寫體重', 'error');
-                        return;
-                    }
-                    
-                    // 驗證：必須二擇一
-                    if (!unableToMeasure && !baselineWeight) {
-                        showToast('請輸入基準體重或勾選無法測量', 'error');
-                        return;
-                    }
-                    
-                    const data = {
-                        patient_id: patient.id,
-                        treatment_intent: document.getElementById('treatment_intent').value,
-                        cancer_type: document.getElementById('cancer_type').value,
-                        treatment_start: document.getElementById('treatment_start').value,
-                        baseline_weight: baselineWeight ? parseFloat(baselineWeight) : null,
-                        unable_to_measure: unableToMeasure
-                    };
-                    
-                    try {
-                        if (isEdit) {
-                            data.id = treatment.id;
-                            data.status = treatment.status;
-                            data.created_at = treatment.created_at;
-                            await Treatment.update(data);
-                            showToast('療程已更新');
-                        } else {
-                            await Treatment.create(data);
-                            showToast('療程已建立');
-                        }
-                        closeModal();
-                        App.refresh();
-                    } catch (e) {
-                        showToast(e.message, 'error');
-                    }
-                }
-            }
-        ]);
-    },
-    
-    /**
-     * 切換體重輸入框狀態
-     */
-    toggleWeightInput(isUnableToMeasure) {
-        const weightInput = document.getElementById('baseline_weight');
-        if (isUnableToMeasure) {
-            weightInput.value = '';
-            weightInput.disabled = true;
-            weightInput.placeholder = '無法測量';
-        } else {
-            weightInput.disabled = false;
-            weightInput.placeholder = '輸入體重';
-        }
-    },
-    
-    /**
-     * 顯示療程操作選單
-     */
-    async showActions(treatmentId) {
-        const treatment = await this.getById(treatmentId);
-        if (!treatment) return;
-        
-        const patient = await Patient.getById(treatment.patient_id);
-        
-        let actionsHtml = '';
-        
-        if (treatment.status === 'active') {
-            actionsHtml = `
-                <button class="btn btn-outline" style="width: 100%; margin-bottom: 8px;" 
-                        onclick="Treatment.pause(${treatmentId}, '').then(() => { closeModal(); App.refresh(); showToast('療程已暫停'); })">
-                    暫停療程
-                </button>
-                <button class="btn btn-outline" style="width: 100%; margin-bottom: 8px;"
-                        onclick="Treatment.complete(${treatmentId}).then(() => { closeModal(); App.refresh(); showToast('療程已結案'); })">
-                    結案
-                </button>
-                <button class="btn btn-danger" style="width: 100%;"
-                        onclick="Treatment.terminate(${treatmentId}).then(() => { closeModal(); App.refresh(); showToast('療程已終止'); })">
-                    終止療程
-                </button>
-            `;
-        } else if (treatment.status === 'paused') {
-            actionsHtml = `
-                <button class="btn btn-primary" style="width: 100%; margin-bottom: 8px;"
-                        onclick="Treatment.resume(${treatmentId}).then(() => { closeModal(); App.refresh(); showToast('療程已恢復'); })">
-                    恢復療程
-                </button>
-                <button class="btn btn-outline" style="width: 100%; margin-bottom: 8px;"
-                        onclick="Treatment.complete(${treatmentId}).then(() => { closeModal(); App.refresh(); showToast('療程已結案'); })">
-                    結案
-                </button>
-                <button class="btn btn-danger" style="width: 100%;"
-                        onclick="Treatment.terminate(${treatmentId}).then(() => { closeModal(); App.refresh(); showToast('療程已終止'); })">
-                    終止療程
-                </button>
-            `;
-        }
-        
-        const html = `
-            <div style="text-align: center; margin-bottom: 16px;">
-                <strong>${patient.medical_id}</strong> ${patient.name}<br>
-                <span class="tag ${getStatusTagClass(treatment.status)}">${formatTreatmentStatus(treatment.status)}</span>
-            </div>
-            ${actionsHtml}
-        `;
-        
-        openModal('療程操作', html, [
-            { text: '關閉', class: 'btn-outline' }
-        ]);
-    },
-    
-    /**
-     * 顯示編輯療程對話框（從追蹤頁呼叫）
-     */
-    async showEditForm(treatmentId) {
-        const treatment = await this.getById(treatmentId);
-        if (!treatment) {
-            showToast('找不到療程', 'error');
+    async exportPdf() {
+        const reportContent = document.getElementById('report-content');
+        if (!reportContent) {
+            showToast('找不到報表內容', 'error');
             return;
         }
         
-        const patient = await Patient.getById(treatment.patient_id);
-        if (!patient) {
-            showToast('找不到病人', 'error');
-            return;
-        }
+        showToast('正在產生 PDF...');
         
-        // 呼叫原有的 showForm
-        await this.showForm(patient, treatment);
+        try {
+            // 使用 html2canvas 截圖
+            const canvas = await html2canvas(reportContent, {
+                scale: 2,
+                useCORS: true,
+                logging: false,
+                backgroundColor: '#ffffff'
+            });
+            
+            const imgData = canvas.toDataURL('image/png');
+            
+            // 建立 PDF
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
+            
+            // 計算圖片尺寸
+            const imgWidth = pageWidth - 20; // 左右留 10mm 邊距
+            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+            
+            let heightLeft = imgHeight;
+            let position = 10; // 上方留 10mm
+            
+            // 第一頁
+            pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+            heightLeft -= (pageHeight - 20);
+            
+            // 如果內容超過一頁，自動分頁
+            while (heightLeft > 0) {
+                position = heightLeft - imgHeight + 10;
+                pdf.addPage();
+                pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+                heightLeft -= (pageHeight - 20);
+            }
+            
+            // 檔名
+            const cancerTypes = await Settings.get('cancer_types', []);
+            let filename = `體重統計報表_${today()}`;
+            if (this.filters.cancerType !== 'all') {
+                const cancerLabel = cancerTypes.find(c => c.code === this.filters.cancerType)?.label;
+                filename += `_${cancerLabel}`;
+            }
+            filename += '.pdf';
+            
+            pdf.save(filename);
+            showToast('PDF 已下載');
+        } catch (e) {
+            console.error('PDF 匯出失敗:', e);
+            showToast('PDF 匯出失敗', 'error');
+        }
     }
 };
