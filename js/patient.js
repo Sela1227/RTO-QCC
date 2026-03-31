@@ -266,11 +266,16 @@ const Patient = {
                     `, true)}
                     ${createFormGroup('生日', `
                         <input type="text" class="form-input" id="birth_date" 
-                               value="${patient?.birth_date ? patient.birth_date.replace(/-/g, '') : ''}"
-                               placeholder="例：19900312"
-                               maxlength="8"
-                               inputmode="numeric"
-                               pattern="[0-9]*">
+                               value="${patient?.birth_date || ''}"
+                               placeholder="19900312"
+                               maxlength="10"
+                               oninput="
+                                   let v = this.value.replace(/[^0-9]/g, '');
+                                   if (v.length >= 8) {
+                                       v = v.slice(0,4) + '-' + v.slice(4,6) + '-' + v.slice(6,8);
+                                   }
+                                   this.value = v;
+                               ">
                         <small style="color: var(--text-hint); font-size: 11px; margin-top: 4px; display: block;">輸入 8 位數字，如 19900312</small>
                     `, true)}
                 </div>

@@ -1130,6 +1130,7 @@ const App = {
         let predictionData = null;
         let predictionLabels = [];
         let allLabels = [...labels];
+        let predictionSlope = 0;
         
         // 需要至少 3 個數據點才進行預測
         if (weights.length >= 3) {
@@ -1138,6 +1139,7 @@ const App = {
                 predictionData = prediction.values;
                 predictionLabels = prediction.labels;
                 allLabels = [...labels, ...predictionLabels];
+                predictionSlope = prediction.slope;
             }
         }
         
@@ -1160,10 +1162,10 @@ const App = {
             // 預測線從最後一個實際點開始
             const predictionWithStart = [...new Array(weights.length - 1).fill(null), weights[weights.length - 1], ...predictionData];
             
-            // 判斷預測趨勢方向（兩週後變化百分比）
+            // 判斷預測趨勢方向（比較最後實際體重與預測最終體重）
             const lastWeight = weights[weights.length - 1];
-            const finalPrediction = predictionData[predictionData.length - 1];
-            const changePercent = ((finalPrediction - lastWeight) / lastWeight) * 100;
+            const finalPredictedWeight = predictionData[predictionData.length - 1];
+            const changePercent = ((finalPredictedWeight - lastWeight) / lastWeight) * 100;
             
             // 判斷標準：>1% 下降、±1% 持平、>1% 上升
             let trendLabel = '持平';
@@ -1418,6 +1420,7 @@ const App = {
         let predictionData = null;
         let predictionLabels = [];
         let allLabels = [...labels];
+        let predictionSlope = 0;
         
         if (weights.length >= 3) {
             const prediction = this.calculateWeightPrediction(dates, weights, 14);
@@ -1425,6 +1428,7 @@ const App = {
                 predictionData = prediction.values;
                 predictionLabels = prediction.labels;
                 allLabels = [...labels, ...predictionLabels];
+                predictionSlope = prediction.slope;
             }
         }
         
@@ -1448,14 +1452,17 @@ const App = {
         if (predictionData && predictionData.length > 0) {
             const predictionWithStart = [...new Array(weights.length - 1).fill(null), weights[weights.length - 1], ...predictionData];
             
+            // 比較最後實際體重與預測最終體重
             const lastWeight = weights[weights.length - 1];
-            const finalPrediction = predictionData[predictionData.length - 1];
+            const finalPredictedWeight = predictionData[predictionData.length - 1];
+            const changePercent = ((finalPredictedWeight - lastWeight) / lastWeight) * 100;
+            
             let predictionColor = '#9CA3AF';
             let trendText = '持平';
-            if (finalPrediction < lastWeight * 0.98) {
+            if (changePercent < -1) {
                 predictionColor = '#D97B7B';
                 trendText = '下降';
-            } else if (finalPrediction > lastWeight * 1.02) {
+            } else if (changePercent > 1) {
                 predictionColor = '#6BBF8A';
                 trendText = '上升';
             }

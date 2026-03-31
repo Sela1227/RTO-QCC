@@ -347,8 +347,31 @@ body {
 
 .stats-grid-6 {
     grid-template-columns: repeat(6, 1fr);
-    max-width: 1080px;
-    gap: var(--space-md);
+    max-width: 100%;
+    gap: var(--space-sm);
+}
+
+.stats-grid-6 .stat-card {
+    padding: 14px 10px;
+    min-width: 0;
+}
+
+.stats-grid-6 .stat-icon {
+    width: 40px;
+    height: 40px;
+}
+
+.stats-grid-6 .stat-icon svg {
+    width: 20px;
+    height: 20px;
+}
+
+.stats-grid-6 .stat-value {
+    font-size: 26px;
+}
+
+.stats-grid-6 .stat-label {
+    font-size: 12px;
 }
 
 .stat-card {
@@ -1676,10 +1699,15 @@ body {
     
     .stats-grid,
     .stats-grid-2x2,
-    .stats-grid-5,
-    .stats-grid-6 {
+    .stats-grid-5 {
         grid-template-columns: 1fr 1fr;
         gap: 10px;
+        max-width: 100%;
+    }
+    
+    .stats-grid-6 {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
         max-width: 100%;
     }
     
