@@ -212,11 +212,10 @@ const App = {
         document.getElementById('btn-add-patient').onclick = () => Patient.showForm();
         
         // 病人頁搜尋
-        document.getElementById('btn-patient-search').onclick = () => this.searchPatients();
+        document.getElementById('btn-patient-search').onclick = () => PatientDB.refresh();
         document.getElementById('patient-search-input').onkeypress = (e) => {
-            if (e.key === 'Enter') this.searchPatients();
+            if (e.key === 'Enter') PatientDB.refresh();
         };
-        document.getElementById('btn-patient-search-clear').onclick = () => this.clearPatientSearch();
         
         // 統計卡片點擊
         document.querySelectorAll('.stat-card').forEach(card => {
