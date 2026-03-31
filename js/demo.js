@@ -1,6 +1,6 @@
 /**
  * 演示數據模組
- * 產生 50 位測試病人及完整記錄，覆蓋所有功能場景
+ * 產生 80 位測試病人及完整記錄，覆蓋所有功能場景
  */
 
 const DemoData = {
@@ -38,10 +38,10 @@ const DemoData = {
         { code: '4', label: 'IV期' }
     ],
     
-    sdmChoices: ['oral_supplement', 'ng_tube', 'peg_endoscopic', 'peg_fluoroscopic', 'undecided', 'refused'],
+    sdmChoices: ['oral_supplement', 'ng_tube', 'peg_endoscopic', 'peg_fluoroscopic', 'oral_only', 'undecided', 'refused'],
     
-    pauseReasons: ['身體不適', '治療副作用嚴重', '病人要求暫停', '等待其他檢查'],
-    terminateReasons: ['轉院', '放棄治療', '病情惡化', '病人過世', '其他原因'],
+    pauseReasons: ['身體不適', '治療副作用嚴重', '病人要求暫停', '等待其他檢查', '家庭因素'],
+    terminateReasons: ['轉院', '放棄治療', '病情惡化', '病人過世', '經濟因素', '其他原因'],
     
     staff: ['王孝宇', '陳詩韻', '廖芝穎'],
     
@@ -73,7 +73,7 @@ const DemoData = {
             return false;
         }
         
-        console.log('開始產生 50 位測試病人（含完整功能測試數據）...');
+        console.log('開始產生 80 位測試病人（含完整功能測試數據）...');
         
         // 初始化設定
         await this.initSettings();
@@ -85,21 +85,21 @@ const DemoData = {
         let satId = 0;
         
         /**
-         * 病人分布設計（50位）：
-         * 0-9:   治療中，體重正常（測試基本功能）
-         * 10-17: 治療中，體重下降達 SDM 閾值，已處置（測試「需關注」）
-         * 18-24: 治療中，體重下降達 SDM 閾值，未處置（測試「需處理」）
-         * 25-29: 治療中，體重下降達營養師閾值（測試嚴重警示）
-         * 30-37: 已結案（測試結案統計、滿意度）
-         * 38-43: 暫停中（測試暫停原因）
-         * 44-49: 已終止（測試終止原因）
+         * 病人分布設計（80位）：
+         * 0-15:  治療中，體重正常（測試基本功能）
+         * 16-27: 治療中，體重下降達 SDM 閾值，已處置（測試「需關注」）
+         * 28-39: 治療中，體重下降達 SDM 閾值，未處置（測試「需處理」）
+         * 40-49: 治療中，體重下降達營養師閾值（測試嚴重警示）
+         * 50-63: 已結案（測試結案統計、滿意度）
+         * 64-73: 暫停中（測試暫停原因）
+         * 74-79: 已終止（測試終止原因）
          */
         
-        for (let i = 0; i < 50; i++) {
+        for (let i = 0; i < 80; i++) {
             const surname = this.surnames[i % this.surnames.length];
             const given = this.givenNames[i % this.givenNames.length];
             const name = surname + given;
-            const medicalId = `${113 + Math.floor(i / 25)}${String(1001 + i).padStart(4, '0')}`;
+            const medicalId = `${113 + Math.floor(i / 40)}${String(1001 + i).padStart(4, '0')}`;
             const gender = Math.random() < 0.5 ? 'M' : 'F';
             
             // 建立病人
@@ -119,39 +119,39 @@ const DemoData = {
             let pauseReason = null, terminateReason = null;
             let sdmChoice = null;
             
-            if (i < 10) {
+            if (i < 16) {
                 // 治療中，體重正常
                 status = 'active';
                 startDaysAgo = 14 + Math.floor(Math.random() * 21);
                 weightScenario = 'normal';
-            } else if (i < 18) {
+            } else if (i < 28) {
                 // 治療中，SDM 閾值，已處置（需關注）
                 status = 'active';
                 startDaysAgo = 21 + Math.floor(Math.random() * 21);
                 weightScenario = 'sdm';
                 hasRecentIntervention = true;
                 sdmChoice = this.sdmChoices[i % this.sdmChoices.length];
-            } else if (i < 25) {
+            } else if (i < 40) {
                 // 治療中，SDM 閾值，未處置（需處理）
                 status = 'active';
                 startDaysAgo = 21 + Math.floor(Math.random() * 14);
                 weightScenario = 'sdm';
                 hasRecentIntervention = false;
-            } else if (i < 30) {
+            } else if (i < 50) {
                 // 治療中，營養師閾值
                 status = 'active';
                 startDaysAgo = 28 + Math.floor(Math.random() * 21);
                 weightScenario = 'nutrition';
                 hasRecentIntervention = Math.random() < 0.5;
-                sdmChoice = this.sdmChoices[Math.floor(Math.random() * 4)]; // 前4個是實際選擇
-            } else if (i < 38) {
+                sdmChoice = this.sdmChoices[Math.floor(Math.random() * 5)]; // 前5個是實際選擇
+            } else if (i < 64) {
                 // 已結案
                 status = 'completed';
                 startDaysAgo = 50 + Math.floor(Math.random() * 30);
                 endDate = this.daysAgo(5 + Math.floor(Math.random() * 15));
                 weightScenario = Math.random() < 0.6 ? 'normal' : 'sdm';
-                sdmChoice = Math.random() < 0.7 ? this.sdmChoices[Math.floor(Math.random() * 4)] : null;
-            } else if (i < 44) {
+                sdmChoice = Math.random() < 0.7 ? this.sdmChoices[Math.floor(Math.random() * 5)] : null;
+            } else if (i < 74) {
                 // 暫停中
                 status = 'paused';
                 startDaysAgo = 21 + Math.floor(Math.random() * 28);

@@ -1270,6 +1270,40 @@ body {
     margin-top: var(--space-lg);
 }
 
+/* 詳情頁按鈕區域 */
+.detail-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.detail-actions .action-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.detail-actions .btn-sm {
+    padding: 6px 12px;
+    font-size: 13px;
+}
+
+.detail-actions .btn-warning {
+    color: var(--warning);
+    border-color: var(--warning);
+}
+
+.detail-actions .btn-success {
+    color: var(--success);
+    border-color: var(--success);
+}
+
+.detail-actions .btn-danger {
+    color: var(--danger);
+    border-color: var(--danger);
+}
+
 /* === 捲軸美化 === */
 ::-webkit-scrollbar {
     width: 6px;

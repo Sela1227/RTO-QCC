@@ -263,21 +263,50 @@ const SideEffect = {
         }
         
         const html = `
-            <div style="margin-bottom: 16px;">
+            <div class="se-list-header">
                 <strong>${patient.medical_id}</strong> ${patient.name}
             </div>
             <div class="side-effect-list">
                 ${listHtml}
             </div>
-            <div class="severity-legend" style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border);">
-                <div style="font-size: 12px; color: var(--text-hint); margin-bottom: 8px;">嚴重程度說明（參考 CTCAE v5.0）</div>
-                <div style="display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px;">
+            <div class="severity-legend">
+                <div class="legend-title">嚴重程度說明（參考 CTCAE v5.0）</div>
+                <div class="legend-items">
                     <span><span class="side-effect-tag normal">無</span> 無症狀</span>
                     <span><span class="side-effect-tag mild">輕微</span> 不影響日常</span>
                     <span><span class="side-effect-tag moderate">中度</span> 影響日常但可自理</span>
                     <span><span class="side-effect-tag severe">嚴重</span> 需要協助或醫療處置</span>
                 </div>
             </div>
+            <style>
+                .se-list-header {
+                    background: var(--bg);
+                    padding: 12px 16px;
+                    border-radius: 8px;
+                    margin-bottom: 16px;
+                    font-size: 15px;
+                }
+                .side-effect-list {
+                    max-height: 45vh;
+                    overflow-y: auto;
+                }
+                .severity-legend {
+                    margin-top: 16px;
+                    padding-top: 16px;
+                    border-top: 1px solid var(--border);
+                }
+                .legend-title {
+                    font-size: 12px;
+                    color: var(--text-hint);
+                    margin-bottom: 8px;
+                }
+                .legend-items {
+                    display: flex;
+                    gap: 12px;
+                    flex-wrap: wrap;
+                    font-size: 12px;
+                }
+            </style>
         `;
         
         // 保存 treatmentId 供按鈕使用

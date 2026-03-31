@@ -802,45 +802,46 @@ const App = {
                 </button>
             </div>
             
-            <div class="action-group" style="flex-wrap: wrap; margin-bottom: 10px; gap: 6px;">
-                <button class="btn btn-primary btn-sm" onclick="Weight.showForm(${treatment.id})">
-                    記錄體重
-                </button>
-                <button class="btn btn-outline btn-sm" onclick="SideEffect.showList(${treatment.id})">
-                    副作用
-                </button>
-                <button class="btn btn-outline btn-sm" onclick="App.showQRMenu(${treatment.id})" title="QR Code 功能">
-                    QR
-                </button>
-                <button class="btn btn-outline btn-sm" onclick="Intervention.showList(${treatment.id})">
-                    介入記錄
-                </button>
-                <button class="btn btn-outline btn-sm" onclick="Satisfaction.showForm(${treatment.id})" title="滿意度調查">
-                    滿意度
-                </button>
+            <div class="detail-actions">
+                <div class="action-row">
+                    <button class="btn btn-primary btn-sm" onclick="Weight.showForm(${treatment.id})">
+                        記錄體重
+                    </button>
+                    <button class="btn btn-outline btn-sm" onclick="SideEffect.showList(${treatment.id})">
+                        副作用
+                    </button>
+                    <button class="btn btn-outline btn-sm" onclick="Intervention.showList(${treatment.id})">
+                        介入記錄
+                    </button>
+                    <button class="btn btn-outline btn-sm" onclick="Satisfaction.showForm(${treatment.id})">
+                        滿意度
+                    </button>
+                    <button class="btn btn-outline btn-sm" onclick="App.showQRMenu(${treatment.id})">
+                        QR
+                    </button>
+                </div>
                 ${treatment.status === 'active' ? `
-                    <button class="btn btn-outline btn-sm" style="color: var(--warning); border-color: var(--warning);" 
-                            onclick="Treatment.confirmPause(${treatment.id})">
-                        暫停
+                <div class="action-row">
+                    <button class="btn btn-outline btn-sm btn-warning" onclick="Treatment.confirmPause(${treatment.id})">
+                        暫停療程
                     </button>
-                    <button class="btn btn-outline btn-sm" style="color: var(--success); border-color: var(--success);" 
-                            onclick="Treatment.confirmComplete(${treatment.id})">
-                        完成
+                    <button class="btn btn-outline btn-sm btn-success" onclick="Treatment.confirmComplete(${treatment.id})">
+                        完成結案
                     </button>
-                    <button class="btn btn-outline btn-sm" style="color: var(--danger); border-color: var(--danger);" 
-                            onclick="Treatment.confirmTerminate(${treatment.id})">
-                        終止
+                    <button class="btn btn-outline btn-sm btn-danger" onclick="Treatment.confirmTerminate(${treatment.id})">
+                        終止療程
                     </button>
+                </div>
                 ` : ''}
                 ${treatment.status === 'paused' ? `
-                    <button class="btn btn-outline btn-sm" style="color: var(--success); border-color: var(--success);" 
-                            onclick="Treatment.confirmResume(${treatment.id})">
-                        恢復
+                <div class="action-row">
+                    <button class="btn btn-outline btn-sm btn-success" onclick="Treatment.confirmResume(${treatment.id})">
+                        恢復療程
                     </button>
-                    <button class="btn btn-outline btn-sm" style="color: var(--danger); border-color: var(--danger);" 
-                            onclick="Treatment.confirmTerminate(${treatment.id})">
-                        終止
+                    <button class="btn btn-outline btn-sm btn-danger" onclick="Treatment.confirmTerminate(${treatment.id})">
+                        終止療程
                     </button>
+                </div>
                 ` : ''}
             </div>
             
@@ -1033,20 +1034,20 @@ const App = {
             // 預測線從最後一個實際點開始
             const predictionWithStart = [...new Array(weights.length - 1).fill(null), weights[weights.length - 1], ...predictionData];
             
-            // 判斷預測趨勢顏色
+            // 判斷預測趨勢方向（用於標籤說明）
             const lastWeight = weights[weights.length - 1];
             const finalPrediction = predictionData[predictionData.length - 1];
-            let predictionColor = '#9CA3AF'; // 灰色（持平）
+            let trendLabel = '持平';
             if (finalPrediction < lastWeight * 0.98) {
-                predictionColor = '#D97B7B'; // 紅色（下降趨勢）
+                trendLabel = '下降';
             } else if (finalPrediction > lastWeight * 1.02) {
-                predictionColor = '#6BBF8A'; // 綠色（上升趨勢）
+                trendLabel = '上升';
             }
             
             datasets.push({
-                label: '預測趨勢',
+                label: `預測趨勢（${trendLabel}）`,
                 data: predictionWithStart,
-                borderColor: predictionColor,
+                borderColor: '#9CA3AF',
                 borderDash: [4, 4],
                 borderWidth: 2,
                 pointRadius: 0,
