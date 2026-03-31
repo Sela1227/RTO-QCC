@@ -683,13 +683,22 @@ const App = {
             pending: interventions.filter(i => i.status === 'pending' || i.status === 'contacted').length
         };
         
-        // 待處理介入
+        // 取得待處理介入
+        const pendingInterventions = interventions.filter(i => i.status === 'pending' || i.status === 'contacted');
+        
+        // 判斷是否需要介入（達閾值且7天內無處置）
+        const rule = await Settings.get('alert_rule', { sdm_threshold: -3, nutrition_threshold: -5 });
+        const needsNewIntervention = treatment.change_rate !== null && 
+            treatment.change_rate <= rule.sdm_threshold && 
+            pendingInterventions.length === 0;
+        
+        // 待處理介入或需新增介入提示
         let pendingHtml = '';
-        if (treatment.pending_interventions?.length > 0) {
+        if (pendingInterventions.length > 0) {
             pendingHtml = `
                 <div style="background: rgba(228, 185, 90, 0.1); padding: 8px 10px; border-radius: 6px; margin-bottom: 10px;">
                     <strong style="color: var(--warning); font-size: 12px;">待處理介入</strong>
-                    ${treatment.pending_interventions.map(i => {
+                    ${pendingInterventions.map(i => {
                         const statusLabel = i.status === 'contacted' 
                             ? '<span class="tag tag-blue" style="font-size: 10px; padding: 1px 4px; margin-left: 4px;">已聯繫</span>'
                             : '';
@@ -707,6 +716,26 @@ const App = {
                     }).join('')}
                 </div>
             `;
+        } else if (needsNewIntervention) {
+            const isNutrition = treatment.change_rate <= rule.nutrition_threshold;
+            const alertType = isNutrition ? '需營養師介入' : '需 SDM 介入';
+            const alertColor = isNutrition ? 'var(--danger)' : 'var(--warning)';
+            const alertBg = isNutrition ? 'rgba(217, 123, 123, 0.1)' : 'rgba(228, 185, 90, 0.1)';
+            pendingHtml = `
+                <div style="background: ${alertBg}; padding: 8px 10px; border-radius: 6px; margin-bottom: 10px;">
+                    <strong style="color: ${alertColor}; font-size: 12px;">${alertType}</strong>
+                    <p style="margin: 4px 0 0; font-size: 12px; color: var(--text-secondary);">
+                        體重下降 ${Math.abs(treatment.change_rate).toFixed(1)}%，尚未建立介入記錄
+                    </p>
+                    <div style="margin-top: 8px;">
+                        <button class="btn btn-outline btn-sm" style="padding: 4px 10px; font-size: 12px; color: ${alertColor}; border-color: ${alertColor};"
+                                onclick="Intervention.showAddForm(${treatment.id})">
+                            新增介入
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
         }
         
         // 暫停/終止原因提示
@@ -804,7 +833,7 @@ const App = {
             
             <div class="detail-actions">
                 <div class="action-row">
-                    <button class="btn btn-primary btn-sm" onclick="Weight.showForm(${treatment.id})">
+                    <button class="btn btn-outline btn-sm" onclick="Weight.showForm(${treatment.id})">
                         記錄體重
                     </button>
                     <button class="btn btn-outline btn-sm" onclick="SideEffect.showList(${treatment.id})">
