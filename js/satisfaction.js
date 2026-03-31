@@ -83,7 +83,7 @@ const Satisfaction = {
                     <div class="question-number">${index + 1}</div>
                     <div class="question-content">
                         <div class="question-text">${q.text}</div>
-                        <div class="rating-options">
+                        <div class="rating-options${q.optional ? ' has-na' : ''}">
                             ${buttons}
                             ${naOption}
                         </div>
@@ -137,19 +137,19 @@ const Satisfaction = {
                 .satisfaction-question { 
                     display: flex; 
                     gap: 12px; 
-                    margin-bottom: 20px;
+                    margin-bottom: 24px;
                     align-items: flex-start;
                 }
                 .question-number {
-                    width: 24px;
-                    height: 24px;
+                    width: 28px;
+                    height: 28px;
                     background: var(--primary);
                     color: white;
                     border-radius: 50%;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    font-size: 12px;
+                    font-size: 13px;
                     font-weight: 600;
                     flex-shrink: 0;
                 }
@@ -157,24 +157,28 @@ const Satisfaction = {
                 .question-text { 
                     font-size: 14px; 
                     font-weight: 500; 
-                    margin-bottom: 10px;
+                    margin-bottom: 12px;
                     color: var(--text);
                 }
                 .rating-options { 
-                    display: flex; 
-                    gap: 6px; 
-                    flex-wrap: wrap;
+                    display: grid;
+                    grid-template-columns: repeat(5, 1fr);
+                    gap: 8px;
+                }
+                .rating-options.has-na {
+                    grid-template-columns: repeat(5, 1fr) auto;
                 }
                 .rating-option {
                     display: flex;
                     flex-direction: column;
                     align-items: center;
-                    padding: 8px 10px;
+                    justify-content: center;
+                    padding: 10px 8px;
                     border: 2px solid var(--border);
                     border-radius: 8px;
                     cursor: pointer;
                     transition: all 0.2s;
-                    min-width: 52px;
+                    min-height: 60px;
                 }
                 .rating-option:hover { border-color: var(--primary); }
                 .rating-option.active { 
@@ -182,20 +186,21 @@ const Satisfaction = {
                     background: rgba(91, 143, 185, 0.1);
                 }
                 .rating-number {
-                    font-size: 18px;
+                    font-size: 20px;
                     font-weight: 700;
                     color: var(--text);
                 }
                 .rating-option.active .rating-number { color: var(--primary); }
                 .rating-label {
-                    font-size: 10px;
+                    font-size: 11px;
                     color: var(--text-hint);
-                    margin-top: 2px;
-                    white-space: nowrap;
+                    margin-top: 4px;
+                    text-align: center;
                 }
                 .rating-option.na-option { 
                     border-style: dashed;
                     opacity: 0.7;
+                    min-width: 56px;
                 }
                 .rating-option.na-option:hover,
                 .rating-option.na-option.active { opacity: 1; }

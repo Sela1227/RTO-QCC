@@ -1023,6 +1023,9 @@ const Intervention = {
                             <input type="radio" name="sdm_choice" value="peg_fluoroscopic" ${currentChoice === 'peg_fluoroscopic' ? 'checked' : ''}> 經皮透視攝影導引胃造廔術
                         </label>
                         <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="radio" name="sdm_choice" value="oral_only" ${currentChoice === 'oral_only' ? 'checked' : ''}> 拒管灌，自行經口進食
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
                             <input type="radio" name="sdm_choice" value="undecided" ${currentChoice === 'undecided' ? 'checked' : ''}> 目前無法決定，想與家人或醫療團隊討論
                         </label>
                     </div>
@@ -1137,6 +1140,7 @@ const Intervention = {
                     <div class="choice-item">☐ 鼻胃管</div>
                     <div class="choice-item">☐ 經皮內視鏡胃造廔術</div>
                     <div class="choice-item">☐ 經皮透視攝影導引胃造廔術</div>
+                    <div class="choice-item">☐ 拒管灌，自行經口進食</div>
                     <div class="choice-item">☐ 目前無法決定，想與家人或醫療團隊討論</div>
                 </div>
                 

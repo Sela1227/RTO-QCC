@@ -509,8 +509,9 @@ const Treatment = {
             { code: '', label: '-- 尚未選擇 --' },
             { code: 'oral_supplement', label: '口服營養補充' },
             { code: 'ng_tube', label: '鼻胃管' },
-            { code: 'peg_endoscopic', label: '經皮內視鏡胃造廔術 (PEG)' },
+            { code: 'peg_endoscopic', label: '經皮內視鏡胃造廔術' },
             { code: 'peg_fluoroscopic', label: '經皮透視導引胃造廔術' },
+            { code: 'oral_only', label: '拒管灌，自行經口進食' },
             { code: 'undecided', label: '尚在考慮中' },
             { code: 'refused', label: '病人拒絕' }
         ];
