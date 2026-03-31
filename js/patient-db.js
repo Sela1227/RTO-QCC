@@ -80,7 +80,7 @@ const PatientDB = {
      * 更新期間按鈕狀態
      */
     updatePeriodButtons() {
-        document.querySelectorAll('.filter-quick-btns .btn').forEach(btn => {
+        document.querySelectorAll('.db-period-btns .btn').forEach(btn => {
             btn.classList.toggle('active', btn.dataset.period === this.period);
         });
     },
@@ -90,22 +90,22 @@ const PatientDB = {
      */
     updateDateRangeVisibility() {
         const dateRange = document.getElementById('db-date-range');
-        const yearGroup = document.getElementById('db-year-group');
-        const fromGroup = document.getElementById('db-date-from-group');
-        const toGroup = document.getElementById('db-date-to-group');
+        const yearSelect = document.getElementById('db-year');
+        const fromInput = document.getElementById('db-date-from');
+        const toInput = document.getElementById('db-date-to');
         const sep = document.getElementById('db-date-sep');
         
         if (this.period === 'specific_year') {
-            dateRange.style.display = 'block';
-            yearGroup.style.display = 'block';
-            fromGroup.style.display = 'none';
-            toGroup.style.display = 'none';
+            dateRange.style.display = 'flex';
+            yearSelect.style.display = 'block';
+            fromInput.style.display = 'none';
+            toInput.style.display = 'none';
             sep.style.display = 'none';
         } else if (this.period === 'custom') {
-            dateRange.style.display = 'block';
-            yearGroup.style.display = 'none';
-            fromGroup.style.display = 'block';
-            toGroup.style.display = 'block';
+            dateRange.style.display = 'flex';
+            yearSelect.style.display = 'none';
+            fromInput.style.display = 'block';
+            toInput.style.display = 'block';
             sep.style.display = 'inline';
         } else {
             dateRange.style.display = 'none';

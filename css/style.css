@@ -1377,6 +1377,86 @@ body {
     border-color: var(--primary);
 }
 
+/* === 資料庫工具列 === */
+.db-toolbar {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: var(--space-md);
+    margin-bottom: var(--space-md);
+    box-shadow: var(--shadow-sm);
+}
+
+.db-toolbar-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.db-toolbar-row + .db-toolbar-row {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-light);
+}
+
+.db-toolbar-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    min-width: 60px;
+}
+
+.db-period-btns {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.db-period-btns .btn.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+.db-search-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 4px 8px 4px 12px;
+    flex: 1;
+    min-width: 200px;
+    max-width: 320px;
+}
+
+.db-search-box svg {
+    color: var(--text-hint);
+    flex-shrink: 0;
+}
+
+.db-search-box input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-size: 14px;
+    color: var(--text);
+    outline: none;
+    padding: 6px 0;
+    min-width: 100px;
+}
+
+.db-search-box input::placeholder {
+    color: var(--text-hint);
+}
+
+.db-result-count {
+    color: var(--text-hint);
+    font-size: 13px;
+    margin-left: auto;
+}
+
 /* === 響應式設計 - 平板 === */
 @media (max-width: 1024px) {
     .tracking-layout {

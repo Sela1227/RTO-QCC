@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>彰濱放腫體重監控預防系統</title>
-    <link rel="stylesheet" href="css/style.css?v=6.81">
+    <link rel="stylesheet" href="css/style.css?v=6.82">
     <!-- 外部套件 -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -93,7 +93,7 @@
                 </ul>
                 <div class="nav-footer">
                     <img src="logo.png" alt="SELA" class="nav-logo" width="48" height="48" style="width:48px;height:48px;max-width:48px;max-height:48px;">
-                    <span class="version">v6.8.1 Web</span>
+                    <span class="version">v6.8.2 Web</span>
                 </div>
             </nav>
 
@@ -247,75 +247,59 @@
                         </button>
                     </div>
                     
-                    <!-- 收案區間快捷鈕 -->
-                    <div class="filter-quick-btns" style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
-                        <button class="btn btn-outline btn-sm active" onclick="PatientDB.setPeriod('all')" data-period="all">全部</button>
-                        <button class="btn btn-outline btn-sm" onclick="PatientDB.setPeriod('week')" data-period="week">本週</button>
-                        <button class="btn btn-outline btn-sm" onclick="PatientDB.setPeriod('month')" data-period="month">本月</button>
-                        <button class="btn btn-outline btn-sm" onclick="PatientDB.setPeriod('quarter')" data-period="quarter">本季</button>
-                        <button class="btn btn-outline btn-sm" onclick="PatientDB.setPeriod('year')" data-period="year">本年</button>
-                        <button class="btn btn-outline btn-sm" onclick="PatientDB.setPeriod('specific_year')" data-period="specific_year">指定年</button>
-                        <button class="btn btn-outline btn-sm" onclick="PatientDB.setPeriod('custom')" data-period="custom">指定區間</button>
-                    </div>
-                    
-                    <!-- 日期區間（指定年/指定區間時顯示） -->
-                    <div id="db-date-range" style="display: none; margin-bottom: 12px;">
-                        <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-                            <div class="form-group" style="margin: 0;" id="db-year-group">
-                                <select class="form-select" id="db-year" onchange="PatientDB.refresh()">
-                                    <!-- 動態載入 -->
-                                </select>
+                    <!-- 篩選工具列 -->
+                    <div class="db-toolbar">
+                        <!-- 第一列：收案區間 -->
+                        <div class="db-toolbar-row">
+                            <span class="db-toolbar-label">收案區間</span>
+                            <div class="db-period-btns">
+                                <button class="btn btn-outline btn-sm active" onclick="PatientDB.setPeriod('all')" data-period="all">全部</button>
+                                <button class="btn btn-outline btn-sm" onclick="PatientDB.setPeriod('week')" data-period="week">本週</button>
+                                <button class="btn btn-outline btn-sm" onclick="PatientDB.setPeriod('month')" data-period="month">本月</button>
+                                <button class="btn btn-outline btn-sm" onclick="PatientDB.setPeriod('quarter')" data-period="quarter">本季</button>
+                                <button class="btn btn-outline btn-sm" onclick="PatientDB.setPeriod('year')" data-period="year">本年</button>
+                                <button class="btn btn-outline btn-sm" onclick="PatientDB.setPeriod('specific_year')" data-period="specific_year">指定年</button>
+                                <button class="btn btn-outline btn-sm" onclick="PatientDB.setPeriod('custom')" data-period="custom">指定區間</button>
                             </div>
-                            <div class="form-group" style="margin: 0;" id="db-date-from-group">
-                                <input type="date" class="form-input" id="db-date-from" onchange="PatientDB.refresh()">
-                            </div>
-                            <span id="db-date-sep" style="color: var(--text-hint);">至</span>
-                            <div class="form-group" style="margin: 0;" id="db-date-to-group">
-                                <input type="date" class="form-input" id="db-date-to" onchange="PatientDB.refresh()">
+                            <!-- 日期選擇器 -->
+                            <div id="db-date-range" style="display: none;">
+                                <select class="form-select" id="db-year" style="width: 100px;" onchange="PatientDB.refresh()"></select>
+                                <input type="date" class="form-input" id="db-date-from" style="width: 140px;" onchange="PatientDB.refresh()">
+                                <span id="db-date-sep" style="color: var(--text-hint);">～</span>
+                                <input type="date" class="form-input" id="db-date-to" style="width: 140px;" onchange="PatientDB.refresh()">
                             </div>
                         </div>
-                    </div>
-                    
-                    <!-- 篩選與搜尋區 -->
-                    <div class="filter-section" style="display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; align-items: flex-end;">
-                        <div class="form-group" style="margin: 0; min-width: 100px;">
-                            <label class="form-label">療程狀態</label>
-                            <select class="form-select" id="patient-filter-status" onchange="PatientDB.refresh()">
-                                <option value="all">全部</option>
-                                <option value="has_active">有治療中</option>
-                                <option value="has_paused">有暫停中</option>
+                        
+                        <!-- 第二列：篩選條件 -->
+                        <div class="db-toolbar-row">
+                            <span class="db-toolbar-label">篩選</span>
+                            <select class="form-select" id="patient-filter-status" style="width: 120px;" onchange="PatientDB.refresh()">
+                                <option value="all">全部狀態</option>
+                                <option value="has_active">治療中</option>
+                                <option value="has_paused">暫停中</option>
                                 <option value="no_active">無進行療程</option>
                             </select>
-                        </div>
-                        <div class="form-group" style="margin: 0; min-width: 100px;">
-                            <label class="form-label">癌別</label>
-                            <select class="form-select" id="patient-filter-cancer" onchange="PatientDB.refresh()">
-                                <option value="all">全部</option>
+                            <select class="form-select" id="patient-filter-cancer" style="width: 120px;" onchange="PatientDB.refresh()">
+                                <option value="all">全部癌別</option>
                             </select>
-                        </div>
-                        <div class="form-group" style="margin: 0; min-width: 100px;">
-                            <label class="form-label">主治醫師</label>
-                            <select class="form-select" id="patient-filter-physician" onchange="PatientDB.refresh()">
-                                <option value="all">全部</option>
+                            <select class="form-select" id="patient-filter-physician" style="width: 120px;" onchange="PatientDB.refresh()">
+                                <option value="all">全部醫師</option>
                             </select>
+                            <div class="db-search-box">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="11" cy="11" r="8"></circle>
+                                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                </svg>
+                                <input type="text" id="patient-search-input" placeholder="病歷號或姓名">
+                                <button class="btn btn-primary btn-sm" id="btn-patient-search">搜尋</button>
+                            </div>
                         </div>
-                        <div class="search-box" style="flex: 1; min-width: 200px;">
-                            <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="11" cy="11" r="8"></circle>
-                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                            </svg>
-                            <input type="text" id="patient-search-input" placeholder="搜尋病歷號或姓名...">
-                            <button class="btn btn-primary" id="btn-patient-search">搜尋</button>
-                            <button class="btn btn-outline" id="btn-patient-search-clear" style="display: none;">清除</button>
-                        </div>
-                    </div>
-                    
-                    <!-- 排序區 -->
-                    <div class="sort-section" style="display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; align-items: center;">
-                        <span style="color: var(--text-secondary); font-size: 14px;">排序：</span>
-                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                            <select class="form-select" id="db-sort-1" style="min-width: 120px;" onchange="PatientDB.refresh()">
-                                <option value="">-- 第一排序 --</option>
+                        
+                        <!-- 第三列：排序 -->
+                        <div class="db-toolbar-row">
+                            <span class="db-toolbar-label">排序</span>
+                            <select class="form-select" id="db-sort-1" style="width: 120px;" onchange="PatientDB.refresh()">
+                                <option value="">第一排序</option>
                                 <option value="medical_id">病歷號</option>
                                 <option value="treatment_start">首療日期</option>
                                 <option value="name">姓氏</option>
@@ -323,15 +307,13 @@
                                 <option value="physician">主治醫師</option>
                                 <option value="stage">期別</option>
                             </select>
-                            <button class="btn btn-icon" id="db-sort-1-dir" onclick="PatientDB.toggleSortDir(1)" title="排序方向">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <button class="btn btn-icon btn-sm" id="db-sort-1-dir" onclick="PatientDB.toggleSortDir(1)" title="降序">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M12 5v14M5 12l7 7 7-7"/>
                                 </svg>
                             </button>
-                        </div>
-                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                            <select class="form-select" id="db-sort-2" style="min-width: 120px;" onchange="PatientDB.refresh()">
-                                <option value="">-- 第二排序 --</option>
+                            <select class="form-select" id="db-sort-2" style="width: 120px;" onchange="PatientDB.refresh()">
+                                <option value="">第二排序</option>
                                 <option value="medical_id">病歷號</option>
                                 <option value="treatment_start">首療日期</option>
                                 <option value="name">姓氏</option>
@@ -339,13 +321,13 @@
                                 <option value="physician">主治醫師</option>
                                 <option value="stage">期別</option>
                             </select>
-                            <button class="btn btn-icon" id="db-sort-2-dir" onclick="PatientDB.toggleSortDir(2)" title="排序方向">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <button class="btn btn-icon btn-sm" id="db-sort-2-dir" onclick="PatientDB.toggleSortDir(2)" title="降序">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M12 5v14M5 12l7 7 7-7"/>
                                 </svg>
                             </button>
+                            <span class="db-result-count" id="db-result-count"></span>
                         </div>
-                        <span style="color: var(--text-hint); font-size: 13px;" id="db-result-count"></span>
                     </div>
                     
                     <div class="patient-list" id="patient-list">
@@ -550,22 +532,22 @@
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script></script>
 
     <!-- JS 模組 -->
-    <script src="js/config.js?v=6.81"></script>
-    <script src="js/db.js?v=6.81"></script>
-    <script src="js/utils.js?v=6.81"></script>
-    <script src="js/patient.js?v=6.81"></script>
-    <script src="js/treatment.js?v=6.81"></script>
-    <script src="js/weight.js?v=6.81"></script>
-    <script src="js/sideeffect.js?v=6.81"></script>
-    <script src="js/intervention.js?v=6.81"></script>
-    <script src="js/report.js?v=6.81"></script>
-    <script src="js/settings.js?v=6.81"></script>
-    <script src="js/sync.js?v=6.81"></script>
-    <script src="js/satisfaction.js?v=6.81"></script>
-    <script src="js/dashboard.js?v=6.81"></script>
-    <script src="js/patient-db.js?v=6.81"></script>
-    <script src="js/demo.js?v=6.81"></script>
-    <script src="js/app.js?v=6.81"></script>
+    <script src="js/config.js?v=6.82"></script>
+    <script src="js/db.js?v=6.82"></script>
+    <script src="js/utils.js?v=6.82"></script>
+    <script src="js/patient.js?v=6.82"></script>
+    <script src="js/treatment.js?v=6.82"></script>
+    <script src="js/weight.js?v=6.82"></script>
+    <script src="js/sideeffect.js?v=6.82"></script>
+    <script src="js/intervention.js?v=6.82"></script>
+    <script src="js/report.js?v=6.82"></script>
+    <script src="js/settings.js?v=6.82"></script>
+    <script src="js/sync.js?v=6.82"></script>
+    <script src="js/satisfaction.js?v=6.82"></script>
+    <script src="js/dashboard.js?v=6.82"></script>
+    <script src="js/patient-db.js?v=6.82"></script>
+    <script src="js/demo.js?v=6.82"></script>
+    <script src="js/app.js?v=6.82"></script>
     
     <!-- 登入驗證 -->
     <script>
