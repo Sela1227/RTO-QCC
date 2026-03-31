@@ -4,7 +4,7 @@
  */
 const PatientDB = {
     // 當前狀態
-    period: 'month',
+    period: 'all',
     sortFields: [
         { field: 'treatment_start', dir: 'desc' },
         { field: '', dir: 'asc' }
@@ -195,49 +195,53 @@ const PatientDB = {
      * 刷新列表
      */
     async refresh() {
-        // 載入資料
-        this.allPatients = await Patient.getAll();
-        this.allTreatments = await Treatment.getAll();
-        
-        // 取得篩選條件
-        const statusFilter = document.getElementById('patient-filter-status')?.value || 'all';
-        const cancerFilter = document.getElementById('patient-filter-cancer')?.value || 'all';
-        const physicianFilter = document.getElementById('patient-filter-physician')?.value || 'all';
-        const searchInput = document.getElementById('patient-search-input')?.value?.trim().toLowerCase() || '';
-        
-        // 日期範圍
-        const dateRange = this.getDateRange();
-        
-        // 排序欄位
-        this.sortFields[0].field = document.getElementById('db-sort-1')?.value || '';
-        this.sortFields[1].field = document.getElementById('db-sort-2')?.value || '';
-        
-        // 為每個病人加上療程資訊
-        let patients = this.allPatients.map(p => {
-            const treatments = this.allTreatments.filter(t => t.patient_id === p.id && !t.deleted);
-            const activeTreatment = treatments.find(t => t.status === 'active');
-            const pausedTreatment = treatments.find(t => t.status === 'paused');
-            const firstTreatment = treatments.sort((a, b) => 
-                new Date(a.treatment_start) - new Date(b.treatment_start)
-            )[0];
+        try {
+            // 載入資料
+            this.allPatients = await Patient.getAll();
+            this.allTreatments = await Treatment.getAll();
             
-            return {
-                ...p,
-                treatments,
-                activeTreatment,
-                pausedTreatment,
-                firstTreatment,
-                hasActive: !!activeTreatment,
-                hasPaused: !!pausedTreatment,
-                // 用於排序的欄位
-                _treatment_start: firstTreatment?.treatment_start || '',
-                _cancer_type: firstTreatment?.cancer_type || '',
-                _cancer_type_label: firstTreatment?.cancer_type_label || '',
-                _physician: firstTreatment?.physician || '',
-                _physician_name: firstTreatment?.physician_name || '',
-                _stage: firstTreatment?.stage || ''
-            };
-        });
+            console.log('PatientDB: 載入', this.allPatients.length, '位病人,', this.allTreatments.length, '筆療程');
+            
+            // 取得篩選條件
+            const statusFilter = document.getElementById('patient-filter-status')?.value || 'all';
+            const cancerFilter = document.getElementById('patient-filter-cancer')?.value || 'all';
+            const physicianFilter = document.getElementById('patient-filter-physician')?.value || 'all';
+            const searchInput = document.getElementById('patient-search-input')?.value?.trim().toLowerCase() || '';
+            
+            // 日期範圍
+            const dateRange = this.getDateRange();
+            
+            // 排序欄位
+            this.sortFields[0].field = document.getElementById('db-sort-1')?.value || '';
+            this.sortFields[1].field = document.getElementById('db-sort-2')?.value || '';
+            
+            // 為每個病人加上療程資訊
+            let patients = this.allPatients.map(p => {
+                const treatments = this.allTreatments.filter(t => t.patient_id === p.id);
+                const activeTreatment = treatments.find(t => t.status === 'active');
+                const pausedTreatment = treatments.find(t => t.status === 'paused');
+                const sortedTreatments = [...treatments].sort((a, b) => 
+                    new Date(a.treatment_start) - new Date(b.treatment_start)
+                );
+                const firstTreatment = sortedTreatments[0];
+                
+                return {
+                    ...p,
+                    treatments,
+                    activeTreatment,
+                    pausedTreatment,
+                    firstTreatment,
+                    hasActive: !!activeTreatment,
+                    hasPaused: !!pausedTreatment,
+                    // 用於排序的欄位
+                    _treatment_start: firstTreatment?.treatment_start || '',
+                    _cancer_type: firstTreatment?.cancer_type || '',
+                    _cancer_type_label: firstTreatment?.cancer_type_label || '',
+                    _physician: firstTreatment?.physician || '',
+                    _physician_name: firstTreatment?.physician_name || '',
+                    _stage: firstTreatment?.stage || ''
+                };
+            });
         
         // 篩選：療程狀態
         if (statusFilter === 'has_active') {
@@ -289,6 +293,10 @@ const PatientDB = {
         
         // 渲染列表
         this.renderList(patients);
+        
+        } catch (e) {
+            console.error('PatientDB.refresh 錯誤:', e);
+        }
     },
     
     /**

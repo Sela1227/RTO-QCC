@@ -4,6 +4,22 @@
 
 const Treatment = {
     /**
+     * 取得所有療程（排除已刪除）
+     */
+    async getAll() {
+        const treatments = await DB.getAll('treatments');
+        const cancerTypes = await Settings.get('cancer_types', []);
+        
+        return treatments
+            .filter(t => !t.deleted)
+            .map(t => {
+                const ct = cancerTypes.find(c => c.code === t.cancer_type);
+                t.cancer_type_label = ct ? ct.label : t.cancer_type;
+                return t;
+            });
+    },
+    
+    /**
      * 依 ID 取得療程
      */
     async getById(id) {
