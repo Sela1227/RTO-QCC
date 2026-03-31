@@ -7,14 +7,14 @@
 const SideEffect = {
     // 症狀定義（疼痛使用 0-10 量表，其他使用 0-3）
     SYMPTOMS: {
-        'N': { code: 'N', name: '噁心嘔吐', icon: '🤢', scale: 3 },
-        'F': { code: 'F', name: '疲勞', icon: '😴', scale: 3 },
-        'O': { code: 'O', name: '口腔黏膜炎', icon: '👄', scale: 3 },
-        'S': { code: 'S', name: '皮膚反應', icon: '🔴', scale: 3 },
-        'W': { code: 'W', name: '吞嚥困難', icon: '😣', scale: 3 },
-        'A': { code: 'A', name: '食慾下降', icon: '🍽️', scale: 3 },
-        'D': { code: 'D', name: '腹瀉', icon: '💩', scale: 3 },
-        'P': { code: 'P', name: '疼痛', icon: '😖', scale: 10 }  // 0-10 量表
+        'N': { code: 'N', name: '噁心嘔吐', scale: 3 },
+        'F': { code: 'F', name: '疲勞', scale: 3 },
+        'O': { code: 'O', name: '口腔黏膜炎', scale: 3 },
+        'S': { code: 'S', name: '皮膚反應', scale: 3 },
+        'W': { code: 'W', name: '吞嚥困難', scale: 3 },
+        'A': { code: 'A', name: '食慾下降', scale: 3 },
+        'D': { code: 'D', name: '腹瀉', scale: 3 },
+        'P': { code: 'P', name: '疼痛', scale: 10 }  // 0-10 量表
     },
     
     // 嚴重程度定義（CTCAE Grade 0-3）
@@ -150,13 +150,13 @@ const SideEffect = {
         return symptoms
             .filter(s => s.level > 0)
             .map(s => {
-                const symptom = this.SYMPTOMS[s.code] || { name: s.code, icon: '❓', scale: 3 };
+                const symptom = this.SYMPTOMS[s.code] || { name: s.code, scale: 3 };
                 // 疼痛使用 0-10，其他使用 0-3
                 if (s.code === 'P') {
-                    return `${symptom.icon} ${symptom.name}(${s.level}/10)`;
+                    return `${symptom.name}(${s.level}/10)`;
                 } else {
                     const severity = this.SEVERITY[s.level] || { name: s.level };
-                    return `${symptom.icon} ${symptom.name}(${severity.name})`;
+                    return `${symptom.name}(${severity.name})`;
                 }
             })
             .join('、');
@@ -173,14 +173,14 @@ const SideEffect = {
         return symptoms
             .filter(s => s.level > 0)
             .map(s => {
-                const symptom = this.SYMPTOMS[s.code] || { name: s.code, icon: '❓', scale: 3 };
+                const symptom = this.SYMPTOMS[s.code] || { name: s.code, scale: 3 };
                 // 疼痛使用 0-10 量表
                 if (s.code === 'P') {
                     const painClass = this.getPainClass(s.level);
-                    return `<span class="side-effect-tag ${painClass}">${symptom.icon} ${s.level}/10</span>`;
+                    return `<span class="side-effect-tag ${painClass}">${symptom.name} ${s.level}/10</span>`;
                 } else {
                     const severity = this.SEVERITY[s.level] || { name: s.level, class: 'unknown' };
-                    return `<span class="side-effect-tag ${severity.class}">${symptom.icon} ${symptom.name}</span>`;
+                    return `<span class="side-effect-tag ${severity.class}">${symptom.name}</span>`;
                 }
             })
             .join('');
@@ -318,7 +318,7 @@ const SideEffect = {
             
             // 如果是編輯，載入現有資料
             if (recordId) {
-                existingRecord = await DB.getById('side_effects', recordId);
+                existingRecord = await DB.get('side_effects', recordId);
                 if (existingRecord) {
                     assessDate = existingRecord.assess_date;
                     existingRecord.symptoms.forEach(s => {
@@ -335,8 +335,7 @@ const SideEffect = {
                     return `
                         <div class="symptom-form-item symptom-pain">
                             <div class="symptom-form-label">
-                                <span>${info.icon || '😖'}</span>
-                                <span>${info.name || '疼痛'}</span>
+                                <span>${info.name}</span>
                             </div>
                             <div class="pain-scale">
                                 <input type="range" 
@@ -376,8 +375,7 @@ const SideEffect = {
                 return `
                     <div class="symptom-form-item">
                         <div class="symptom-form-label">
-                            <span>${info.icon || '❓'}</span>
-                            <span>${info.name || code}</span>
+                            <span>${info.name}</span>
                         </div>
                         <div class="symptom-form-buttons">
                             ${severityButtons}
