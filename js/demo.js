@@ -24,6 +24,20 @@ const DemoData = {
         { code: 'neoadjuvant', label: '前導性' }
     ],
     
+    physicians: [
+        { code: 'hsiung', name: '熊敬業' },
+        { code: 'liu', name: '劉育昌' },
+        { code: 'lin', name: '林伯儒' }
+    ],
+    
+    stages: [
+        { code: '0', label: '0期' },
+        { code: '1', label: 'I期' },
+        { code: '2', label: 'II期' },
+        { code: '3', label: 'III期' },
+        { code: '4', label: 'IV期' }
+    ],
+    
     sdmChoices: ['oral_supplement', 'ng_tube', 'peg_endoscopic', 'peg_fluoroscopic', 'undecided', 'refused'],
     
     pauseReasons: ['身體不適', '治療副作用嚴重', '病人要求暫停', '等待其他檢查'],
@@ -154,6 +168,8 @@ const DemoData = {
             
             const cancer = this.cancerTypes[i % this.cancerTypes.length];
             const intent = this.treatmentIntents[i % this.treatmentIntents.length];
+            const physician = this.physicians[i % this.physicians.length];
+            const stage = this.stages[1 + Math.floor(Math.random() * 4)]; // I-IV 期
             const baseWeight = 50 + Math.floor(Math.random() * 30);
             
             // 放療劑量（頭頸癌、肺癌等通常有）
@@ -168,6 +184,9 @@ const DemoData = {
                 cancer_type: cancer.code,
                 cancer_type_label: cancer.label,
                 treatment_intent: intent.code,
+                physician: physician.code,
+                physician_name: physician.name,
+                stage: stage.code,
                 treatment_start: this.daysAgo(startDaysAgo),
                 baseline_weight: baseWeight,
                 status: status,
@@ -362,6 +381,12 @@ const DemoData = {
         
         // 治療目的
         await Settings.set('treatment_intents', this.treatmentIntents);
+        
+        // 主治醫師
+        await Settings.set('physicians', this.physicians);
+        
+        // 期別
+        await Settings.set('stages', this.stages);
         
         // 人員
         await Settings.set('staff_list', this.staff.map(name => ({ name, role: '個管師' })));

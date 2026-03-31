@@ -473,6 +473,18 @@ const Treatment = {
         
         const cancerTypes = await Settings.get('cancer_types', []);
         const intents = await Settings.get('treatment_intents', []);
+        const physicians = await Settings.get('physicians', [
+            { code: 'hsiung', name: '熊敬業' },
+            { code: 'liu', name: '劉育昌' },
+            { code: 'lin', name: '林伯儒' }
+        ]);
+        const stages = await Settings.get('stages', [
+            { code: '0', label: '0期' },
+            { code: '1', label: 'I期' },
+            { code: '2', label: 'II期' },
+            { code: '3', label: 'III期' },
+            { code: '4', label: 'IV期' }
+        ]);
         
         const isUnableToMeasure = treatment?.unable_to_measure || false;
         
@@ -487,6 +499,9 @@ const Treatment = {
             { code: 'refused', label: '病人拒絕' }
         ];
         
+        // 轉換醫師列表為選項格式
+        const physicianOptions = physicians.map(p => ({ code: p.code, label: p.name }));
+        
         const html = `
             <form id="treatment-form">
                 <div style="background: var(--bg); padding: 12px; border-radius: 8px; margin-bottom: 16px;">
@@ -497,8 +512,13 @@ const Treatment = {
                 </div>
                 
                 <div class="form-row">
-                    ${createFormGroup('治療目的', createSelect('treatment_intent', intents, treatment?.treatment_intent), true)}
+                    ${createFormGroup('主治醫師', createSelect('physician', physicianOptions, treatment?.physician), true)}
                     ${createFormGroup('癌別', createSelect('cancer_type', cancerTypes, treatment?.cancer_type), true)}
+                </div>
+                
+                <div class="form-row">
+                    ${createFormGroup('期別', createSelect('stage', stages, treatment?.stage))}
+                    ${createFormGroup('治療目的', createSelect('treatment_intent', intents, treatment?.treatment_intent), true)}
                 </div>
                 
                 ${createFormGroup('開始日期', `
@@ -551,8 +571,9 @@ const Treatment = {
                 closeOnClick: false,
                 onClick: async () => {
                     const valid = validateRequired([
-                        { id: 'treatment_intent', label: '治療目的' },
+                        { id: 'physician', label: '主治醫師' },
                         { id: 'cancer_type', label: '癌別' },
+                        { id: 'treatment_intent', label: '治療目的' },
                         { id: 'treatment_start', label: '開始日期' }
                     ]);
                     if (!valid) return;
@@ -572,10 +593,23 @@ const Treatment = {
                         return;
                     }
                     
+                    // 取得主治醫師名稱
+                    const physicianSelect = document.getElementById('physician');
+                    const physicianCode = physicianSelect.value;
+                    const physicianName = physicianSelect.options[physicianSelect.selectedIndex]?.text || '';
+                    
+                    // 取得癌別名稱
+                    const cancerSelect = document.getElementById('cancer_type');
+                    const cancerLabel = cancerSelect.options[cancerSelect.selectedIndex]?.text || '';
+                    
                     const data = {
                         patient_id: patient.id,
-                        treatment_intent: document.getElementById('treatment_intent').value,
+                        physician: physicianCode,
+                        physician_name: physicianName,
                         cancer_type: document.getElementById('cancer_type').value,
+                        cancer_type_label: cancerLabel,
+                        stage: document.getElementById('stage').value || null,
+                        treatment_intent: document.getElementById('treatment_intent').value,
                         treatment_start: document.getElementById('treatment_start').value,
                         baseline_weight: baselineWeight ? parseFloat(baselineWeight) : null,
                         unable_to_measure: unableToMeasure,

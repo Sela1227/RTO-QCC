@@ -26,6 +26,9 @@ const App = {
             // 綁定關閉前備份提示
             this.bindCloseEvent();
             
+            // 初始化病人資料庫模組
+            await PatientDB.init();
+            
             // 檢查備份狀態（暫時關閉強制備份）
             // await this.checkBackupStatus();
             
@@ -284,7 +287,7 @@ const App = {
                 await this.renderTracking();
                 break;
             case 'patients':
-                await renderPatientList();
+                await PatientDB.refresh();
                 break;
             case 'reports':
                 await Report.initFilters();

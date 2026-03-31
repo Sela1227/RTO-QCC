@@ -1371,6 +1371,12 @@ body {
     font-size: 12px;
 }
 
+.filter-quick-btns .btn.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
 /* === 響應式設計 - 平板 === */
 @media (max-width: 1024px) {
     .tracking-layout {
