@@ -10,6 +10,11 @@ const App = {
     trackingFilter: null,
     weightChart: null,  // 體重趨勢圖實例
     patientSearchKeyword: null,  // 病人搜尋關鍵字
+    // 追蹤清單篩選排序
+    trackingFilterCancer: '',
+    trackingFilterPhysician: '',
+    trackingSort: 'name',
+    trackingSortDir: 'asc',
     
     /**
      * 初始化應用程式
@@ -28,6 +33,9 @@ const App = {
             
             // 初始化病人資料庫模組
             await PatientDB.init();
+            
+            // 初始化追蹤清單篩選選項
+            await this.initTrackingFilters();
             
             // 檢查備份狀態（暫時關閉強制備份）
             // await this.checkBackupStatus();
@@ -253,6 +261,49 @@ const App = {
         
         // 匯出 PDF
         document.getElementById('btn-export-pdf').onclick = () => Report.exportPdf();
+        
+        // 追蹤清單篩選排序
+        document.getElementById('tracking-filter-cancer').onchange = (e) => {
+            this.trackingFilterCancer = e.target.value;
+            this.renderTracking();
+        };
+        document.getElementById('tracking-filter-physician').onchange = (e) => {
+            this.trackingFilterPhysician = e.target.value;
+            this.renderTracking();
+        };
+        document.getElementById('tracking-sort').onchange = (e) => {
+            this.trackingSort = e.target.value;
+            this.renderTracking();
+        };
+        document.getElementById('tracking-sort-dir').onclick = () => {
+            this.trackingSortDir = this.trackingSortDir === 'asc' ? 'desc' : 'asc';
+            document.getElementById('tracking-sort-dir').classList.toggle('desc', this.trackingSortDir === 'desc');
+            this.renderTracking();
+        };
+    },
+    
+    /**
+     * 初始化追蹤清單篩選選項
+     */
+    async initTrackingFilters() {
+        const cancerSelect = document.getElementById('tracking-filter-cancer');
+        const physicianSelect = document.getElementById('tracking-filter-physician');
+        
+        if (!cancerSelect || !physicianSelect) return;
+        
+        // 取得所有癌別
+        const cancerTypes = CONFIG.CANCER_TYPES || [];
+        cancerSelect.innerHTML = '<option value="">全部癌別</option>' + 
+            cancerTypes.map(c => `<option value="${c.code}">${c.label}</option>`).join('');
+        
+        // 取得所有醫師
+        const physicians = await Settings.get('physicians', [
+            { code: 'hsiung', name: '熊敬業' },
+            { code: 'liu', name: '劉育昌' },
+            { code: 'lin', name: '林伯儒' }
+        ]);
+        physicianSelect.innerHTML = '<option value="">全部醫師</option>' + 
+            physicians.map(p => `<option value="${p.code}">${p.name}</option>`).join('');
     },
     
     /**
@@ -555,6 +606,40 @@ const App = {
             );
             tabTitle = '待補資料';
         }
+        
+        // 應用篩選
+        if (this.trackingFilterCancer) {
+            treatments = treatments.filter(t => t.cancer_type === this.trackingFilterCancer);
+        }
+        if (this.trackingFilterPhysician) {
+            treatments = treatments.filter(t => t.physician === this.trackingFilterPhysician);
+        }
+        
+        // 應用排序
+        const sortDir = this.trackingSortDir === 'asc' ? 1 : -1;
+        treatments.sort((a, b) => {
+            let valA, valB;
+            switch (this.trackingSort) {
+                case 'name':
+                    valA = a.patient?.name || '';
+                    valB = b.patient?.name || '';
+                    return valA.localeCompare(valB, 'zh-TW') * sortDir;
+                case 'start_date':
+                    valA = a.treatment_start || '';
+                    valB = b.treatment_start || '';
+                    return valA.localeCompare(valB) * sortDir;
+                case 'change_rate':
+                    valA = a.change_rate ?? 999;
+                    valB = b.change_rate ?? 999;
+                    return (valA - valB) * sortDir;
+                case 'medical_id':
+                    valA = a.patient?.medical_id || '';
+                    valB = b.patient?.medical_id || '';
+                    return valA.localeCompare(valB) * sortDir;
+                default:
+                    return 0;
+            }
+        });
         
         if (treatments.length === 0) {
             let emptyMsg = `目前沒有${tabTitle}的病人`;

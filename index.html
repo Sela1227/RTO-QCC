@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>彰濱放腫體重監控預防系統</title>
-    <link rel="stylesheet" href="css/style.css?v=6.93">
+    <link rel="stylesheet" href="css/style.css?v=6.94">
     <!-- 外部套件 -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -33,7 +33,7 @@
                 <div class="logo">
                     <img src="logo.png" alt="SELA" class="logo-img" width="28" height="28" style="width:28px;height:28px;max-width:28px;max-height:28px;">
                     <span class="logo-text">彰濱放腫體重監控預防系統</span>
-                    <span class="header-version">v6.9.3</span>
+                    <span class="header-version">v6.9.4</span>
                 </div>
             </div>
             <div class="header-right">
@@ -228,6 +228,30 @@
                             <button class="tab tab-teal" data-tab="attention">需關注</button>
                             <button class="tab tab-danger" data-tab="overdue">待輸體重</button>
                             <button class="tab tab-purple" data-tab="incomplete">待補資料</button>
+                        </div>
+                    </div>
+                    <!-- 篩選排序工具列 -->
+                    <div class="tracking-toolbar">
+                        <div class="toolbar-filters">
+                            <select class="form-select form-select-sm" id="tracking-filter-cancer">
+                                <option value="">全部癌別</option>
+                            </select>
+                            <select class="form-select form-select-sm" id="tracking-filter-physician">
+                                <option value="">全部醫師</option>
+                            </select>
+                        </div>
+                        <div class="toolbar-sort">
+                            <select class="form-select form-select-sm" id="tracking-sort">
+                                <option value="name">姓氏排序</option>
+                                <option value="start_date">首療日期</option>
+                                <option value="change_rate">體重變化</option>
+                                <option value="medical_id">病歷號</option>
+                            </select>
+                            <button class="btn-icon btn-icon-sm" id="tracking-sort-dir" title="排序方向">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 5v14M5 12l7 7 7-7"/>
+                                </svg>
+                            </button>
                         </div>
                     </div>
                     <div class="tracking-layout">
@@ -544,22 +568,22 @@
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script></script>
 
     <!-- JS 模組 -->
-    <script src="js/config.js?v=6.93"></script>
-    <script src="js/db.js?v=6.93"></script>
-    <script src="js/utils.js?v=6.93"></script>
-    <script src="js/patient.js?v=6.93"></script>
-    <script src="js/treatment.js?v=6.93"></script>
-    <script src="js/weight.js?v=6.93"></script>
-    <script src="js/sideeffect.js?v=6.93"></script>
-    <script src="js/intervention.js?v=6.93"></script>
-    <script src="js/report.js?v=6.93"></script>
-    <script src="js/settings.js?v=6.93"></script>
-    <script src="js/sync.js?v=6.93"></script>
-    <script src="js/satisfaction.js?v=6.93"></script>
-    <script src="js/dashboard.js?v=6.93"></script>
-    <script src="js/patient-db.js?v=6.93"></script>
-    <script src="js/demo.js?v=6.93"></script>
-    <script src="js/app.js?v=6.93"></script>
+    <script src="js/config.js?v=6.94"></script>
+    <script src="js/db.js?v=6.94"></script>
+    <script src="js/utils.js?v=6.94"></script>
+    <script src="js/patient.js?v=6.94"></script>
+    <script src="js/treatment.js?v=6.94"></script>
+    <script src="js/weight.js?v=6.94"></script>
+    <script src="js/sideeffect.js?v=6.94"></script>
+    <script src="js/intervention.js?v=6.94"></script>
+    <script src="js/report.js?v=6.94"></script>
+    <script src="js/settings.js?v=6.94"></script>
+    <script src="js/sync.js?v=6.94"></script>
+    <script src="js/satisfaction.js?v=6.94"></script>
+    <script src="js/dashboard.js?v=6.94"></script>
+    <script src="js/patient-db.js?v=6.94"></script>
+    <script src="js/demo.js?v=6.94"></script>
+    <script src="js/app.js?v=6.94"></script>
     
     <!-- 登入驗證 -->
     <script>

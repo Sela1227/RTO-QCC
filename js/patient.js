@@ -265,8 +265,13 @@ const Patient = {
                         </select>
                     `, true)}
                     ${createFormGroup('生日', `
-                        <input type="date" class="form-input" id="birth_date" 
-                               value="${patient?.birth_date || ''}">
+                        <input type="text" class="form-input" id="birth_date" 
+                               value="${patient?.birth_date ? patient.birth_date.replace(/-/g, '') : ''}"
+                               placeholder="例：19900312"
+                               maxlength="8"
+                               inputmode="numeric"
+                               pattern="[0-9]*">
+                        <small style="color: var(--text-hint); font-size: 11px; margin-top: 4px; display: block;">輸入 8 位數字，如 19900312</small>
                     `, true)}
                 </div>
             </form>
@@ -287,11 +292,28 @@ const Patient = {
                     ]);
                     if (!valid) return;
                     
+                    // 轉換生日格式 (19900312 -> 1990-03-12)
+                    const birthInput = document.getElementById('birth_date').value.trim();
+                    let birthDate = birthInput;
+                    if (/^\d{8}$/.test(birthInput)) {
+                        birthDate = `${birthInput.slice(0,4)}-${birthInput.slice(4,6)}-${birthInput.slice(6,8)}`;
+                    } else if (!/^\d{4}-\d{2}-\d{2}$/.test(birthInput)) {
+                        showToast('生日格式錯誤，請輸入 8 位數字（如 19900312）', 'error');
+                        return;
+                    }
+                    
+                    // 驗證日期有效性
+                    const testDate = new Date(birthDate);
+                    if (isNaN(testDate.getTime())) {
+                        showToast('生日日期無效', 'error');
+                        return;
+                    }
+                    
                     const data = {
                         medical_id: document.getElementById('medical_id').value,
                         name: document.getElementById('name').value,
                         gender: document.getElementById('gender').value,
-                        birth_date: document.getElementById('birth_date').value
+                        birth_date: birthDate
                     };
                     
                     try {
