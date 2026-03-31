@@ -234,15 +234,19 @@ const App = {
             };
         });
         
-        // 追蹤頁籤
-        document.querySelectorAll('#page-tracking .tab').forEach(tab => {
-            tab.onclick = () => {
-                document.querySelectorAll('#page-tracking .tab').forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
-                this.currentTrackingTab = tab.dataset.tab;
-                this.renderTracking();
-            };
-        });
+        // 追蹤頁籤（使用事件委託）
+        const trackingHeader = document.querySelector('#page-tracking .page-header');
+        if (trackingHeader) {
+            trackingHeader.addEventListener('click', (e) => {
+                const tab = e.target.closest('.tab');
+                if (tab) {
+                    document.querySelectorAll('#page-tracking .tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    this.currentTrackingTab = tab.dataset.tab;
+                    this.renderTracking();
+                }
+            });
+        }
         
         // 匯出 Excel
         document.getElementById('btn-export-excel').onclick = () => Report.exportExcel();
