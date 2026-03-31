@@ -21,20 +21,25 @@ const PatientDB = {
         // 載入癌別選項
         const cancerTypes = await Settings.get('cancer_types', []);
         const cancerSelect = document.getElementById('patient-filter-cancer');
-        if (cancerSelect) {
-            cancerSelect.innerHTML = '<option value="all">全部</option>' +
+        if (cancerSelect && cancerTypes.length > 0) {
+            cancerSelect.innerHTML = '<option value="all">全部癌別</option>' +
                 cancerTypes.map(c => `<option value="${c.code}">${c.label}</option>`).join('');
         }
         
-        // 載入主治醫師選項
-        const physicians = await Settings.get('physicians', [
+        // 載入主治醫師選項（有預設值）
+        const defaultPhysicians = [
             { code: 'hsiung', name: '熊敬業' },
             { code: 'liu', name: '劉育昌' },
             { code: 'lin', name: '林伯儒' }
-        ]);
+        ];
+        let physicians = await Settings.get('physicians', null);
+        if (!physicians || physicians.length === 0) {
+            physicians = defaultPhysicians;
+            await Settings.set('physicians', physicians);
+        }
         const physicianSelect = document.getElementById('patient-filter-physician');
         if (physicianSelect) {
-            physicianSelect.innerHTML = '<option value="all">全部</option>' +
+            physicianSelect.innerHTML = '<option value="all">全部醫師</option>' +
                 physicians.map(p => `<option value="${p.code}">${p.name}</option>`).join('');
         }
         
@@ -43,11 +48,14 @@ const PatientDB = {
         
         // 設定預設日期
         const today = new Date();
-        document.getElementById('db-date-to').value = today.toISOString().split('T')[0];
-        document.getElementById('db-date-from').value = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+        const dateToEl = document.getElementById('db-date-to');
+        const dateFromEl = document.getElementById('db-date-from');
+        if (dateToEl) dateToEl.value = today.toISOString().split('T')[0];
+        if (dateFromEl) dateFromEl.value = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
         
         // 設定預設排序
-        document.getElementById('db-sort-1').value = 'treatment_start';
+        const sort1El = document.getElementById('db-sort-1');
+        if (sort1El) sort1El.value = 'treatment_start';
         
         // 標記預設期間按鈕
         this.updatePeriodButtons();
@@ -58,6 +66,8 @@ const PatientDB = {
      */
     initYearOptions() {
         const yearSelect = document.getElementById('db-year');
+        if (!yearSelect) return;
+        
         const currentYear = new Date().getFullYear();
         let html = '';
         for (let y = currentYear; y >= currentYear - 5; y--) {
@@ -72,6 +82,12 @@ const PatientDB = {
     setPeriod(period) {
         this.period = period;
         this.updatePeriodButtons();
+        
+        // 確保年份選項已初始化
+        if (period === 'specific_year') {
+            this.initYearOptions();
+        }
+        
         this.updateDateRangeVisibility();
         this.refresh();
     },
