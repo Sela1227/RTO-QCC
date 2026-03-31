@@ -347,11 +347,17 @@ const App = {
             t.tracking_status?.status === 'overdue'
         ).length;
         
+        // 待補資料：重要欄位未填（基準體重、主治醫師、期別、放療劑量）
+        const incompleteCount = activeTreatments.filter(t => 
+            !t.baseline_weight || !t.physician || !t.stage || !t.radiation_dose
+        ).length;
+        
         document.getElementById('stat-active').textContent = activeTreatments.length;
         document.getElementById('stat-paused').textContent = pausedTreatments.length;
         document.getElementById('stat-pending').textContent = pendingCount;
         document.getElementById('stat-attention').textContent = attentionCount;
         document.getElementById('stat-overdue').textContent = overdueCount;
+        document.getElementById('stat-incomplete').textContent = incompleteCount;
         
         // 檢查備份提醒
         await this.checkBackupReminder();
@@ -541,6 +547,13 @@ const App = {
             treatments = await Treatment.getActive();
             treatments = treatments.filter(t => t.tracking_status?.status === 'overdue');
             tabTitle = '待輸體重';
+        } else if (this.currentTrackingTab === 'incomplete') {
+            // 待補資料：重要欄位未填
+            treatments = await Treatment.getActive();
+            treatments = treatments.filter(t => 
+                !t.baseline_weight || !t.physician || !t.stage || !t.radiation_dose
+            );
+            tabTitle = '待補資料';
         }
         
         if (treatments.length === 0) {
@@ -1062,15 +1075,16 @@ const App = {
             // 預測線從最後一個實際點開始
             const predictionWithStart = [...new Array(weights.length - 1).fill(null), weights[weights.length - 1], ...predictionData];
             
-            // 判斷預測趨勢方向（使用斜率判斷）
+            // 判斷預測趨勢方向（兩週後變化百分比）
             const lastWeight = weights[weights.length - 1];
             const finalPrediction = predictionData[predictionData.length - 1];
             const changePercent = ((finalPrediction - lastWeight) / lastWeight) * 100;
             
+            // 判斷標準：>1% 下降、±1% 持平、>1% 上升
             let trendLabel = '持平';
-            if (changePercent < -0.5) {
+            if (changePercent < -1) {
                 trendLabel = '下降';
-            } else if (changePercent > 0.5) {
+            } else if (changePercent > 1) {
                 trendLabel = '上升';
             }
             

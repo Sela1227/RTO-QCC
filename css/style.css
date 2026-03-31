@@ -345,6 +345,12 @@ body {
     gap: var(--space-md);
 }
 
+.stats-grid-6 {
+    grid-template-columns: repeat(6, 1fr);
+    max-width: 1080px;
+    gap: var(--space-md);
+}
+
 .stat-card {
     background: var(--bg-card);
     border-radius: var(--radius-lg);
@@ -408,6 +414,11 @@ body {
 .stat-icon-teal {
     background: rgba(107, 191, 138, 0.12);
     color: var(--success);
+}
+
+.stat-icon-purple {
+    background: rgba(139, 92, 246, 0.12);
+    color: #8B5CF6;
 }
 
 .stat-info {
@@ -647,6 +658,15 @@ body {
 .tab.tab-teal.active {
     background: rgba(107, 191, 138, 0.15);
     color: var(--success);
+}
+
+.tab.tab-purple {
+    color: #8B5CF6;
+}
+
+.tab.tab-purple.active {
+    background: rgba(139, 92, 246, 0.15);
+    color: #8B5CF6;
 }
 
 /* === 追蹤頁面佈局 === */
@@ -1621,7 +1641,8 @@ body {
     
     .stats-grid,
     .stats-grid-2x2,
-    .stats-grid-5 {
+    .stats-grid-5,
+    .stats-grid-6 {
         grid-template-columns: 1fr 1fr;
         gap: 10px;
         max-width: 100%;

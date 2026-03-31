@@ -228,7 +228,16 @@ const Patient = {
     /**
      * 顯示新增/編輯病人對話框
      */
-    async showForm(patient = null) {
+    async showForm(patientOrId = null) {
+        let patient = null;
+        
+        // 如果傳入的是數字 ID，先獲取病人資料
+        if (typeof patientOrId === 'number') {
+            patient = await this.getById(patientOrId);
+        } else if (patientOrId && typeof patientOrId === 'object') {
+            patient = patientOrId;
+        }
+        
         const isEdit = !!patient;
         const title = isEdit ? '編輯病人' : '新增病人';
         
