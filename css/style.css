@@ -1290,18 +1290,33 @@ body {
 }
 
 .detail-actions .btn-warning {
+    background: transparent;
     color: var(--warning);
     border-color: var(--warning);
 }
 
+.detail-actions .btn-warning:hover {
+    background: rgba(228, 185, 90, 0.1);
+}
+
 .detail-actions .btn-success {
+    background: transparent;
     color: var(--success);
     border-color: var(--success);
 }
 
+.detail-actions .btn-success:hover {
+    background: rgba(107, 175, 141, 0.1);
+}
+
 .detail-actions .btn-danger {
+    background: transparent;
     color: var(--danger);
     border-color: var(--danger);
+}
+
+.detail-actions .btn-danger:hover {
+    background: rgba(217, 123, 123, 0.1);
 }
 
 /* === 捲軸美化 === */

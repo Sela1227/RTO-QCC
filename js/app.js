@@ -1034,13 +1034,15 @@ const App = {
             // 預測線從最後一個實際點開始
             const predictionWithStart = [...new Array(weights.length - 1).fill(null), weights[weights.length - 1], ...predictionData];
             
-            // 判斷預測趨勢方向（用於標籤說明）
+            // 判斷預測趨勢方向（使用斜率判斷）
             const lastWeight = weights[weights.length - 1];
             const finalPrediction = predictionData[predictionData.length - 1];
+            const changePercent = ((finalPrediction - lastWeight) / lastWeight) * 100;
+            
             let trendLabel = '持平';
-            if (finalPrediction < lastWeight * 0.98) {
+            if (changePercent < -0.5) {
                 trendLabel = '下降';
-            } else if (finalPrediction > lastWeight * 1.02) {
+            } else if (changePercent > 0.5) {
                 trendLabel = '上升';
             }
             
