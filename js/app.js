@@ -736,7 +736,6 @@ const App = {
                 </div>
             `;
         }
-        }
         
         // 暫停/終止原因提示
         let statusReasonHtml = '';
