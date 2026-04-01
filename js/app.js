@@ -680,6 +680,14 @@ const App = {
             const needsSdm = t.change_rate !== null && t.change_rate <= rule.sdm_threshold && !needsNutrition;
             const needsIntervention = needsNutrition || needsSdm;
             
+            // 檢查待補資料
+            const missingFields = [];
+            if (!t.baseline_weight) missingFields.push('基準體重');
+            if (!t.physician) missingFields.push('主治醫師');
+            if (!t.stage) missingFields.push('期別');
+            if (!t.radiation_dose) missingFields.push('放療劑量');
+            const isIncomplete = missingFields.length > 0;
+            
             let cardClass = 'patient-card';
             if (isSelected) cardClass += ' active';
             if (needsNutrition) {
@@ -691,7 +699,7 @@ const App = {
             
             // 生成標籤
             let tagsHtml = '';
-            if (needsIntervention || isOverdue) {
+            if (needsIntervention || isOverdue || (isIncomplete && this.currentTrackingTab === 'incomplete')) {
                 tagsHtml = '<div class="patient-card-tags">';
                 if (needsNutrition) {
                     tagsHtml += '<span class="tag tag-red" style="font-size: 10px; padding: 1px 5px;">需營養師</span>';
@@ -700,6 +708,9 @@ const App = {
                 }
                 if (isOverdue) {
                     tagsHtml += '<span class="tag tag-purple" style="font-size: 10px; padding: 1px 5px;">待量體重</span>';
+                }
+                if (isIncomplete && this.currentTrackingTab === 'incomplete') {
+                    tagsHtml += `<span class="tag tag-purple" style="font-size: 10px; padding: 1px 5px;">缺：${missingFields.join('、')}</span>`;
                 }
                 tagsHtml += '</div>';
             }
