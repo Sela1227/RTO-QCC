@@ -398,9 +398,9 @@ const App = {
             t.tracking_status?.status === 'overdue'
         ).length;
         
-        // 待補資料：重要欄位未填（基準體重、主治醫師、期別、放療劑量）
+        // 待補資料：重要欄位未填（基準體重、主治醫師、放療劑量）
         const incompleteCount = activeTreatments.filter(t => 
-            !t.baseline_weight || !t.physician || !t.stage || !t.radiation_dose
+            !t.baseline_weight || !t.physician || !t.radiation_dose
         ).length;
         
         document.getElementById('stat-active').textContent = activeTreatments.length;
@@ -602,7 +602,7 @@ const App = {
             // 待補資料：重要欄位未填
             treatments = await Treatment.getActive();
             treatments = treatments.filter(t => 
-                !t.baseline_weight || !t.physician || !t.stage || !t.radiation_dose
+                !t.baseline_weight || !t.physician || !t.radiation_dose
             );
             tabTitle = '待補資料';
         }
@@ -684,7 +684,6 @@ const App = {
             const missingFields = [];
             if (!t.baseline_weight) missingFields.push('基準體重');
             if (!t.physician) missingFields.push('主治醫師');
-            if (!t.stage) missingFields.push('期別');
             if (!t.radiation_dose) missingFields.push('放療劑量');
             const isIncomplete = missingFields.length > 0;
             

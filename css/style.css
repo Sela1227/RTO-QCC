@@ -698,6 +698,12 @@ body {
     align-items: center;
     margin-bottom: var(--space-md);
     gap: var(--space-sm);
+}
+
+.tracking-toolbar .toolbar-filters {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
     flex-wrap: wrap;
 }
 
@@ -1927,7 +1933,6 @@ body {
     /* === 手機版追蹤清單工具列 === */
     .tracking-toolbar {
         display: flex;
-        flex-wrap: wrap;
         align-items: center;
         gap: 6px;
         padding: 10px 12px;
@@ -1936,9 +1941,18 @@ body {
         margin-bottom: 12px;
     }
     
+    .tracking-toolbar .toolbar-filters {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+        flex: 1;
+    }
+    
     .tracking-toolbar .form-select-sm {
         flex: 1;
-        min-width: 70px;
+        min-width: 80px;
+        max-width: 120px;
         font-size: 12px;
         padding: 6px 22px 6px 8px;
     }
@@ -1946,6 +1960,7 @@ body {
     .tracking-toolbar .btn-icon-sm {
         width: 28px;
         height: 28px;
+        flex-shrink: 0;
     }
     
     /* === 手機版資料庫工具列 === */
