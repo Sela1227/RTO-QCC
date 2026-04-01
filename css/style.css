@@ -2080,6 +2080,119 @@ body {
         margin-right: 8px;
         margin-bottom: 0;
     }
+    
+    /* === 手機版追蹤清單優化 === */
+    .tracking-toolbar {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 12px;
+        background: var(--bg);
+        border-radius: var(--radius-md);
+        margin-bottom: 12px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .tracking-toolbar .toolbar-filters {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: nowrap;
+        width: 100%;
+    }
+    
+    .tracking-toolbar .form-select-sm {
+        width: auto !important;
+        flex: 0 0 auto;
+        min-width: 90px;
+        max-width: none;
+        font-size: 13px;
+        padding: 8px 28px 8px 10px;
+    }
+    
+    .tracking-toolbar .btn-icon-sm {
+        width: 32px;
+        height: 32px;
+        flex-shrink: 0;
+    }
+    
+    /* 追蹤清單卡片優化 */
+    .tracking-list {
+        padding: 12px;
+    }
+    
+    .patient-card {
+        margin-bottom: 8px;
+    }
+    
+    /* === 手機版統計報表優化 === */
+    .report-filters {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 12px !important;
+        padding: 12px;
+        background: var(--bg);
+        border-radius: var(--radius-md);
+        margin-bottom: 16px;
+    }
+    
+    .report-filters .form-group {
+        margin: 0 !important;
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+    
+    .report-filters .form-label {
+        font-size: 12px;
+        margin-bottom: 4px;
+    }
+    
+    .report-filters .form-select,
+    .report-filters .form-input {
+        width: 100% !important;
+        font-size: 14px;
+    }
+    
+    /* 統計報表 Tab 優化 */
+    .dashboard-tabs {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 6px !important;
+        margin-bottom: 16px !important;
+    }
+    
+    .dashboard-tab-check {
+        padding: 6px 10px;
+        font-size: 12px;
+        flex: 0 0 auto;
+    }
+    
+    /* 統計報表卡片優化 */
+    .report-grid {
+        display: grid !important;
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+    
+    .report-card {
+        padding: 14px;
+    }
+    
+    /* === 防止頁面超寬 === */
+    #page-tracking,
+    #page-reports,
+    #page-patients {
+        max-width: 100vw;
+        overflow-x: hidden;
+    }
+    
+    .page-content {
+        padding: 12px;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
 }
 
 /* === 副作用評估標籤 === */
