@@ -43,7 +43,7 @@ const DemoData = {
     pauseReasons: ['身體不適', '治療副作用嚴重', '病人要求暫停', '等待其他檢查', '家庭因素'],
     terminateReasons: ['轉院', '放棄治療', '病情惡化', '病人過世', '經濟因素', '其他原因'],
     
-    staff: ['王孝宇', '陳詩韻', '廖芝穎'],
+    staff: ['王孝宇', '陳詩韻', '廖芝穎', '張雅婷', '李佳蓉'],
     
     formatDate(date) {
         return date.toISOString().split('T')[0];
@@ -388,8 +388,8 @@ const DemoData = {
         // 期別
         await Settings.set('stages', this.stages);
         
-        // 人員
-        await Settings.set('staff_list', this.staff.map(name => ({ name, role: '個管師' })));
+        // 人員（純字串陣列）
+        await Settings.set('staff_list', this.staff);
         
         // 暫停原因
         await Settings.set('pause_reasons', this.pauseReasons.map(label => ({ 
@@ -403,10 +403,9 @@ const DemoData = {
             label 
         })));
         
-        // 警示規則
+        // 警示規則（格式：cancer_type, sdm_threshold, nutrition_threshold）
         await Settings.set('alert_rules', [
-            { threshold: -3, type: 'sdm', enabled: true },
-            { threshold: -5, type: 'nutrition', enabled: true }
+            { cancer_type: 'default', sdm_threshold: -3, nutrition_threshold: -5 }
         ]);
         
         console.log('系統設定初始化完成');

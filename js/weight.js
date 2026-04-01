@@ -181,6 +181,9 @@ const Weight = {
             `;
         }
         
+        // 編輯時體重值固定到第一位
+        const weightValue = record?.weight ? parseFloat(record.weight).toFixed(1) : '';
+        
         const html = `
             <form id="weight-form">
                 <div style="background: var(--bg); padding: 12px; border-radius: 8px; margin-bottom: 16px;">
@@ -191,8 +194,9 @@ const Weight = {
                 <div class="form-row">
                     ${createFormGroup('體重 (kg)', `
                         <input type="number" step="0.1" class="form-input" id="weight" 
-                               value="${record?.weight || ''}" 
+                               value="${weightValue}" 
                                placeholder="輸入體重" autofocus
+                               onblur="if(this.value) this.value = parseFloat(this.value).toFixed(1)"
                                ${record?.unable_to_measure ? 'disabled' : ''}>
                     `)}
                     ${createFormGroup('量測日期', `
@@ -219,16 +223,16 @@ const Weight = {
                 closeOnClick: false,
                 onClick: async () => {
                     const unableToMeasure = document.getElementById('weight_unable_to_measure').checked;
-                    const weight = document.getElementById('weight').value;
+                    const weightInput = document.getElementById('weight').value;
                     const measureDate = document.getElementById('measure_date').value;
                     
                     if (!unableToMeasure) {
-                        if (!weight) {
+                        if (!weightInput) {
                             showToast('請輸入體重或勾選無法測量', 'error');
                             return;
                         }
                         
-                        const w = parseFloat(weight);
+                        const w = parseFloat(weightInput);
                         if (w <= 0 || w > 300) {
                             showToast('體重數值不合理', 'error');
                             return;
@@ -240,12 +244,15 @@ const Weight = {
                         return;
                     }
                     
+                    // 體重固定到小數點第一位
+                    const weight = unableToMeasure ? null : parseFloat(weightInput).toFixed(1);
+                    
                     try {
                         if (isEdit) {
-                            await Weight.update(record.id, unableToMeasure ? null : weight, measureDate, unableToMeasure);
+                            await Weight.update(record.id, weight, measureDate, unableToMeasure);
                             showToast('記錄已更新');
                         } else {
-                            await Weight.create(treatmentId, unableToMeasure ? null : weight, measureDate, unableToMeasure);
+                            await Weight.create(treatmentId, weight, measureDate, unableToMeasure);
                             showToast(unableToMeasure ? '已記錄無法測量' : '體重已記錄');
                         }
                         closeModal();
@@ -290,15 +297,17 @@ const Weight = {
         
         let listHtml = '';
         if (records.length === 0) {
-            listHtml = '<p style="color: var(--text-hint); text-align: center;">尚無體重記錄</p>';
+            listHtml = '<p style="color: var(--text-hint); text-align: center; padding: 20px;">尚無體重記錄</p>';
         } else {
-            listHtml = records.map(r => {
+            listHtml = '<div class="weight-record-list">' + records.map(r => {
                 const rateClass = getRateClass(r.change_rate);
+                // 體重限制到小數點第一位
+                const weightValue = r.weight !== null ? parseFloat(r.weight).toFixed(1) : null;
                 const weightDisplay = r.unable_to_measure 
-                    ? '<span style="color: var(--text-hint);">無法測量</span>'
-                    : `<strong>${r.weight}</strong> kg`;
+                    ? '<span class="weight-value" style="color: var(--text-hint);">無法測量</span>'
+                    : `<span class="weight-value">${weightValue} kg</span>`;
                 const rateDisplay = (!r.unable_to_measure && r.change_rate !== null)
-                    ? `<span class="${rateClass}" style="margin-left: 8px;">${formatChangeRate(r.change_rate)}</span>`
+                    ? `<span class="weight-rate ${rateClass}">${formatChangeRate(r.change_rate)}</span>`
                     : '';
                 
                 // 檢查該日是否有副作用評估
@@ -306,62 +315,44 @@ const Weight = {
                 const seDisplay = se ? SideEffect.formatSymptomTags(se.symptoms) : '';
                 
                 return `
-                    <div class="detail-row" style="flex-wrap: wrap;">
-                        <span>${formatDate(r.measure_date)}</span>
-                        <span style="flex: 1;">
-                            ${weightDisplay}
-                            ${rateDisplay}
-                        </span>
-                        <span>
-                            <button class="btn-icon" onclick="Weight.showForm(${treatmentId}, {id: ${r.id}, weight: ${r.weight || 'null'}, measure_date: '${r.measure_date}', unable_to_measure: ${r.unable_to_measure || false}})">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                                </svg>
-                            </button>
-                            <button class="btn-icon" onclick="confirmDialog('確定刪除此記錄？', async () => { await Weight.delete(${r.id}); closeModal(); App.refresh(); showToast('記錄已刪除'); })">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <polyline points="3 6 5 6 21 6"></polyline>
-                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                </svg>
-                            </button>
-                        </span>
-                        ${seDisplay ? `<div style="width: 100%; margin-top: 4px; padding-left: 8px;">${seDisplay}</div>` : ''}
+                    <div class="weight-record-item">
+                        <div class="weight-record-main">
+                            <div class="weight-record-date">${formatDate(r.measure_date)}</div>
+                            <div class="weight-record-value">
+                                ${weightDisplay}
+                                ${rateDisplay}
+                            </div>
+                            <div class="weight-record-actions">
+                                <button class="btn-icon" onclick="Weight.showForm(${treatmentId}, {id: ${r.id}, weight: ${r.weight || 'null'}, measure_date: '${r.measure_date}', unable_to_measure: ${r.unable_to_measure || false}})" title="編輯">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                    </svg>
+                                </button>
+                                <button class="btn-icon" onclick="confirmDialog('確定刪除此記錄？', async () => { await Weight.delete(${r.id}); closeModal(); App.refresh(); showToast('記錄已刪除'); })" title="刪除">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="3 6 5 6 21 6"></polyline>
+                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        ${seDisplay ? `<div class="weight-record-se">${seDisplay}</div>` : ''}
                     </div>
                 `;
-            }).join('');
-        }
-        
-        // 檢查是否有不在體重記錄日期的副作用評估
-        const weightDates = new Set(records.map(r => r.measure_date));
-        const extraSideEffects = sideEffects.filter(se => !weightDates.has(se.assess_date));
-        
-        let extraSeHtml = '';
-        if (extraSideEffects.length > 0) {
-            extraSeHtml = `
-                <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border);">
-                    <div style="font-size: 14px; color: var(--text-secondary); margin-bottom: 8px;">其他副作用評估記錄</div>
-                    ${extraSideEffects.map(se => `
-                        <div class="detail-row" style="flex-wrap: wrap;">
-                            <span>${formatDate(se.assess_date)}</span>
-                            <span style="flex: 1;">${SideEffect.formatSymptomTags(se.symptoms)}</span>
-                        </div>
-                    `).join('')}
-                </div>
-            `;
+            }).join('') + '</div>';
         }
         
         const html = `
-            <div style="margin-bottom: 16px;">
-                <strong>${patient.medical_id}</strong> ${patient.name}
+            <div class="weight-list-header">
+                <div class="weight-list-patient">
+                    <strong>${patient.medical_id}</strong> ${patient.name}
+                </div>
                 ${treatment.baseline_weight ? 
-                    `<br><span style="color: var(--text-secondary);">基準體重: ${treatment.baseline_weight} kg</span>` 
+                    `<div class="weight-list-baseline">基準體重: ${parseFloat(treatment.baseline_weight).toFixed(1)} kg</div>` 
                     : ''}
             </div>
-            <div class="detail-section">
-                ${listHtml}
-                ${extraSeHtml}
-            </div>
+            ${listHtml}
         `;
         
         openModal('體重記錄', html, [

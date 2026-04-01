@@ -2514,3 +2514,194 @@ body {
     min-width: 60px;
     text-align: right;
 }
+
+/* === 體重記錄列表樣式 === */
+.weight-list-header {
+    background: var(--bg);
+    padding: 14px 16px;
+    border-radius: 10px;
+    margin-bottom: 16px;
+}
+
+.weight-list-patient {
+    font-size: 15px;
+    margin-bottom: 4px;
+}
+
+.weight-list-baseline {
+    font-size: 13px;
+    color: var(--primary);
+}
+
+.weight-record-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 50vh;
+    overflow-y: auto;
+}
+
+.weight-record-item {
+    background: var(--bg);
+    border-radius: 10px;
+    padding: 12px 14px;
+    border-left: 3px solid var(--border);
+}
+
+.weight-record-item:first-child {
+    border-left-color: var(--primary);
+}
+
+.weight-record-main {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.weight-record-date {
+    font-size: 14px;
+    color: var(--text);
+    min-width: 90px;
+}
+
+.weight-record-value {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.weight-record-value .weight-value {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.weight-record-value .weight-rate {
+    font-size: 13px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.weight-record-value .weight-rate.rate-danger {
+    background: rgba(217, 123, 123, 0.15);
+    color: var(--danger);
+}
+
+.weight-record-value .weight-rate.rate-warning {
+    background: rgba(228, 185, 90, 0.15);
+    color: var(--warning);
+}
+
+.weight-record-value .weight-rate.rate-success {
+    background: rgba(107, 175, 141, 0.15);
+    color: var(--success);
+}
+
+.weight-record-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.weight-record-se {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--border);
+}
+
+/* === 設定頁面手機版優化 === */
+@media (max-width: 768px) {
+    .settings-tabs-container {
+        padding: 0;
+    }
+    
+    .settings-tabs-group {
+        margin-bottom: 12px;
+    }
+    
+    .settings-tabs-label {
+        font-size: 11px;
+        margin-bottom: 6px;
+    }
+    
+    .settings-tabs-row {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+    }
+    
+    .settings-tab {
+        padding: 8px 4px;
+        font-size: 11px;
+        flex-direction: column;
+        gap: 2px;
+    }
+    
+    .settings-tab-icon {
+        font-size: 14px;
+    }
+    
+    .settings-tab-text {
+        font-size: 10px;
+    }
+    
+    .settings-panel-header {
+        padding: 10px 12px;
+    }
+    
+    .settings-panel-title {
+        font-size: 14px;
+    }
+    
+    .settings-panel-desc {
+        font-size: 11px;
+    }
+    
+    .settings-list {
+        max-height: 35vh;
+    }
+    
+    .settings-item {
+        padding: 10px 12px;
+        flex-wrap: wrap;
+    }
+    
+    .settings-item-text {
+        flex: 1;
+        font-size: 13px;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .settings-item-actions {
+        gap: 2px;
+    }
+    
+    .btn-mini {
+        width: 24px;
+        height: 24px;
+        font-size: 11px;
+    }
+    
+    /* 體重記錄手機版 */
+    .weight-record-main {
+        flex-wrap: wrap;
+    }
+    
+    .weight-record-date {
+        min-width: auto;
+        font-size: 13px;
+    }
+    
+    .weight-record-value {
+        order: 3;
+        width: 100%;
+        margin-top: 6px;
+    }
+    
+    .weight-record-actions {
+        margin-left: auto;
+    }
+}

@@ -522,7 +522,6 @@ const Treatment = {
                 </div>
                 
                 <div class="form-row">
-                    ${createFormGroup('期別', createSelect('stage', stages, treatment?.stage))}
                     ${createFormGroup('治療目的', createSelect('treatment_intent', intents, treatment?.treatment_intent), true)}
                 </div>
                 
@@ -611,7 +610,6 @@ const Treatment = {
                         physician_name: physicianName,
                         cancer_type: document.getElementById('cancer_type').value,
                         cancer_type_label: cancerLabel,
-                        stage: document.getElementById('stage').value || null,
                         treatment_intent: document.getElementById('treatment_intent').value,
                         treatment_start: document.getElementById('treatment_start').value,
                         baseline_weight: baselineWeight ? parseFloat(baselineWeight) : null,
