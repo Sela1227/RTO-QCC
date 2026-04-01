@@ -704,10 +704,10 @@ body {
     display: flex;
     align-items: center;
     gap: var(--space-sm);
-    flex-wrap: wrap;
 }
 
 .tracking-toolbar .form-select-sm {
+    width: auto;
     padding: 6px 28px 6px 10px;
     font-size: 13px;
     min-width: 100px;
