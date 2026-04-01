@@ -400,7 +400,6 @@ const PatientDB = {
                         <th>年齡</th>
                         <th>主治醫師</th>
                         <th>癌別</th>
-                        <th>期別</th>
                         <th>首療月份</th>
                         <th>狀態</th>
                         <th></th>
@@ -437,7 +436,6 @@ const PatientDB = {
                     <td>${age}歲</td>
                     <td>${lastTx?.physician_name || '-'}</td>
                     <td>${lastTx?.cancer_type_label || '-'}</td>
-                    <td>${lastTx?.stage ? formatStage(lastTx.stage) : '-'}</td>
                     <td>${startMonth}</td>
                     <td>${statusTag}</td>
                     <td>

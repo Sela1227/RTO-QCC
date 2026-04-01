@@ -274,6 +274,47 @@ const Report = {
             ? Math.round(executedInterventions / totalInterventions * 100) 
             : 0;
         
+        // 介入反應時間統計（從觸發到執行的天數）
+        let totalResponseTime = 0;
+        let responseTimeCount = 0;
+        let minResponseTime = Infinity;
+        let maxResponseTime = 0;
+        
+        filteredInterventions.filter(i => i.status === 'executed' && i.created_at && i.executed_at).forEach(i => {
+            const created = new Date(i.created_at);
+            const executed = new Date(i.executed_at);
+            const days = Math.round((executed - created) / (1000 * 60 * 60 * 24));
+            if (days >= 0) {
+                totalResponseTime += days;
+                responseTimeCount++;
+                if (days < minResponseTime) minResponseTime = days;
+                if (days > maxResponseTime) maxResponseTime = days;
+            }
+        });
+        
+        const avgResponseTime = responseTimeCount > 0 ? (totalResponseTime / responseTimeCount).toFixed(1) : '-';
+        const within24h = filteredInterventions.filter(i => {
+            if (i.status !== 'executed' || !i.created_at || !i.executed_at) return false;
+            const created = new Date(i.created_at);
+            const executed = new Date(i.executed_at);
+            const hours = (executed - created) / (1000 * 60 * 60);
+            return hours <= 24;
+        }).length;
+        const within24hRate = executedInterventions > 0 ? Math.round(within24h / executedInterventions * 100) : 0;
+        
+        // 主治醫師統計
+        const physicianStats = {};
+        filteredTreatments.forEach(t => {
+            const name = t.physician_name || '未指定';
+            if (!physicianStats[name]) {
+                physicianStats[name] = { active: 0, paused: 0, completed: 0, total: 0 };
+            }
+            physicianStats[name].total++;
+            if (t.status === 'active') physicianStats[name].active++;
+            else if (t.status === 'paused') physicianStats[name].paused++;
+            else if (t.status === 'completed') physicianStats[name].completed++;
+        });
+        
         // 介入類型統計（只統計已執行的）
         const interventionByType = {
             'SDM': 0,
@@ -541,6 +582,14 @@ const Report = {
             pendingInterventionsCount,
             totalInterventions,
             interventionByType,
+            // 介入反應時間
+            avgResponseTime,
+            minResponseTime: responseTimeCount > 0 ? minResponseTime : '-',
+            maxResponseTime: responseTimeCount > 0 ? maxResponseTime : '-',
+            within24hRate,
+            responseTimeCount,
+            // 主治醫師統計
+            physicianStats,
             // 新增統計
             ageDistribution,
             genderDistribution,
@@ -713,6 +762,31 @@ const Report = {
                 </div>
                 
                 <div class="report-card">
+                    <div class="report-card-title">介入反應時間</div>
+                    <div class="detail-row">
+                        <span>平均反應時間</span>
+                        <strong>${stats.avgResponseTime !== '-' ? stats.avgResponseTime + ' 天' : '-'}</strong>
+                    </div>
+                    <div class="detail-row">
+                        <span>最短反應</span>
+                        <strong style="color: var(--success);">${stats.minResponseTime !== '-' ? stats.minResponseTime + ' 天' : '-'}</strong>
+                    </div>
+                    <div class="detail-row">
+                        <span>最長反應</span>
+                        <strong style="color: var(--warning);">${stats.maxResponseTime !== '-' ? stats.maxResponseTime + ' 天' : '-'}</strong>
+                    </div>
+                    <hr style="margin: 8px 0; border: none; border-top: 1px solid var(--border);">
+                    <div class="detail-row">
+                        <span>24小時內執行</span>
+                        <strong style="color: var(--success);">${stats.within24hRate}%</strong>
+                    </div>
+                    <div class="detail-row">
+                        <span>統計樣本數</span>
+                        <strong>${stats.responseTimeCount}</strong>
+                    </div>
+                </div>
+                
+                <div class="report-card">
                     <div class="report-card-title">SDM 選擇統計</div>
                     <div class="detail-row">
                         <span>需 SDM 人數</span>
@@ -736,6 +810,33 @@ const Report = {
                             </div>
                         `).join('')}
                     ` : ''}
+                </div>
+            `;
+        }
+        
+        // 主治醫師統計
+        if (showAll || tabs.includes('physician')) {
+            html += `
+                <div class="report-card">
+                    <div class="report-card-title">主治醫師統計</div>
+                    ${Object.keys(stats.physicianStats).length > 0 ?
+                        Object.entries(stats.physicianStats)
+                            .sort((a, b) => b[1].total - a[1].total)
+                            .map(([name, data]) => `
+                                <div class="detail-row" style="font-size: 13px;">
+                                    <span>${name}</span>
+                                    <span>
+                                        <span style="color: var(--primary);">${data.active}</span> /
+                                        <span style="color: var(--warning);">${data.paused}</span> /
+                                        <span style="color: var(--success);">${data.completed}</span>
+                                        <span style="color: var(--text-hint); margin-left: 4px;">(${data.total})</span>
+                                    </span>
+                                </div>
+                            `).join('') + `
+                        <div style="font-size: 11px; color: var(--text-hint); margin-top: 8px; text-align: right;">
+                            治療中 / 暫停中 / 結案 (總數)
+                        </div>
+                    ` : '<div style="color: var(--text-hint); font-size: 12px;">無資料</div>'}
                 </div>
             `;
         }

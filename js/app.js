@@ -1479,7 +1479,7 @@ const App = {
             }
             
             datasets.push({
-                label: `預測趨勢 (${trendText})`,
+                label: `預測(${trendText})`,
                 data: predictionWithStart,
                 borderColor: predictionColor,
                 borderDash: [5, 5],
@@ -1494,7 +1494,7 @@ const App = {
         
         if (threshold3) {
             datasets.push({
-                label: `-3% SDM (${threshold3.toFixed(1)} kg)`,
+                label: `SDM線 ${threshold3.toFixed(1)}kg`,
                 data: allLabels.map(() => threshold3),
                 borderColor: '#E4B95A',
                 borderDash: [8, 4],
@@ -1507,7 +1507,7 @@ const App = {
         
         if (threshold5) {
             datasets.push({
-                label: `-5% 營養師 (${threshold5.toFixed(1)} kg)`,
+                label: `營養線 ${threshold5.toFixed(1)}kg`,
                 data: allLabels.map(() => threshold5),
                 borderColor: '#D97B7B',
                 borderDash: [8, 4],
@@ -1528,10 +1528,13 @@ const App = {
                     legend: {
                         display: true,
                         position: 'top',
+                        align: 'center',
                         labels: { 
-                            boxWidth: 16,
-                            font: { size: 12 },
-                            padding: 12
+                            boxWidth: 20,
+                            boxHeight: 2,
+                            font: { size: 11 },
+                            padding: 12,
+                            usePointStyle: false
                         }
                     },
                     tooltip: {

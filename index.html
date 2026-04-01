@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>彰濱放腫體重監控預防系統</title>
-    <link rel="stylesheet" href="css/style.css?v=6.99">
+    <link rel="stylesheet" href="css/style.css?v=6.100">
     <!-- 外部套件 -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -33,7 +33,7 @@
                 <div class="logo">
                     <img src="logo.png" alt="SELA" class="logo-img" width="28" height="28" style="width:28px;height:28px;max-width:28px;max-height:28px;">
                     <span class="logo-text">彰濱放腫體重監控預防系統</span>
-                    <span class="header-version">v6.9.9</span>
+                    <span class="header-version">v6.10.0</span>
                 </div>
             </div>
             <div class="header-right">
@@ -239,10 +239,8 @@
                             <select class="form-select form-select-sm" id="tracking-filter-physician">
                                 <option value="">全部醫師</option>
                             </select>
-                        </div>
-                        <div class="toolbar-sort">
                             <select class="form-select form-select-sm" id="tracking-sort">
-                                <option value="name">姓氏排序</option>
+                                <option value="name">姓氏</option>
                                 <option value="start_date">首療日期</option>
                                 <option value="change_rate">體重變化</option>
                                 <option value="medical_id">病歷號</option>
@@ -341,7 +339,6 @@
                                 <option value="name">姓氏</option>
                                 <option value="cancer_type">癌別</option>
                                 <option value="physician">主治醫師</option>
-                                <option value="stage">期別</option>
                             </select>
                             <button class="btn btn-icon btn-sm" id="db-sort-1-dir" onclick="PatientDB.toggleSortDir(1)" title="降序">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -355,7 +352,6 @@
                                 <option value="name">姓氏</option>
                                 <option value="cancer_type">癌別</option>
                                 <option value="physician">主治醫師</option>
-                                <option value="stage">期別</option>
                             </select>
                             <button class="btn btn-icon btn-sm" id="db-sort-2-dir" onclick="PatientDB.toggleSortDir(2)" title="降序">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -445,6 +441,9 @@
                         </label>
                         <label class="dashboard-tab-check">
                             <input type="checkbox" value="intervention" onchange="Report.onTabChange(event)"> 介入統計
+                        </label>
+                        <label class="dashboard-tab-check">
+                            <input type="checkbox" value="physician" onchange="Report.onTabChange(event)"> 主治醫師
                         </label>
                         <label class="dashboard-tab-check">
                             <input type="checkbox" value="demographic" onchange="Report.onTabChange(event)"> 人口統計
@@ -568,22 +567,22 @@
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script></script>
 
     <!-- JS 模組 -->
-    <script src="js/config.js?v=6.99"></script>
-    <script src="js/db.js?v=6.99"></script>
-    <script src="js/utils.js?v=6.99"></script>
-    <script src="js/patient.js?v=6.99"></script>
-    <script src="js/treatment.js?v=6.99"></script>
-    <script src="js/weight.js?v=6.99"></script>
-    <script src="js/sideeffect.js?v=6.99"></script>
-    <script src="js/intervention.js?v=6.99"></script>
-    <script src="js/report.js?v=6.99"></script>
-    <script src="js/settings.js?v=6.99"></script>
-    <script src="js/sync.js?v=6.99"></script>
-    <script src="js/satisfaction.js?v=6.99"></script>
-    <script src="js/dashboard.js?v=6.99"></script>
-    <script src="js/patient-db.js?v=6.99"></script>
-    <script src="js/demo.js?v=6.99"></script>
-    <script src="js/app.js?v=6.99"></script>
+    <script src="js/config.js?v=6.100"></script>
+    <script src="js/db.js?v=6.100"></script>
+    <script src="js/utils.js?v=6.100"></script>
+    <script src="js/patient.js?v=6.100"></script>
+    <script src="js/treatment.js?v=6.100"></script>
+    <script src="js/weight.js?v=6.100"></script>
+    <script src="js/sideeffect.js?v=6.100"></script>
+    <script src="js/intervention.js?v=6.100"></script>
+    <script src="js/report.js?v=6.100"></script>
+    <script src="js/settings.js?v=6.100"></script>
+    <script src="js/sync.js?v=6.100"></script>
+    <script src="js/satisfaction.js?v=6.100"></script>
+    <script src="js/dashboard.js?v=6.100"></script>
+    <script src="js/patient-db.js?v=6.100"></script>
+    <script src="js/demo.js?v=6.100"></script>
+    <script src="js/app.js?v=6.100"></script>
     
     <!-- 登入驗證 -->
     <script>
