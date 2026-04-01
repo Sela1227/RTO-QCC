@@ -240,6 +240,7 @@ const PatientDB = {
                     new Date(a.treatment_start) - new Date(b.treatment_start)
                 );
                 const firstTreatment = sortedTreatments[0];
+                const lastTreatment = sortedTreatments[sortedTreatments.length - 1]; // 最後一個療程
                 
                 return {
                     ...p,
@@ -247,15 +248,16 @@ const PatientDB = {
                     activeTreatment,
                     pausedTreatment,
                     firstTreatment,
+                    lastTreatment,
                     hasActive: !!activeTreatment,
                     hasPaused: !!pausedTreatment,
-                    // 用於排序的欄位
+                    // 用於排序的欄位（使用最後一個療程）
                     _treatment_start: firstTreatment?.treatment_start || '',
-                    _cancer_type: firstTreatment?.cancer_type || '',
-                    _cancer_type_label: firstTreatment?.cancer_type_label || '',
-                    _physician: firstTreatment?.physician || '',
-                    _physician_name: firstTreatment?.physician_name || '',
-                    _stage: firstTreatment?.stage || ''
+                    _cancer_type: lastTreatment?.cancer_type || '',
+                    _cancer_type_label: lastTreatment?.cancer_type_label || '',
+                    _physician: lastTreatment?.physician || '',
+                    _physician_name: lastTreatment?.physician_name || '',
+                    _stage: lastTreatment?.stage || ''
                 };
             });
         
@@ -268,18 +270,14 @@ const PatientDB = {
             patients = patients.filter(p => !p.hasActive && !p.hasPaused);
         }
         
-        // 篩選：癌別
+        // 篩選：癌別（以最後一個療程為準）
         if (cancerFilter !== 'all') {
-            patients = patients.filter(p => 
-                p.treatments.some(t => t.cancer_type === cancerFilter)
-            );
+            patients = patients.filter(p => p._cancer_type === cancerFilter);
         }
         
-        // 篩選：主治醫師
+        // 篩選：主治醫師（以最後一個療程為準）
         if (physicianFilter !== 'all') {
-            patients = patients.filter(p => 
-                p.treatments.some(t => t.physician === physicianFilter)
-            );
+            patients = patients.filter(p => p._physician === physicianFilter);
         }
         
         // 篩選：收案日期範圍
@@ -414,6 +412,7 @@ const PatientDB = {
         for (const p of patients) {
             const age = calculateAge(p.birth_date);
             const firstTx = p.firstTreatment;
+            const lastTx = p.lastTreatment; // 最後一個療程
             const startMonth = firstTx?.treatment_start 
                 ? formatDate(firstTx.treatment_start, 'YYYY-MM') 
                 : '-';
@@ -436,9 +435,9 @@ const PatientDB = {
                     <td>${p.name}</td>
                     <td>${formatGender(p.gender)}</td>
                     <td>${age}歲</td>
-                    <td>${firstTx?.physician_name || '-'}</td>
-                    <td>${firstTx?.cancer_type_label || '-'}</td>
-                    <td>${firstTx?.stage ? formatStage(firstTx.stage) : '-'}</td>
+                    <td>${lastTx?.physician_name || '-'}</td>
+                    <td>${lastTx?.cancer_type_label || '-'}</td>
+                    <td>${lastTx?.stage ? formatStage(lastTx.stage) : '-'}</td>
                     <td>${startMonth}</td>
                     <td>${statusTag}</td>
                     <td>

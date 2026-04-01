@@ -504,18 +504,6 @@ const Treatment = {
         
         const isUnableToMeasure = treatment?.unable_to_measure || false;
         
-        // SDM 選擇選項
-        const sdmOptions = [
-            { code: '', label: '-- 尚未選擇 --' },
-            { code: 'oral_supplement', label: '口服營養補充' },
-            { code: 'ng_tube', label: '鼻胃管' },
-            { code: 'peg_endoscopic', label: '經皮內視鏡胃造廔術' },
-            { code: 'peg_fluoroscopic', label: '經皮透視導引胃造廔術' },
-            { code: 'oral_only', label: '拒管灌，自行經口進食' },
-            { code: 'undecided', label: '尚在考慮中' },
-            { code: 'refused', label: '病人拒絕' }
-        ];
-        
         // 轉換醫師列表為選項格式
         const physicianOptions = physicians.map(p => ({ code: p.code, label: p.name }));
         
@@ -559,8 +547,6 @@ const Treatment = {
                         </label>
                     </div>
                 </div>
-                
-                ${createFormGroup('SDM 營養選擇', createSelect('sdm_choice', sdmOptions, treatment?.sdm_choice))}
                 
                 <div style="border-top: 1px solid var(--border); margin-top: 12px; padding-top: 12px;">
                     <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 8px;">放射治療資訊（選填）</div>
@@ -630,7 +616,6 @@ const Treatment = {
                         treatment_start: document.getElementById('treatment_start').value,
                         baseline_weight: baselineWeight ? parseFloat(baselineWeight) : null,
                         unable_to_measure: unableToMeasure,
-                        sdm_choice: document.getElementById('sdm_choice').value || null,
                         radiation_dose: document.getElementById('radiation_dose').value 
                             ? parseFloat(document.getElementById('radiation_dose').value) : null,
                         radiation_fractions: document.getElementById('radiation_fractions').value 
