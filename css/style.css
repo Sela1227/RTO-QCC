@@ -1712,26 +1712,34 @@ body {
     }
     
     .stat-card {
-        padding: 12px;
-        gap: 10px;
+        padding: 10px;
+        gap: 8px;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
     }
     
     .stat-icon {
-        width: 40px;
-        height: 40px;
+        width: 36px;
+        height: 36px;
     }
     
     .stat-icon svg {
-        width: 20px;
-        height: 20px;
+        width: 18px;
+        height: 18px;
+    }
+    
+    .stat-content {
+        text-align: center;
     }
     
     .stat-value {
-        font-size: 24px;
+        font-size: 22px;
     }
     
     .stat-label {
-        font-size: 11px;
+        font-size: 10px;
+        white-space: nowrap;
     }
     
     /* 治療清單 - 單欄顯示 */
@@ -1742,8 +1750,10 @@ body {
     
     .tracking-list {
         max-height: 50vh;
-        padding: 10px;
+        padding: 8px;
         gap: 8px;
+        display: flex;
+        flex-wrap: wrap;
     }
     
     .tracking-detail {
@@ -1752,19 +1762,44 @@ body {
     
     .patient-card {
         width: calc(50% - 4px);
-        padding: 10px;
+        padding: 12px 10px;
+        border-radius: 10px;
+    }
+    
+    .patient-card-header {
+        margin-bottom: 4px;
     }
     
     .patient-card-id {
-        font-size: 13px;
+        font-size: 14px;
+        font-weight: 600;
     }
     
     .patient-card-name {
-        font-size: 12px;
+        font-size: 13px;
+        margin-bottom: 4px;
     }
     
     .patient-card-info {
         font-size: 11px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        align-items: center;
+    }
+    
+    .patient-card-rate {
+        font-size: 12px;
+        font-weight: 600;
+    }
+    
+    .patient-card-tags {
+        margin-top: 6px;
+    }
+    
+    .patient-card-tags .tag {
+        font-size: 10px;
+        padding: 2px 6px;
     }
     
     /* 按鈕 */
@@ -1859,6 +1894,202 @@ body {
     
     .backup-reminder-text {
         flex: 1 1 100%;
+    }
+    
+    /* === 手機版頁面頭部 === */
+    .page-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+    
+    .page-header h1 {
+        font-size: 18px;
+        margin: 0;
+    }
+    
+    /* === 手機版 Tab 優化 === */
+    .tab-group {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        flex-wrap: nowrap;
+        padding: 4px;
+        gap: 6px;
+        margin: 0 -12px;
+        padding-left: 12px;
+        padding-right: 12px;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+    
+    .tab-group::-webkit-scrollbar {
+        display: none;
+    }
+    
+    .tab {
+        flex-shrink: 0;
+        padding: 8px 16px;
+        font-size: 13px;
+        white-space: nowrap;
+        min-width: fit-content;
+    }
+    
+    /* === 手機版追蹤清單工具列 === */
+    .tracking-toolbar {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 12px;
+        background: var(--bg);
+        border-radius: var(--radius-md);
+        margin-bottom: 12px;
+    }
+    
+    .tracking-toolbar .toolbar-filters {
+        display: flex;
+        flex: 1;
+        gap: 6px;
+        min-width: 0;
+    }
+    
+    .tracking-toolbar .toolbar-filters .form-select-sm {
+        flex: 1;
+        min-width: 0;
+        font-size: 12px;
+        padding: 6px 24px 6px 8px;
+    }
+    
+    .tracking-toolbar .toolbar-sort {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        flex-shrink: 0;
+    }
+    
+    .tracking-toolbar .toolbar-sort .form-select-sm {
+        width: auto;
+        min-width: 70px;
+        font-size: 12px;
+        padding: 6px 20px 6px 8px;
+    }
+    
+    /* === 手機版資料庫工具列 === */
+    .db-toolbar {
+        padding: 12px;
+    }
+    
+    .db-toolbar-row {
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+    
+    .db-toolbar-row:last-child {
+        margin-bottom: 0;
+    }
+    
+    .db-toolbar-label {
+        width: 100%;
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--text-secondary);
+        margin-bottom: 4px;
+    }
+    
+    .db-period-btns {
+        width: 100%;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 6px;
+    }
+    
+    .db-period-btns .btn {
+        padding: 8px 4px;
+        font-size: 12px;
+        white-space: nowrap;
+    }
+    
+    /* 指定年和指定區間放在新行 */
+    .db-period-btns .btn[data-period="specific_year"],
+    .db-period-btns .btn[data-period="custom"] {
+        grid-column: span 2;
+    }
+    
+    .db-toolbar-row .form-select {
+        flex: 1;
+        min-width: 0;
+        font-size: 13px;
+        width: auto !important;
+        padding: 8px 28px 8px 10px;
+    }
+    
+    .db-search-box {
+        width: 100%;
+        flex: 1 1 100%;
+        margin-top: 4px;
+    }
+    
+    .db-search-box input {
+        font-size: 14px;
+    }
+    
+    /* 日期選擇器 */
+    #db-date-range {
+        width: 100%;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 8px;
+    }
+    
+    #db-date-range .form-select,
+    #db-date-range .form-input {
+        flex: 1;
+        min-width: 100px;
+    }
+    
+    #db-date-sep {
+        display: flex;
+        align-items: center;
+        padding: 0 4px;
+    }
+    
+    /* 隱藏第二排序在手機上 */
+    #db-sort-2,
+    #db-sort-2-dir {
+        display: none;
+    }
+    
+    .db-toolbar-row span[style*="color: var(--text-hint)"] {
+        display: none;
+    }
+    
+    /* 篩選區第二行：三個下拉選單 */
+    .db-toolbar-row:nth-child(2) {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 6px;
+    }
+    
+    .db-toolbar-row:nth-child(2) .db-toolbar-label {
+        grid-column: 1 / -1;
+    }
+    
+    .db-toolbar-row:nth-child(2) .db-search-box {
+        grid-column: 1 / -1;
+    }
+    
+    /* 排序區隱藏第二排序 */
+    .db-toolbar-row:nth-child(3) {
+        display: flex;
+        align-items: center;
+    }
+    
+    .db-toolbar-row:nth-child(3) .db-toolbar-label {
+        width: auto;
+        margin-right: 8px;
+        margin-bottom: 0;
     }
 }
 
