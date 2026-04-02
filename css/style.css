@@ -352,6 +352,93 @@ body {
     gap: var(--space-md);
 }
 
+/* 8 格統計卡片（4x2配置） */
+.stats-grid-8 {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(2, auto);
+    max-width: 1000px;
+    gap: var(--space-md);
+}
+
+.stats-grid-8 .stat-card {
+    padding: 14px 12px;
+    min-width: 0;
+}
+
+.stats-grid-8 .stat-icon {
+    width: 40px;
+    height: 40px;
+}
+
+.stats-grid-8 .stat-icon svg {
+    width: 20px;
+    height: 20px;
+}
+
+.stats-grid-8 .stat-value {
+    font-size: 26px;
+}
+
+.stats-grid-8 .stat-label {
+    font-size: 12px;
+}
+
+/* 日期天氣區塊 */
+.date-weather-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--space-md);
+    box-shadow: var(--shadow-sm);
+}
+
+.date-info {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+}
+
+.date-today {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.date-lunar {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.weather-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.weather-icon {
+    font-size: 24px;
+}
+
+.weather-temp {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.weather-desc {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+/* 備份提醒三欄寬 */
+.backup-reminder {
+    grid-column: span 4;
+}
+
 .stats-grid-6 .stat-card {
     padding: 16px 14px;
     min-width: 0;
@@ -445,6 +532,16 @@ body {
     color: #8B5CF6;
 }
 
+.stat-icon-indigo {
+    background: rgba(99, 102, 241, 0.12);
+    color: #6366F1;
+}
+
+.stat-icon-green {
+    background: rgba(34, 197, 94, 0.12);
+    color: #22C55E;
+}
+
 .stat-info {
     display: flex;
     flex-direction: column;
@@ -513,7 +610,7 @@ body {
     border: 1px solid rgba(228, 185, 90, 0.3);
     border-radius: var(--radius-md);
     margin-bottom: var(--space-lg);
-    max-width: 640px;
+    max-width: 750px; /* 三欄寬 */
 }
 
 .backup-reminder-icon {
@@ -1717,6 +1814,77 @@ body {
     .stats-grid-6 {
         grid-template-columns: repeat(3, 1fr);
         gap: 8px;
+        max-width: 100%;
+    }
+    
+    .stats-grid-8 {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 6px;
+        max-width: 100%;
+    }
+    
+    .stats-grid-8 .stat-card {
+        padding: 8px 6px;
+    }
+    
+    .stats-grid-8 .stat-icon {
+        width: 32px;
+        height: 32px;
+    }
+    
+    .stats-grid-8 .stat-icon svg {
+        width: 16px;
+        height: 16px;
+    }
+    
+    .stats-grid-8 .stat-value {
+        font-size: 18px;
+    }
+    
+    .stats-grid-8 .stat-label {
+        font-size: 9px;
+    }
+    
+    /* 日期天氣區塊手機版 */
+    .date-weather-bar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+        padding: 12px;
+    }
+    
+    .date-info {
+        flex-direction: column;
+        gap: 4px;
+    }
+    
+    .date-today {
+        font-size: 16px;
+    }
+    
+    .date-lunar {
+        font-size: 13px;
+    }
+    
+    .weather-info {
+        width: 100%;
+        justify-content: flex-start;
+    }
+    
+    .weather-icon {
+        font-size: 20px;
+    }
+    
+    .weather-temp {
+        font-size: 16px;
+    }
+    
+    .weather-desc {
+        font-size: 13px;
+    }
+    
+    /* 備份提醒手機版 */
+    .backup-reminder {
         max-width: 100%;
     }
     

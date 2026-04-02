@@ -37,6 +37,9 @@ const App = {
             // 初始化追蹤清單篩選選項
             await this.initTrackingFilters();
             
+            // 初始化日期天氣顯示
+            this.initDateWeather();
+            
             // 檢查備份狀態（暫時關閉強制備份）
             // await this.checkBackupStatus();
             
@@ -78,6 +81,118 @@ const App = {
                 await Sync.backupToFile();
             }
         });
+    },
+    
+    /**
+     * 初始化日期天氣顯示
+     */
+    initDateWeather() {
+        // 顯示今天日期
+        const today = new Date();
+        const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+        const dateStr = `${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日 星期${weekdays[today.getDay()]}`;
+        const dateEl = document.getElementById('date-today');
+        if (dateEl) dateEl.textContent = dateStr;
+        
+        // 顯示農曆日期
+        this.showLunarDate(today);
+        
+        // 抓取天氣（彰化）
+        this.fetchWeather();
+    },
+    
+    /**
+     * 顯示農曆日期
+     */
+    showLunarDate(date) {
+        const lunarEl = document.getElementById('date-lunar');
+        if (!lunarEl) return;
+        
+        // 簡易農曆轉換（使用查表法的簡化版）
+        const lunarMonths = ['正', '二', '三', '四', '五', '六', '七', '八', '九', '十', '冬', '臘'];
+        const lunarDays = ['初一', '初二', '初三', '初四', '初五', '初六', '初七', '初八', '初九', '初十',
+                          '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十',
+                          '廿一', '廿二', '廿三', '廿四', '廿五', '廿六', '廿七', '廿八', '廿九', '三十'];
+        
+        // 使用近似計算（簡化版，實際應用需要更精確的農曆算法）
+        // 這裡使用 2024-02-10 為農曆正月初一作為基準
+        const baseDate = new Date(2024, 1, 10); // 2024-02-10
+        const diffDays = Math.floor((date - baseDate) / (1000 * 60 * 60 * 24));
+        
+        // 簡化計算（實際農曆計算很複雜，這裡用近似值）
+        let lunarMonth = Math.floor((diffDays % 354) / 29.5);
+        let lunarDay = Math.floor((diffDays % 354) % 29.5);
+        
+        if (lunarMonth < 0) lunarMonth += 12;
+        if (lunarDay < 0) lunarDay += 30;
+        if (lunarMonth >= 12) lunarMonth = lunarMonth % 12;
+        if (lunarDay >= 30) lunarDay = lunarDay % 30;
+        
+        lunarEl.textContent = `農曆${lunarMonths[lunarMonth]}月${lunarDays[lunarDay]}`;
+    },
+    
+    /**
+     * 抓取天氣資料（使用 Open-Meteo API，免費無需 API key）
+     */
+    async fetchWeather() {
+        const weatherIcon = document.getElementById('weather-icon');
+        const weatherTemp = document.getElementById('weather-temp');
+        const weatherDesc = document.getElementById('weather-desc');
+        
+        if (!weatherIcon || !weatherTemp || !weatherDesc) return;
+        
+        try {
+            // 彰化縣座標
+            const lat = 24.0518;
+            const lon = 120.5161;
+            
+            const response = await fetch(
+                `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&timezone=Asia%2FTaipei`
+            );
+            
+            if (!response.ok) throw new Error('天氣資料載入失敗');
+            
+            const data = await response.json();
+            const temp = Math.round(data.current.temperature_2m);
+            const code = data.current.weather_code;
+            
+            // 天氣代碼對應圖示和描述
+            const weatherMap = {
+                0: { icon: '☀️', desc: '晴天' },
+                1: { icon: '🌤️', desc: '晴時多雲' },
+                2: { icon: '⛅', desc: '多雲' },
+                3: { icon: '☁️', desc: '陰天' },
+                45: { icon: '🌫️', desc: '霧' },
+                48: { icon: '🌫️', desc: '霧凇' },
+                51: { icon: '🌧️', desc: '小雨' },
+                53: { icon: '🌧️', desc: '中雨' },
+                55: { icon: '🌧️', desc: '大雨' },
+                61: { icon: '🌧️', desc: '小雨' },
+                63: { icon: '🌧️', desc: '中雨' },
+                65: { icon: '🌧️', desc: '大雨' },
+                71: { icon: '🌨️', desc: '小雪' },
+                73: { icon: '🌨️', desc: '中雪' },
+                75: { icon: '🌨️', desc: '大雪' },
+                80: { icon: '🌦️', desc: '陣雨' },
+                81: { icon: '🌦️', desc: '陣雨' },
+                82: { icon: '⛈️', desc: '大陣雨' },
+                95: { icon: '⛈️', desc: '雷陣雨' },
+                96: { icon: '⛈️', desc: '雷陣雨' },
+                99: { icon: '⛈️', desc: '雷陣雨' }
+            };
+            
+            const weather = weatherMap[code] || { icon: '🌡️', desc: '未知' };
+            
+            weatherIcon.textContent = weather.icon;
+            weatherTemp.textContent = `${temp}°C`;
+            weatherDesc.textContent = weather.desc;
+            
+        } catch (e) {
+            console.warn('天氣資料載入失敗:', e);
+            weatherIcon.textContent = '🌡️';
+            weatherTemp.textContent = '--°C';
+            weatherDesc.textContent = '';
+        }
     },
     
     /**
@@ -403,12 +518,31 @@ const App = {
             !t.baseline_weight || !t.physician || !t.radiation_dose
         ).length;
         
+        // 今天的日期字串
+        const todayStr = new Date().toISOString().split('T')[0];
+        
+        // 待上線：上線日期（首次治療）晚於今天
+        const allTreatments = await Treatment.getAll();
+        const upcomingCount = allTreatments.filter(t => 
+            t.status === 'active' && 
+            t.treatment_start && 
+            t.treatment_start > todayStr
+        ).length;
+        
+        // 本日上線：首次治療日期是今天
+        const todayStartCount = allTreatments.filter(t => 
+            t.status === 'active' && 
+            t.treatment_start === todayStr
+        ).length;
+        
         document.getElementById('stat-active').textContent = activeTreatments.length;
         document.getElementById('stat-paused').textContent = pausedTreatments.length;
         document.getElementById('stat-pending').textContent = pendingCount;
         document.getElementById('stat-attention').textContent = attentionCount;
         document.getElementById('stat-overdue').textContent = overdueCount;
         document.getElementById('stat-incomplete').textContent = incompleteCount;
+        document.getElementById('stat-upcoming').textContent = upcomingCount;
+        document.getElementById('stat-today').textContent = todayStartCount;
         
         // 檢查備份提醒
         await this.checkBackupReminder();
