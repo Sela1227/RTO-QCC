@@ -1131,8 +1131,10 @@ const Report = {
         }
         filename += '.xlsx';
         
-        XLSX.writeFile(wb, filename);
-        showToast('Excel 已下載');
+        const result = await downloadExcel(wb, filename);
+        if (result) {
+            showToast('Excel 已下載');
+        }
     },
     
     /**

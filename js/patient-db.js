@@ -541,9 +541,11 @@ const PatientDB = {
             const today = new Date().toISOString().split('T')[0];
             const filename = `RTO-QCC-病人資料-${today}.xlsx`;
             
-            // 下載
-            XLSX.writeFile(wb, filename);
-            showToast(`已匯出 ${rows.length} 筆資料`);
+            // 下載（使用可選擇目錄的方式）
+            const result = await downloadExcel(wb, filename);
+            if (result) {
+                showToast(`已匯出 ${rows.length} 筆資料`);
+            }
             
         } catch (e) {
             console.error('匯出失敗:', e);

@@ -1242,11 +1242,13 @@ const Dashboard = {
                 pdf.text(`第 ${i} / ${totalPages} 頁`, pageWidth - 20, pageHeight - 10, { align: 'right' });
             }
             
-            // 儲存 PDF
+            // 儲存 PDF（使用可選擇目錄的方式）
             const filename = `SELA_成效報告_${new Date().toISOString().split('T')[0]}.pdf`;
-            pdf.save(filename);
+            const result = await downloadPDF(pdf, filename);
             
-            showToast('報告已匯出');
+            if (result) {
+                showToast('報告已匯出');
+            }
         } catch (e) {
             console.error('PDF 匯出失敗:', e);
             showToast('匯出失敗: ' + e.message, 'error');

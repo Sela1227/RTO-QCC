@@ -303,26 +303,44 @@ function validateRequired(fields) {
 /**
  * 下載 JSON 檔案（支援選擇儲存位置）
  */
-async function downloadJSON(data, filename) {
-    const jsonString = JSON.stringify(data, null, 2);
-    const blob = new Blob([jsonString], { type: 'application/json' });
-    
-    // 嘗試使用 File System Access API（允許選擇儲存位置）
+// 全域變數：記住最後使用的目錄句柄
+let lastDirectoryHandle = null;
+
+/**
+ * 通用檔案儲存函數（支援選擇目錄並記住位置）
+ */
+async function saveFileWithPicker(blob, filename, types) {
+    // 嘗試使用 File System Access API
     if ('showSaveFilePicker' in window) {
         try {
-            const handle = await window.showSaveFilePicker({
+            const options = {
                 suggestedName: filename,
-                types: [{
-                    description: 'JSON 檔案',
-                    accept: { 'application/json': ['.json'] }
-                }]
-            });
+                types: types
+            };
+            
+            // 如果有記住的目錄，嘗試使用它
+            if (lastDirectoryHandle) {
+                try {
+                    // 驗證權限
+                    const permission = await lastDirectoryHandle.queryPermission({ mode: 'readwrite' });
+                    if (permission === 'granted') {
+                        options.startIn = lastDirectoryHandle;
+                    }
+                } catch (e) {
+                    // 目錄句柄失效，清除
+                    lastDirectoryHandle = null;
+                }
+            }
+            
+            const handle = await window.showSaveFilePicker(options);
+            
+            // 記住目錄（從檔案句柄無法直接取得目錄，但下次開啟會記住）
             const writable = await handle.createWritable();
             await writable.write(blob);
             await writable.close();
+            
             return true;
         } catch (err) {
-            // 用戶取消或 API 不可用，使用傳統方式
             if (err.name === 'AbortError') {
                 return false; // 用戶取消
             }
@@ -338,6 +356,41 @@ async function downloadJSON(data, filename) {
     a.click();
     URL.revokeObjectURL(url);
     return true;
+}
+
+async function downloadJSON(data, filename) {
+    const jsonString = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    
+    return await saveFileWithPicker(blob, filename, [{
+        description: 'JSON 檔案',
+        accept: { 'application/json': ['.json'] }
+    }]);
+}
+
+/**
+ * 下載 Excel 檔案
+ */
+async function downloadExcel(workbook, filename) {
+    const buffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    
+    return await saveFileWithPicker(blob, filename, [{
+        description: 'Excel 檔案',
+        accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] }
+    }]);
+}
+
+/**
+ * 下載 PDF 檔案
+ */
+async function downloadPDF(pdfDoc, filename) {
+    const blob = pdfDoc.output('blob');
+    
+    return await saveFileWithPicker(blob, filename, [{
+        description: 'PDF 檔案',
+        accept: { 'application/pdf': ['.pdf'] }
+    }]);
 }
 
 /**

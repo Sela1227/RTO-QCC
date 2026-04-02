@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>彰濱放腫體重監控預防系統</title>
-    <link rel="stylesheet" href="css/style.css?v=6.111">
+    <link rel="stylesheet" href="css/style.css?v=6.112">
     <!-- 外部套件 -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -33,7 +33,7 @@
                 <div class="logo">
                     <img src="logo.png" alt="SELA" class="logo-img" width="28" height="28" style="width:28px;height:28px;max-width:28px;max-height:28px;">
                     <span class="logo-text">彰濱放腫體重監控預防系統</span>
-                    <span class="header-version">v6.11.1</span>
+                    <span class="header-version">v6.11.2</span>
                 </div>
             </div>
             <div class="header-right">
@@ -159,6 +159,18 @@
                                 <span class="stat-label">暫停中</span>
                             </div>
                         </div>
+                        <div class="stat-card" data-filter="attention">
+                            <div class="stat-icon stat-icon-teal">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="stat-attention">0</span>
+                                <span class="stat-label">需關注</span>
+                            </div>
+                        </div>
                         <div class="stat-card stat-card-warning" data-filter="pending">
                             <div class="stat-icon stat-icon-amber">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -170,18 +182,6 @@
                             <div class="stat-info">
                                 <span class="stat-value" id="stat-pending">0</span>
                                 <span class="stat-label">需處理</span>
-                            </div>
-                        </div>
-                        <div class="stat-card" data-filter="attention">
-                            <div class="stat-icon stat-icon-teal">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                    <circle cx="12" cy="12" r="3"></circle>
-                                </svg>
-                            </div>
-                            <div class="stat-info">
-                                <span class="stat-value" id="stat-attention">0</span>
-                                <span class="stat-label">需關注</span>
                             </div>
                         </div>
                         <div class="stat-card stat-card-danger" data-filter="overdue">
@@ -264,8 +264,8 @@
                         <div class="tab-group tab-group-3x2">
                             <button class="tab active" data-tab="active">治療中</button>
                             <button class="tab" data-tab="paused">暫停中</button>
-                            <button class="tab tab-warning" data-tab="pending">需處理</button>
                             <button class="tab tab-teal" data-tab="attention">需關注</button>
+                            <button class="tab tab-warning" data-tab="pending">需處理</button>
                             <button class="tab tab-danger" data-tab="overdue">待輸體重</button>
                             <button class="tab tab-purple" data-tab="incomplete">待補資料</button>
                         </div>
@@ -617,22 +617,22 @@
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script></script>
 
     <!-- JS 模組 -->
-    <script src="js/config.js?v=6.111"></script>
-    <script src="js/db.js?v=6.111"></script>
-    <script src="js/utils.js?v=6.111"></script>
-    <script src="js/patient.js?v=6.111"></script>
-    <script src="js/treatment.js?v=6.111"></script>
-    <script src="js/weight.js?v=6.111"></script>
-    <script src="js/sideeffect.js?v=6.111"></script>
-    <script src="js/intervention.js?v=6.111"></script>
-    <script src="js/report.js?v=6.111"></script>
-    <script src="js/settings.js?v=6.111"></script>
-    <script src="js/sync.js?v=6.111"></script>
-    <script src="js/satisfaction.js?v=6.111"></script>
-    <script src="js/dashboard.js?v=6.111"></script>
-    <script src="js/patient-db.js?v=6.111"></script>
-    <script src="js/demo.js?v=6.111"></script>
-    <script src="js/app.js?v=6.111"></script>
+    <script src="js/config.js?v=6.112"></script>
+    <script src="js/db.js?v=6.112"></script>
+    <script src="js/utils.js?v=6.112"></script>
+    <script src="js/patient.js?v=6.112"></script>
+    <script src="js/treatment.js?v=6.112"></script>
+    <script src="js/weight.js?v=6.112"></script>
+    <script src="js/sideeffect.js?v=6.112"></script>
+    <script src="js/intervention.js?v=6.112"></script>
+    <script src="js/report.js?v=6.112"></script>
+    <script src="js/settings.js?v=6.112"></script>
+    <script src="js/sync.js?v=6.112"></script>
+    <script src="js/satisfaction.js?v=6.112"></script>
+    <script src="js/dashboard.js?v=6.112"></script>
+    <script src="js/patient-db.js?v=6.112"></script>
+    <script src="js/demo.js?v=6.112"></script>
+    <script src="js/app.js?v=6.112"></script>
     
     <!-- 登入驗證 -->
     <script>
