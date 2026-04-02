@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>彰濱放腫體重監控預防系統</title>
-    <link rel="stylesheet" href="css/style.css?v=6.110">
+    <link rel="stylesheet" href="css/style.css?v=6.111">
     <!-- 外部套件 -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -33,7 +33,7 @@
                 <div class="logo">
                     <img src="logo.png" alt="SELA" class="logo-img" width="28" height="28" style="width:28px;height:28px;max-width:28px;max-height:28px;">
                     <span class="logo-text">彰濱放腫體重監控預防系統</span>
-                    <span class="header-version">v6.11.0</span>
+                    <span class="header-version">v6.11.1</span>
                 </div>
             </div>
             <div class="header-right">
@@ -121,20 +121,20 @@
                         </div>
                     </div>
                     
-                    <!-- 日期天氣區塊 -->
-                    <div class="date-weather-bar">
-                        <div class="date-info">
-                            <span class="date-today" id="date-today"></span>
-                            <span class="date-lunar" id="date-lunar"></span>
+                    <div class="stats-grid stats-grid-9">
+                        <!-- 日期天氣區塊（佔 3 欄） -->
+                        <div class="date-weather-bar">
+                            <div class="date-info">
+                                <span class="date-today" id="date-today"></span>
+                                <span class="date-lunar" id="date-lunar"></span>
+                            </div>
+                            <div class="weather-info" id="weather-info">
+                                <span class="weather-icon" id="weather-icon"></span>
+                                <span class="weather-temp" id="weather-temp"></span>
+                                <span class="weather-desc" id="weather-desc"></span>
+                            </div>
                         </div>
-                        <div class="weather-info" id="weather-info">
-                            <span class="weather-icon" id="weather-icon"></span>
-                            <span class="weather-temp" id="weather-temp"></span>
-                            <span class="weather-desc" id="weather-desc"></span>
-                        </div>
-                    </div>
-                    
-                    <div class="stats-grid stats-grid-8">
+                        
                         <div class="stat-card" data-filter="active">
                             <div class="stat-icon stat-icon-blue">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -617,22 +617,22 @@
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script></script>
 
     <!-- JS 模組 -->
-    <script src="js/config.js?v=6.110"></script>
-    <script src="js/db.js?v=6.110"></script>
-    <script src="js/utils.js?v=6.110"></script>
-    <script src="js/patient.js?v=6.110"></script>
-    <script src="js/treatment.js?v=6.110"></script>
-    <script src="js/weight.js?v=6.110"></script>
-    <script src="js/sideeffect.js?v=6.110"></script>
-    <script src="js/intervention.js?v=6.110"></script>
-    <script src="js/report.js?v=6.110"></script>
-    <script src="js/settings.js?v=6.110"></script>
-    <script src="js/sync.js?v=6.110"></script>
-    <script src="js/satisfaction.js?v=6.110"></script>
-    <script src="js/dashboard.js?v=6.110"></script>
-    <script src="js/patient-db.js?v=6.110"></script>
-    <script src="js/demo.js?v=6.110"></script>
-    <script src="js/app.js?v=6.110"></script>
+    <script src="js/config.js?v=6.111"></script>
+    <script src="js/db.js?v=6.111"></script>
+    <script src="js/utils.js?v=6.111"></script>
+    <script src="js/patient.js?v=6.111"></script>
+    <script src="js/treatment.js?v=6.111"></script>
+    <script src="js/weight.js?v=6.111"></script>
+    <script src="js/sideeffect.js?v=6.111"></script>
+    <script src="js/intervention.js?v=6.111"></script>
+    <script src="js/report.js?v=6.111"></script>
+    <script src="js/settings.js?v=6.111"></script>
+    <script src="js/sync.js?v=6.111"></script>
+    <script src="js/satisfaction.js?v=6.111"></script>
+    <script src="js/dashboard.js?v=6.111"></script>
+    <script src="js/patient-db.js?v=6.111"></script>
+    <script src="js/demo.js?v=6.111"></script>
+    <script src="js/app.js?v=6.111"></script>
     
     <!-- 登入驗證 -->
     <script>

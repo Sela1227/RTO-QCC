@@ -133,6 +133,7 @@ const App = {
     
     /**
      * 抓取天氣資料（使用 Open-Meteo API，免費無需 API key）
+     * 當天抓取過就使用暫存資料
      */
     async fetchWeather() {
         const weatherIcon = document.getElementById('weather-icon');
@@ -140,6 +141,17 @@ const App = {
         const weatherDesc = document.getElementById('weather-desc');
         
         if (!weatherIcon || !weatherTemp || !weatherDesc) return;
+        
+        const todayStr = new Date().toISOString().split('T')[0];
+        
+        // 檢查是否有當天的暫存資料
+        const cachedWeather = await Settings.get('cached_weather');
+        if (cachedWeather && cachedWeather.date === todayStr) {
+            weatherIcon.textContent = cachedWeather.icon;
+            weatherTemp.textContent = cachedWeather.temp;
+            weatherDesc.textContent = cachedWeather.desc;
+            return;
+        }
         
         try {
             // 彰化縣座標
@@ -183,15 +195,31 @@ const App = {
             
             const weather = weatherMap[code] || { icon: '🌡️', desc: '未知' };
             
+            // 顯示天氣
             weatherIcon.textContent = weather.icon;
             weatherTemp.textContent = `${temp}°C`;
             weatherDesc.textContent = weather.desc;
             
+            // 暫存到 Settings
+            await Settings.set('cached_weather', {
+                date: todayStr,
+                icon: weather.icon,
+                temp: `${temp}°C`,
+                desc: weather.desc
+            });
+            
         } catch (e) {
             console.warn('天氣資料載入失敗:', e);
-            weatherIcon.textContent = '🌡️';
-            weatherTemp.textContent = '--°C';
-            weatherDesc.textContent = '';
+            // 嘗試使用舊的暫存資料
+            if (cachedWeather) {
+                weatherIcon.textContent = cachedWeather.icon;
+                weatherTemp.textContent = cachedWeather.temp;
+                weatherDesc.textContent = cachedWeather.desc;
+            } else {
+                weatherIcon.textContent = '🌡️';
+                weatherTemp.textContent = '--°C';
+                weatherDesc.textContent = '';
+            }
         }
     },
     

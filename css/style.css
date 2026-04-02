@@ -352,47 +352,47 @@ body {
     gap: var(--space-md);
 }
 
-/* 8 格統計卡片（4x2配置） */
-.stats-grid-8 {
+/* 9 格統計卡片（3x3配置） */
+.stats-grid-9 {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    grid-template-rows: repeat(2, auto);
-    max-width: 1000px;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, auto);
+    max-width: 900px;
     gap: var(--space-md);
 }
 
-.stats-grid-8 .stat-card {
-    padding: 14px 12px;
+.stats-grid-9 .stat-card {
+    padding: 16px 14px;
     min-width: 0;
 }
 
-.stats-grid-8 .stat-icon {
-    width: 40px;
-    height: 40px;
+.stats-grid-9 .stat-icon {
+    width: 44px;
+    height: 44px;
 }
 
-.stats-grid-8 .stat-icon svg {
-    width: 20px;
-    height: 20px;
+.stats-grid-9 .stat-icon svg {
+    width: 22px;
+    height: 22px;
 }
 
-.stats-grid-8 .stat-value {
-    font-size: 26px;
+.stats-grid-9 .stat-value {
+    font-size: 28px;
 }
 
-.stats-grid-8 .stat-label {
-    font-size: 12px;
+.stats-grid-9 .stat-label {
+    font-size: 13px;
 }
 
-/* 日期天氣區塊 */
+/* 日期天氣區塊（佔 3 欄） */
 .date-weather-bar {
+    grid-column: span 3;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px 20px;
+    padding: 16px 24px;
     background: var(--bg-card);
     border-radius: var(--radius-lg);
-    margin-bottom: var(--space-md);
     box-shadow: var(--shadow-sm);
 }
 
@@ -436,7 +436,7 @@ body {
 
 /* 備份提醒三欄寬 */
 .backup-reminder {
-    grid-column: span 4;
+    grid-column: span 3;
 }
 
 .stats-grid-6 .stat-card {
@@ -736,12 +736,17 @@ body {
 .tab-group-3x2 {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: var(--space-xs);
+    gap: var(--space-sm);
+    padding: var(--space-sm);
 }
 
 .tab-group-3x2 .tab {
     text-align: center;
     justify-content: center;
+    padding: 12px 16px;
+    font-size: 15px;
+    font-weight: 600;
+    min-height: 44px;
 }
 
 .tab {
@@ -1817,58 +1822,56 @@ body {
         max-width: 100%;
     }
     
-    .stats-grid-8 {
-        grid-template-columns: repeat(4, 1fr);
-        gap: 6px;
+    .stats-grid-9 {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
         max-width: 100%;
     }
     
-    .stats-grid-8 .stat-card {
-        padding: 8px 6px;
+    .stats-grid-9 .stat-card {
+        padding: 10px 8px;
     }
     
-    .stats-grid-8 .stat-icon {
-        width: 32px;
-        height: 32px;
+    .stats-grid-9 .stat-icon {
+        width: 36px;
+        height: 36px;
     }
     
-    .stats-grid-8 .stat-icon svg {
-        width: 16px;
-        height: 16px;
+    .stats-grid-9 .stat-icon svg {
+        width: 18px;
+        height: 18px;
     }
     
-    .stats-grid-8 .stat-value {
-        font-size: 18px;
+    .stats-grid-9 .stat-value {
+        font-size: 22px;
     }
     
-    .stats-grid-8 .stat-label {
-        font-size: 9px;
+    .stats-grid-9 .stat-label {
+        font-size: 11px;
     }
     
     /* 日期天氣區塊手機版 */
     .date-weather-bar {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 8px;
-        padding: 12px;
+        flex-direction: row;
+        justify-content: space-between;
+        padding: 12px 16px;
     }
     
     .date-info {
         flex-direction: column;
-        gap: 4px;
+        gap: 2px;
     }
     
     .date-today {
-        font-size: 16px;
+        font-size: 14px;
     }
     
     .date-lunar {
-        font-size: 13px;
+        font-size: 12px;
     }
     
     .weather-info {
-        width: 100%;
-        justify-content: flex-start;
+        gap: 6px;
     }
     
     .weather-icon {
@@ -1876,16 +1879,17 @@ body {
     }
     
     .weather-temp {
-        font-size: 16px;
+        font-size: 14px;
     }
     
     .weather-desc {
-        font-size: 13px;
+        font-size: 12px;
     }
     
     /* 備份提醒手機版 */
     .backup-reminder {
         max-width: 100%;
+        grid-column: span 3;
     }
     
     .stat-card {
