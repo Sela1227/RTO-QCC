@@ -178,8 +178,10 @@ const Intervention = {
         let line1 = `基準：${treatment.baseline_weight || '-'} kg`;
         if (latestWeight) {
             line1 += ` → 目前：${latestWeight.weight} kg`;
-            if (latestWeight.change_rate != null) {
-                line1 += ` (${latestWeight.change_rate >= 0 ? '+' : ''}${latestWeight.change_rate.toFixed(1)}%)`;
+            // 自行計算變化率（不依賴資料庫欄位）
+            if (treatment.baseline_weight) {
+                const changeRate = ((latestWeight.weight - treatment.baseline_weight) / treatment.baseline_weight) * 100;
+                line1 += ` (${changeRate >= 0 ? '+' : ''}${changeRate.toFixed(1)}%)`;
             }
         }
         pdf.text(line1, marginLeft + 25, y + 8);
