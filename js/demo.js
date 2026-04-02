@@ -295,9 +295,14 @@ const DemoData = {
                     const minWeight = (baseWeight || 60) * (weightScenario === 'nutrition' ? 0.92 : (weightScenario === 'sdm' ? 0.95 : 0.98));
                     currentWeight = Math.max(currentWeight, minWeight);
                     
+                    // 計算變化率
+                    const effectiveBase = baseWeight || 60;
+                    const changeRate = ((currentWeight - effectiveBase) / effectiveBase) * 100;
+                    
                     await DB.add('weight_records', {
                         treatment_id: treatment.id,
                         weight: parseFloat(currentWeight.toFixed(1)),
+                        change_rate: parseFloat(changeRate.toFixed(1)),
                         measure_date: this.daysAgo(measureDay),
                         source: Math.random() < 0.4 ? 'patient' : 'staff',
                         created_at: new Date().toISOString()
