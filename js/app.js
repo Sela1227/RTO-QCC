@@ -809,6 +809,18 @@ const App = {
                 !t.baseline_weight || !t.physician || !t.radiation_dose
             );
             tabTitle = '待補資料';
+        } else if (this.currentTrackingTab === 'upcoming') {
+            // 待上線：首療日期在未來
+            const todayStr = new Date().toISOString().split('T')[0];
+            treatments = await Treatment.getActive();
+            treatments = treatments.filter(t => t.treatment_start > todayStr);
+            tabTitle = '待上線';
+        } else if (this.currentTrackingTab === 'today') {
+            // 今日上線：首療日期是今天
+            const todayStr = new Date().toISOString().split('T')[0];
+            treatments = await Treatment.getActive();
+            treatments = treatments.filter(t => t.treatment_start === todayStr);
+            tabTitle = '今日上線';
         }
         
         // 應用篩選

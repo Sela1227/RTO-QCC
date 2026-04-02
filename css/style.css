@@ -749,6 +749,23 @@ body {
     min-height: 44px;
 }
 
+/* 4x2 網格 Tab */
+.tab-group.tab-group-4x2 {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-sm);
+    padding: var(--space-sm);
+}
+
+.tab-group-4x2 .tab {
+    text-align: center;
+    justify-content: center;
+    padding: 10px 12px;
+    font-size: 14px;
+    font-weight: 600;
+    min-height: 40px;
+}
+
 .tab {
     padding: var(--space-sm) var(--space-md);
     border-radius: var(--radius-sm);
@@ -805,6 +822,24 @@ body {
 .tab.tab-purple.active {
     background: rgba(139, 92, 246, 0.15);
     color: #8B5CF6;
+}
+
+.tab.tab-indigo {
+    color: #6366F1;
+}
+
+.tab.tab-indigo.active {
+    background: rgba(99, 102, 241, 0.15);
+    color: #6366F1;
+}
+
+.tab.tab-green {
+    color: #22C55E;
+}
+
+.tab.tab-green.active {
+    background: rgba(34, 197, 94, 0.15);
+    color: #22C55E;
 }
 
 /* === 追蹤頁面佈局 === */
@@ -1822,6 +1857,20 @@ body {
         padding: 10px 8px;
         font-size: 14px;
         min-height: 40px;
+    }
+    
+    /* 追蹤清單 Tab 4x2 */
+    .tab-group-4x2 {
+        display: grid !important;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 6px;
+        padding: 6px;
+    }
+    
+    .tab-group-4x2 .tab {
+        padding: 8px 4px;
+        font-size: 12px;
+        min-height: 36px;
     }
     
     .page-header h1 {
