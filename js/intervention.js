@@ -173,7 +173,7 @@ const Intervention = {
         const validWeights = weightRecords.filter(r => !r.unable_to_measure && r.weight).reverse(); // 由舊到新
         const latestWeight = validWeights[validWeights.length - 1];
         
-        // 第一行：基準 → 目前
+        // 第一行：基準 → 目前（含變化率）
         pdf.setFontSize(10);
         let line1 = `基準：${treatment.baseline_weight || '-'} kg`;
         if (latestWeight) {
@@ -184,10 +184,14 @@ const Intervention = {
         }
         pdf.text(line1, marginLeft + 25, y + 8);
         
-        // 第二行：體重趨勢（最近5筆）
-        if (validWeights.length > 1) {
-            const recentWeights = validWeights.slice(-5);
-            const trendStr = '趨勢：' + recentWeights.map(w => w.weight).join(' → ') + ' kg';
+        // 第二行：體重趨勢（最近4筆，含日期）
+        if (validWeights.length > 0) {
+            const recentWeights = validWeights.slice(-4);
+            const trendParts = recentWeights.map(w => {
+                const d = w.measure_date ? w.measure_date.substring(5).replace('-', '/') : ''; // MM/DD
+                return `${d}:${w.weight}`;
+            });
+            const trendStr = '趨勢：' + trendParts.join(' → ') + ' kg';
             pdf.setFontSize(9);
             pdf.text(trendStr, marginLeft + 25, y + 15);
         }
