@@ -258,6 +258,9 @@ const DemoData = {
             const treatment = await DB.add('treatments', treatmentData);
             treatmentId++;
             
+            // 在迴圈外宣告 currentWeight，供後續介入記錄使用
+            let currentWeight = baseWeight || 60;
+            
             // 產生體重記錄（待上線、本日上線不產生）
             if (weightScenario !== 'none' && startDaysAgo > 0) {
                 let numWeights;
@@ -267,8 +270,6 @@ const DemoData = {
                 } else {
                     numWeights = Math.floor(startDaysAgo / 4) + 2;
                 }
-                
-                let currentWeight = baseWeight || 60;
                 
                 // 根據場景決定體重趨勢
                 let weightDelta;
@@ -291,9 +292,7 @@ const DemoData = {
                     
                     currentWeight += weightDelta + (Math.random() - 0.5) * 0.2;
                     
-                    const minWeight = weightScenario === 'nutrition' 
-                        ? baseWeight * 0.92 
-                        : (weightScenario === 'sdm' ? baseWeight * 0.95 : baseWeight * 0.98);
+                    const minWeight = (baseWeight || 60) * (weightScenario === 'nutrition' ? 0.92 : (weightScenario === 'sdm' ? 0.95 : 0.98));
                     currentWeight = Math.max(currentWeight, minWeight);
                     
                     await DB.add('weight_records', {
@@ -337,65 +336,67 @@ const DemoData = {
                 }
             }
             
-            // 產生介入記錄
-            const weightChange = ((currentWeight - baseWeight) / baseWeight) * 100;
-            
-            if (weightChange <= -3) {
-                // SDM 介入
-                let intStatus;
-                if (hasRecentIntervention) {
-                    intStatus = 'executed';
-                } else if (Math.random() < 0.3) {
-                    intStatus = 'contacted';
-                } else {
-                    intStatus = 'pending';
+            // 產生介入記錄（只有已開始治療且有體重記錄的病人）
+            if (weightScenario !== 'none' && startDaysAgo > 0 && baseWeight) {
+                const weightChange = ((currentWeight - baseWeight) / baseWeight) * 100;
+                
+                if (weightChange <= -3) {
+                    // SDM 介入
+                    let intStatus;
+                    if (hasRecentIntervention) {
+                        intStatus = 'executed';
+                    } else if (Math.random() < 0.3) {
+                        intStatus = 'contacted';
+                    } else {
+                        intStatus = 'pending';
+                    }
+                    
+                    const createdDaysAgo = hasRecentIntervention ? 3 : 10; // 已處置的在7天內，未處置的在7天前
+                    
+                    const intData = {
+                        treatment_id: treatment.id,
+                        type: 'sdm',
+                        trigger: 'weight_loss_3',
+                        trigger_value: -3,
+                        status: intStatus,
+                        created_at: this.daysAgo(createdDaysAgo) + 'T10:00:00.000Z'
+                    };
+                    
+                    if (intStatus !== 'pending') {
+                        intData.contacted_at = this.daysAgo(hasRecentIntervention ? 2 : 8) + 'T14:00:00.000Z';
+                        intData.contacted_by = this.staff[Math.floor(Math.random() * 3)];
+                    }
+                    if (intStatus === 'executed') {
+                        intData.executed_at = this.daysAgo(hasRecentIntervention ? 1 : 7) + 'T16:00:00.000Z';
+                        intData.executed_by = this.staff[Math.floor(Math.random() * 3)];
+                    }
+                    
+                    await DB.add('interventions', intData);
+                    intId++;
                 }
                 
-                const createdDaysAgo = hasRecentIntervention ? 3 : 10; // 已處置的在7天內，未處置的在7天前
-                
-                const intData = {
-                    treatment_id: treatment.id,
-                    type: 'sdm',
-                    trigger: 'weight_loss_3',
-                    trigger_value: -3,
-                    status: intStatus,
-                    created_at: this.daysAgo(createdDaysAgo) + 'T10:00:00.000Z'
-                };
-                
-                if (intStatus !== 'pending') {
-                    intData.contacted_at = this.daysAgo(hasRecentIntervention ? 2 : 8) + 'T14:00:00.000Z';
-                    intData.contacted_by = this.staff[Math.floor(Math.random() * 3)];
+                if (weightChange <= -5) {
+                    // 營養師介入
+                    const intStatus = Math.random() < 0.7 ? 'executed' : 'pending';
+                    const intData = {
+                        treatment_id: treatment.id,
+                        type: 'nutrition',
+                        trigger: 'weight_loss_5',
+                        trigger_value: -5,
+                        status: intStatus,
+                        created_at: this.daysAgo(4) + 'T09:00:00.000Z'
+                    };
+                    
+                    if (intStatus === 'executed') {
+                        intData.contacted_at = this.daysAgo(3) + 'T11:00:00.000Z';
+                        intData.contacted_by = this.staff[Math.floor(Math.random() * 3)];
+                        intData.executed_at = this.daysAgo(2) + 'T15:00:00.000Z';
+                        intData.executed_by = this.staff[Math.floor(Math.random() * 3)];
+                    }
+                    
+                    await DB.add('interventions', intData);
+                    intId++;
                 }
-                if (intStatus === 'executed') {
-                    intData.executed_at = this.daysAgo(hasRecentIntervention ? 1 : 7) + 'T16:00:00.000Z';
-                    intData.executed_by = this.staff[Math.floor(Math.random() * 3)];
-                }
-                
-                await DB.add('interventions', intData);
-                intId++;
-            }
-            
-            if (weightChange <= -5) {
-                // 營養師介入
-                const intStatus = Math.random() < 0.7 ? 'executed' : 'pending';
-                const intData = {
-                    treatment_id: treatment.id,
-                    type: 'nutrition',
-                    trigger: 'weight_loss_5',
-                    trigger_value: -5,
-                    status: intStatus,
-                    created_at: this.daysAgo(4) + 'T09:00:00.000Z'
-                };
-                
-                if (intStatus === 'executed') {
-                    intData.contacted_at = this.daysAgo(3) + 'T11:00:00.000Z';
-                    intData.contacted_by = this.staff[Math.floor(Math.random() * 3)];
-                    intData.executed_at = this.daysAgo(2) + 'T15:00:00.000Z';
-                    intData.executed_by = this.staff[Math.floor(Math.random() * 3)];
-                }
-                
-                await DB.add('interventions', intData);
-                intId++;
             }
             
             // 產生滿意度 - 已結案 + 部分進行中
@@ -415,8 +416,8 @@ const DemoData = {
         }
         
         console.log(`演示數據初始化完成：`);
-        console.log(`- 病人：50 位`);
-        console.log(`- 療程：50 個`);
+        console.log(`- 病人：100 位`);
+        console.log(`- 療程：100 個`);
         console.log(`- 體重記錄：${weightId} 筆`);
         console.log(`- 副作用評估：${seId} 筆`);
         console.log(`- 介入記錄：${intId} 筆`);
