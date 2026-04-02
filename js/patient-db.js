@@ -489,10 +489,7 @@ const PatientDB = {
                 let latestWeight = '';
                 let changeRate = '';
                 if (lastTx) {
-                    const weights = await db.weight_records.where('treatment_id').equals(lastTx.id)
-                        .filter(w => !w.unable_to_measure && w.weight)
-                        .toArray();
-                    weights.sort((a, b) => new Date(b.measure_date) - new Date(a.measure_date));
+                    const weights = await Weight.getByTreatment(lastTx.id);
                     if (weights.length > 0) {
                         latestWeight = weights[0].weight;
                         if (lastTx.baseline_weight) {

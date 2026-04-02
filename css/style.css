@@ -610,7 +610,7 @@ body {
     border: 1px solid rgba(228, 185, 90, 0.3);
     border-radius: var(--radius-md);
     margin-bottom: var(--space-lg);
-    max-width: 750px; /* 三欄寬 */
+    max-width: 900px; /* 跟統計卡片一樣寬 */
 }
 
 .backup-reminder-icon {
@@ -732,9 +732,9 @@ body {
     border-radius: var(--radius-md);
 }
 
-/* 3x2 網格 Tab */
-.tab-group-3x2 {
-    display: grid;
+/* 3x2 網格 Tab（覆蓋 flex） */
+.tab-group.tab-group-3x2 {
+    display: grid !important;
     grid-template-columns: repeat(3, 1fr);
     gap: var(--space-sm);
     padding: var(--space-sm);

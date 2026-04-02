@@ -135,6 +135,11 @@ RTO-QCC/
 
 ## 版本歷史
 
+### v6.11.4 (2026-04-02)
+- 修復匯出 Excel 錯誤（db.weight_records 改用 Weight.getByTreatment）
+- 修復追蹤清單 Tab 排版（加 !important 確保 grid 覆蓋 flex）
+- 備份提醒寬度改為 900px（與統計卡片一致）
+
 ### v6.11.3 (2026-04-02)
 - 修復資料庫匯出 Excel「無資料可匯出」問題（filteredPatients 未設定）
 - 手機版儀表板增加底部 padding（防止被導航列遮擋）
