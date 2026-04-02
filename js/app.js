@@ -1041,7 +1041,7 @@ const App = {
                     </p>
                     <div style="margin-top: 8px;">
                         <button class="btn btn-outline btn-sm" style="padding: 4px 10px; font-size: 12px; color: ${alertColor}; border-color: ${alertColor};"
-                                onclick="Intervention.showAddForm(${treatment.id})">
+                                onclick="Intervention.showManualForm(${treatment.id})">
                             新增介入
                         </button>
                     </div>

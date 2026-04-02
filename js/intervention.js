@@ -159,33 +159,88 @@ const Intervention = {
             }
         });
         
-        // 備註區
+        // 備註區（改為體重記錄表）
         y += needH;
-        const noteH = 25;
+        
+        // 取得所有體重記錄
+        const weightRecords = await Weight.getByTreatment(treatmentId);
+        const validWeights = weightRecords.filter(r => !r.unable_to_measure && r.weight).reverse(); // 由舊到新
+        
+        // 計算體重記錄區高度
+        const weightRowH = 6;
+        const headerH = 8;
+        const maxWeightRows = 8; // 最多顯示 8 筆
+        const displayWeights = validWeights.slice(-maxWeightRows); // 取最近 8 筆
+        const weightTableH = headerH + displayWeights.length * weightRowH + 8;
+        const noteH = Math.max(25, weightTableH);
+        
         pdf.rect(marginLeft, y, tableWidth, noteH);
         pdf.line(marginLeft + 20, y, marginLeft + 20, y + noteH);
         
         pdf.setFontSize(11);
-        pdf.text('備註', marginLeft + 10, y + 12, { align: 'center' });
+        pdf.text('體重', marginLeft + 10, y + 10, { align: 'center' });
+        pdf.text('記錄', marginLeft + 10, y + 18, { align: 'center' });
         
         // 體重資訊
-        pdf.setFontSize(10);
-        let weightInfo = `基準：${treatment.baseline_weight || '-'} kg`;
-        const weightRecords = await Weight.getByTreatment(treatmentId);
-        const latestWeight = weightRecords.find(r => !r.unable_to_measure && r.weight);
+        pdf.setFontSize(9);
+        let infoY = y + 6;
+        
+        // 基準與最新
+        const latestWeight = validWeights[validWeights.length - 1];
+        let summaryText = `基準：${treatment.baseline_weight || '-'} kg`;
         if (latestWeight) {
-            weightInfo += ` → 目前：${latestWeight.weight} kg`;
+            summaryText += `  |  目前：${latestWeight.weight} kg`;
             if (latestWeight.change_rate != null) {
-                weightInfo += ` (${latestWeight.change_rate >= 0 ? '+' : ''}${latestWeight.change_rate.toFixed(1)}%)`;
+                summaryText += ` (${latestWeight.change_rate >= 0 ? '+' : ''}${latestWeight.change_rate.toFixed(1)}%)`;
             }
         }
-        pdf.text(weightInfo, marginLeft + 25, y + 8);
+        pdf.text(summaryText, marginLeft + 25, infoY);
+        infoY += 6;
+        
+        // 體重記錄表頭
+        if (displayWeights.length > 0) {
+            pdf.setFontSize(8);
+            pdf.text('日期', marginLeft + 25, infoY);
+            pdf.text('體重', marginLeft + 55, infoY);
+            pdf.text('變化率', marginLeft + 75, infoY);
+            pdf.text('來源', marginLeft + 95, infoY);
+            infoY += 5;
+            
+            // 體重記錄內容
+            displayWeights.forEach(w => {
+                const dateStr = w.measure_date || '-';
+                const weightStr = `${w.weight} kg`;
+                const changeStr = w.change_rate != null ? `${w.change_rate >= 0 ? '+' : ''}${w.change_rate.toFixed(1)}%` : '-';
+                const sourceStr = w.source === 'patient' ? '病人' : '醫護';
+                
+                pdf.text(dateStr, marginLeft + 25, infoY);
+                pdf.text(weightStr, marginLeft + 55, infoY);
+                pdf.text(changeStr, marginLeft + 75, infoY);
+                pdf.text(sourceStr, marginLeft + 95, infoY);
+                infoY += weightRowH;
+            });
+            
+            if (validWeights.length > maxWeightRows) {
+                pdf.text(`(僅顯示最近 ${maxWeightRows} 筆，共 ${validWeights.length} 筆)`, marginLeft + 25, infoY);
+            }
+        } else {
+            pdf.text('尚無體重記錄', marginLeft + 25, infoY);
+        }
+        
+        // 補充備註
         if (notes) {
-            pdf.text(notes.substring(0, 50), marginLeft + 25, y + 18);
+            y += noteH;
+            const extraNoteH = 15;
+            pdf.rect(marginLeft, y, tableWidth, extraNoteH);
+            pdf.line(marginLeft + 20, y, marginLeft + 20, y + extraNoteH);
+            pdf.setFontSize(11);
+            pdf.text('備註', marginLeft + 10, y + 10, { align: 'center' });
+            pdf.setFontSize(10);
+            pdf.text(notes.substring(0, 60), marginLeft + 25, y + 10);
         }
         
         // 預約區
-        y += noteH;
+        y += (notes ? 15 : noteH);
         pdf.rect(marginLeft, y, tableWidth, rowH);
         pdf.line(marginLeft + 20, y, marginLeft + 20, y + rowH);
         pdf.setFontSize(11);
