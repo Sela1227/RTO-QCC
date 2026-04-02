@@ -159,88 +159,47 @@ const Intervention = {
             }
         });
         
-        // 備註區（改為體重記錄表）
+        // 備註區（含簡化體重記錄）
         y += needH;
-        
-        // 取得所有體重記錄
-        const weightRecords = await Weight.getByTreatment(treatmentId);
-        const validWeights = weightRecords.filter(r => !r.unable_to_measure && r.weight).reverse(); // 由舊到新
-        
-        // 計算體重記錄區高度
-        const weightRowH = 6;
-        const headerH = 8;
-        const maxWeightRows = 8; // 最多顯示 8 筆
-        const displayWeights = validWeights.slice(-maxWeightRows); // 取最近 8 筆
-        const weightTableH = headerH + displayWeights.length * weightRowH + 8;
-        const noteH = Math.max(25, weightTableH);
-        
+        const noteH = 25;
         pdf.rect(marginLeft, y, tableWidth, noteH);
         pdf.line(marginLeft + 20, y, marginLeft + 20, y + noteH);
         
         pdf.setFontSize(11);
-        pdf.text('體重', marginLeft + 10, y + 10, { align: 'center' });
-        pdf.text('記錄', marginLeft + 10, y + 18, { align: 'center' });
+        pdf.text('備註', marginLeft + 10, y + 12, { align: 'center' });
         
-        // 體重資訊
-        pdf.setFontSize(9);
-        let infoY = y + 6;
-        
-        // 基準與最新
+        // 取得所有體重記錄
+        const weightRecords = await Weight.getByTreatment(treatmentId);
+        const validWeights = weightRecords.filter(r => !r.unable_to_measure && r.weight).reverse(); // 由舊到新
         const latestWeight = validWeights[validWeights.length - 1];
-        let summaryText = `基準：${treatment.baseline_weight || '-'} kg`;
+        
+        // 第一行：基準 → 目前
+        pdf.setFontSize(10);
+        let line1 = `基準：${treatment.baseline_weight || '-'} kg`;
         if (latestWeight) {
-            summaryText += `  |  目前：${latestWeight.weight} kg`;
+            line1 += ` → 目前：${latestWeight.weight} kg`;
             if (latestWeight.change_rate != null) {
-                summaryText += ` (${latestWeight.change_rate >= 0 ? '+' : ''}${latestWeight.change_rate.toFixed(1)}%)`;
+                line1 += ` (${latestWeight.change_rate >= 0 ? '+' : ''}${latestWeight.change_rate.toFixed(1)}%)`;
             }
         }
-        pdf.text(summaryText, marginLeft + 25, infoY);
-        infoY += 6;
+        pdf.text(line1, marginLeft + 25, y + 8);
         
-        // 體重記錄表頭
-        if (displayWeights.length > 0) {
-            pdf.setFontSize(8);
-            pdf.text('日期', marginLeft + 25, infoY);
-            pdf.text('體重', marginLeft + 55, infoY);
-            pdf.text('變化率', marginLeft + 75, infoY);
-            pdf.text('來源', marginLeft + 95, infoY);
-            infoY += 5;
-            
-            // 體重記錄內容
-            displayWeights.forEach(w => {
-                const dateStr = w.measure_date || '-';
-                const weightStr = `${w.weight} kg`;
-                const changeStr = w.change_rate != null ? `${w.change_rate >= 0 ? '+' : ''}${w.change_rate.toFixed(1)}%` : '-';
-                const sourceStr = w.source === 'patient' ? '病人' : '醫護';
-                
-                pdf.text(dateStr, marginLeft + 25, infoY);
-                pdf.text(weightStr, marginLeft + 55, infoY);
-                pdf.text(changeStr, marginLeft + 75, infoY);
-                pdf.text(sourceStr, marginLeft + 95, infoY);
-                infoY += weightRowH;
-            });
-            
-            if (validWeights.length > maxWeightRows) {
-                pdf.text(`(僅顯示最近 ${maxWeightRows} 筆，共 ${validWeights.length} 筆)`, marginLeft + 25, infoY);
-            }
-        } else {
-            pdf.text('尚無體重記錄', marginLeft + 25, infoY);
+        // 第二行：體重趨勢（最近5筆）
+        if (validWeights.length > 1) {
+            const recentWeights = validWeights.slice(-5);
+            const trendStr = '趨勢：' + recentWeights.map(w => w.weight).join(' → ') + ' kg';
+            pdf.setFontSize(9);
+            pdf.text(trendStr, marginLeft + 25, y + 15);
         }
         
-        // 補充備註
+        // 第三行：備註
         if (notes) {
-            y += noteH;
-            const extraNoteH = 15;
-            pdf.rect(marginLeft, y, tableWidth, extraNoteH);
-            pdf.line(marginLeft + 20, y, marginLeft + 20, y + extraNoteH);
-            pdf.setFontSize(11);
-            pdf.text('備註', marginLeft + 10, y + 10, { align: 'center' });
-            pdf.setFontSize(10);
-            pdf.text(notes.substring(0, 60), marginLeft + 25, y + 10);
+            pdf.setFontSize(9);
+            pdf.text(notes.substring(0, 45), marginLeft + 25, y + 22);
         }
         
         // 預約區
-        y += (notes ? 15 : noteH);
+        y += noteH;
         pdf.rect(marginLeft, y, tableWidth, rowH);
         pdf.line(marginLeft + 20, y, marginLeft + 20, y + rowH);
         pdf.setFontSize(11);
