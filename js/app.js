@@ -132,7 +132,9 @@ const App = {
     },
     
     /**
-     * 抓取天氣資料（使用 Open-Meteo API，免費無需 API key）
+     * 抓取天氣資料（多 API 備援機制）
+     * 1. 先嘗試 Open-Meteo API
+     * 2. 失敗則嘗試 wttr.in API
      * 當天抓取過就使用暫存資料
      */
     async fetchWeather() {
@@ -153,73 +155,113 @@ const App = {
             return;
         }
         
+        // 天氣代碼對應圖示和描述
+        const weatherMap = {
+            0: { icon: '☀️', desc: '晴天' },
+            1: { icon: '🌤️', desc: '晴時多雲' },
+            2: { icon: '⛅', desc: '多雲' },
+            3: { icon: '☁️', desc: '陰天' },
+            45: { icon: '🌫️', desc: '霧' },
+            48: { icon: '🌫️', desc: '霧凇' },
+            51: { icon: '🌧️', desc: '小雨' },
+            53: { icon: '🌧️', desc: '中雨' },
+            55: { icon: '🌧️', desc: '大雨' },
+            61: { icon: '🌧️', desc: '小雨' },
+            63: { icon: '🌧️', desc: '中雨' },
+            65: { icon: '🌧️', desc: '大雨' },
+            71: { icon: '🌨️', desc: '小雪' },
+            73: { icon: '🌨️', desc: '中雪' },
+            75: { icon: '🌨️', desc: '大雪' },
+            80: { icon: '🌦️', desc: '陣雨' },
+            81: { icon: '🌦️', desc: '陣雨' },
+            82: { icon: '⛈️', desc: '大陣雨' },
+            95: { icon: '⛈️', desc: '雷陣雨' },
+            96: { icon: '⛈️', desc: '雷陣雨' },
+            99: { icon: '⛈️', desc: '雷陣雨' }
+        };
+        
+        let weatherData = null;
+        
+        // 方法 1: 嘗試 Open-Meteo API
         try {
-            // 彰化縣座標
             const lat = 24.0518;
             const lon = 120.5161;
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000); // 5秒超時
             
             const response = await fetch(
-                `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&timezone=Asia%2FTaipei`
+                `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&timezone=Asia%2FTaipei`,
+                { signal: controller.signal }
             );
+            clearTimeout(timeoutId);
             
-            if (!response.ok) throw new Error('天氣資料載入失敗');
+            if (response.ok) {
+                const data = await response.json();
+                const temp = Math.round(data.current.temperature_2m);
+                const code = data.current.weather_code;
+                const weather = weatherMap[code] || { icon: '🌡️', desc: '' };
+                weatherData = { icon: weather.icon, temp: `${temp}°C`, desc: weather.desc };
+            }
+        } catch (e) {
+            console.warn('Open-Meteo API 失敗:', e.message);
+        }
+        
+        // 方法 2: 嘗試 wttr.in API
+        if (!weatherData) {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000);
+                
+                const response = await fetch(
+                    'https://wttr.in/Changhua,Taiwan?format=j1',
+                    { signal: controller.signal }
+                );
+                clearTimeout(timeoutId);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const current = data.current_condition[0];
+                    const temp = current.temp_C;
+                    const code = parseInt(current.weatherCode);
+                    
+                    // wttr.in 天氣代碼對應
+                    let icon = '🌡️', desc = '';
+                    if (code === 113) { icon = '☀️'; desc = '晴天'; }
+                    else if (code === 116) { icon = '🌤️'; desc = '晴時多雲'; }
+                    else if (code === 119 || code === 122) { icon = '☁️'; desc = '陰天'; }
+                    else if (code === 143 || code === 248 || code === 260) { icon = '🌫️'; desc = '霧'; }
+                    else if ([176, 263, 266, 293, 296, 299, 302, 305, 308, 353, 356, 359].includes(code)) { icon = '🌧️'; desc = '雨天'; }
+                    else if ([200, 386, 389, 392, 395].includes(code)) { icon = '⛈️'; desc = '雷陣雨'; }
+                    else if ([179, 182, 185, 227, 230, 281, 284, 311, 314, 317, 320, 323, 326, 329, 332, 335, 338, 350, 362, 365, 368, 371, 374, 377].includes(code)) { icon = '🌨️'; desc = '雪'; }
+                    else { icon = '⛅'; desc = '多雲'; }
+                    
+                    weatherData = { icon, temp: `${temp}°C`, desc };
+                }
+            } catch (e) {
+                console.warn('wttr.in API 失敗:', e.message);
+            }
+        }
+        
+        // 顯示結果
+        if (weatherData) {
+            weatherIcon.textContent = weatherData.icon;
+            weatherTemp.textContent = weatherData.temp;
+            weatherDesc.textContent = weatherData.desc;
             
-            const data = await response.json();
-            const temp = Math.round(data.current.temperature_2m);
-            const code = data.current.weather_code;
-            
-            // 天氣代碼對應圖示和描述
-            const weatherMap = {
-                0: { icon: '☀️', desc: '晴天' },
-                1: { icon: '🌤️', desc: '晴時多雲' },
-                2: { icon: '⛅', desc: '多雲' },
-                3: { icon: '☁️', desc: '陰天' },
-                45: { icon: '🌫️', desc: '霧' },
-                48: { icon: '🌫️', desc: '霧凇' },
-                51: { icon: '🌧️', desc: '小雨' },
-                53: { icon: '🌧️', desc: '中雨' },
-                55: { icon: '🌧️', desc: '大雨' },
-                61: { icon: '🌧️', desc: '小雨' },
-                63: { icon: '🌧️', desc: '中雨' },
-                65: { icon: '🌧️', desc: '大雨' },
-                71: { icon: '🌨️', desc: '小雪' },
-                73: { icon: '🌨️', desc: '中雪' },
-                75: { icon: '🌨️', desc: '大雪' },
-                80: { icon: '🌦️', desc: '陣雨' },
-                81: { icon: '🌦️', desc: '陣雨' },
-                82: { icon: '⛈️', desc: '大陣雨' },
-                95: { icon: '⛈️', desc: '雷陣雨' },
-                96: { icon: '⛈️', desc: '雷陣雨' },
-                99: { icon: '⛈️', desc: '雷陣雨' }
-            };
-            
-            const weather = weatherMap[code] || { icon: '🌡️', desc: '未知' };
-            
-            // 顯示天氣
-            weatherIcon.textContent = weather.icon;
-            weatherTemp.textContent = `${temp}°C`;
-            weatherDesc.textContent = weather.desc;
-            
-            // 暫存到 Settings
+            // 暫存
             await Settings.set('cached_weather', {
                 date: todayStr,
-                icon: weather.icon,
-                temp: `${temp}°C`,
-                desc: weather.desc
+                ...weatherData
             });
-            
-        } catch (e) {
-            console.warn('天氣資料載入失敗:', e);
-            // 嘗試使用舊的暫存資料
-            if (cachedWeather) {
-                weatherIcon.textContent = cachedWeather.icon;
-                weatherTemp.textContent = cachedWeather.temp;
-                weatherDesc.textContent = cachedWeather.desc;
-            } else {
-                weatherIcon.textContent = '🌡️';
-                weatherTemp.textContent = '--°C';
-                weatherDesc.textContent = '';
-            }
+        } else if (cachedWeather) {
+            // 使用舊的暫存資料
+            weatherIcon.textContent = cachedWeather.icon;
+            weatherTemp.textContent = cachedWeather.temp;
+            weatherDesc.textContent = cachedWeather.desc;
+        } else {
+            weatherIcon.textContent = '🌡️';
+            weatherTemp.textContent = '--°C';
+            weatherDesc.textContent = '';
         }
     },
     

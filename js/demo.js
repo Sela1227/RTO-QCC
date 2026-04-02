@@ -73,7 +73,7 @@ const DemoData = {
             return false;
         }
         
-        console.log('開始產生 80 位測試病人（含完整功能測試數據）...');
+        console.log('開始產生 100 位測試病人（含完整功能測試數據）...');
         
         // 初始化設定
         await this.initSettings();
@@ -84,22 +84,29 @@ const DemoData = {
         let intId = 0;
         let satId = 0;
         
+        // 今天日期
+        const todayStr = this.formatDate(new Date());
+        
         /**
-         * 病人分布設計（80位）：
-         * 0-15:  治療中，體重正常（測試基本功能）
-         * 16-27: 治療中，體重下降達 SDM 閾值，已處置（測試「需關注」）
-         * 28-39: 治療中，體重下降達 SDM 閾值，未處置（測試「需處理」）
-         * 40-49: 治療中，體重下降達營養師閾值（測試嚴重警示）
-         * 50-63: 已結案（測試結案統計、滿意度）
-         * 64-73: 暫停中（測試暫停原因）
-         * 74-79: 已終止（測試終止原因）
+         * 病人分布設計（100位）：
+         * 0-14:  治療中，體重正常（測試基本功能）
+         * 15-24: 治療中，需關注（達 SDM 閾值，7天內有處置）
+         * 25-34: 治療中，需處理（達 SDM 閾值，7天內無處置）
+         * 35-44: 治療中，營養師閾值（測試嚴重警示）
+         * 45-49: 治療中，待輸體重（超過3天沒量體重）
+         * 50-54: 治療中，待補資料（缺少基準體重/醫師/劑量）
+         * 55-57: 待上線（首療日期在未來）
+         * 58-60: 本日上線（首療日期是今天）
+         * 61-74: 已結案（含滿意度調查）
+         * 75-87: 暫停中
+         * 88-99: 已終止
          */
         
-        for (let i = 0; i < 80; i++) {
+        for (let i = 0; i < 100; i++) {
             const surname = this.surnames[i % this.surnames.length];
             const given = this.givenNames[i % this.givenNames.length];
             const name = surname + given;
-            const medicalId = `${113 + Math.floor(i / 40)}${String(1001 + i).padStart(4, '0')}`;
+            const medicalId = `${113 + Math.floor(i / 50)}${String(1001 + i).padStart(4, '0')}`;
             const gender = Math.random() < 0.5 ? 'M' : 'F';
             
             // 建立病人
@@ -114,44 +121,70 @@ const DemoData = {
             
             // 決定狀態和場景
             let status, startDaysAgo, endDate = null;
-            let weightScenario; // 'normal', 'sdm', 'nutrition'
+            let weightScenario = 'normal'; // 'normal', 'sdm', 'nutrition', 'overdue', 'none'
             let hasRecentIntervention = false;
             let pauseReason = null, terminateReason = null;
             let sdmChoice = null;
+            let incompleteData = false; // 待補資料
+            let futureStart = false; // 待上線
+            let todayStart = false; // 本日上線
             
-            if (i < 16) {
+            if (i < 15) {
                 // 治療中，體重正常
                 status = 'active';
                 startDaysAgo = 14 + Math.floor(Math.random() * 21);
                 weightScenario = 'normal';
-            } else if (i < 28) {
+            } else if (i < 25) {
                 // 治療中，SDM 閾值，已處置（需關注）
                 status = 'active';
                 startDaysAgo = 21 + Math.floor(Math.random() * 21);
                 weightScenario = 'sdm';
                 hasRecentIntervention = true;
                 sdmChoice = this.sdmChoices[i % this.sdmChoices.length];
-            } else if (i < 40) {
+            } else if (i < 35) {
                 // 治療中，SDM 閾值，未處置（需處理）
                 status = 'active';
                 startDaysAgo = 21 + Math.floor(Math.random() * 14);
                 weightScenario = 'sdm';
                 hasRecentIntervention = false;
-            } else if (i < 50) {
+            } else if (i < 45) {
                 // 治療中，營養師閾值
                 status = 'active';
                 startDaysAgo = 28 + Math.floor(Math.random() * 21);
                 weightScenario = 'nutrition';
                 hasRecentIntervention = Math.random() < 0.5;
-                sdmChoice = this.sdmChoices[Math.floor(Math.random() * 5)]; // 前5個是實際選擇
-            } else if (i < 64) {
+                sdmChoice = this.sdmChoices[Math.floor(Math.random() * 5)];
+            } else if (i < 50) {
+                // 治療中，待輸體重（超過3天沒量）
+                status = 'active';
+                startDaysAgo = 14 + Math.floor(Math.random() * 14);
+                weightScenario = 'overdue';
+            } else if (i < 55) {
+                // 治療中，待補資料
+                status = 'active';
+                startDaysAgo = 10 + Math.floor(Math.random() * 10);
+                weightScenario = 'normal';
+                incompleteData = true;
+            } else if (i < 58) {
+                // 待上線（首療日期在未來）
+                status = 'active';
+                startDaysAgo = -(3 + Math.floor(Math.random() * 7)); // 負數表示未來
+                weightScenario = 'none';
+                futureStart = true;
+            } else if (i < 61) {
+                // 本日上線（首療日期是今天）
+                status = 'active';
+                startDaysAgo = 0;
+                weightScenario = 'none';
+                todayStart = true;
+            } else if (i < 75) {
                 // 已結案
                 status = 'completed';
                 startDaysAgo = 50 + Math.floor(Math.random() * 30);
                 endDate = this.daysAgo(5 + Math.floor(Math.random() * 15));
                 weightScenario = Math.random() < 0.6 ? 'normal' : 'sdm';
                 sdmChoice = Math.random() < 0.7 ? this.sdmChoices[Math.floor(Math.random() * 5)] : null;
-            } else if (i < 74) {
+            } else if (i < 88) {
                 // 暫停中
                 status = 'paused';
                 startDaysAgo = 21 + Math.floor(Math.random() * 28);
@@ -174,9 +207,22 @@ const DemoData = {
             
             // 放療劑量（頭頸癌、肺癌等通常有）
             let radiationDose = null, radiationFractions = null;
-            if (['head_neck', 'lung', 'esophagus', 'prostate'].includes(cancer.code)) {
+            if (!incompleteData && ['head_neck', 'lung', 'esophagus', 'prostate'].includes(cancer.code)) {
                 radiationDose = 50 + Math.floor(Math.random() * 20); // 50-70 Gy
                 radiationFractions = Math.round(radiationDose / 2); // 每次約 2 Gy
+            }
+            
+            // 計算首療日期
+            let treatmentStartDate;
+            if (futureStart) {
+                // 未來日期
+                const futureDate = new Date();
+                futureDate.setDate(futureDate.getDate() + Math.abs(startDaysAgo));
+                treatmentStartDate = this.formatDate(futureDate);
+            } else if (todayStart) {
+                treatmentStartDate = todayStr;
+            } else {
+                treatmentStartDate = this.daysAgo(startDaysAgo);
             }
             
             const treatmentData = {
@@ -184,16 +230,16 @@ const DemoData = {
                 cancer_type: cancer.code,
                 cancer_type_label: cancer.label,
                 treatment_intent: intent.code,
-                physician: physician.code,
-                physician_name: physician.name,
+                physician: incompleteData && i % 2 === 0 ? null : physician.code,
+                physician_name: incompleteData && i % 2 === 0 ? null : physician.name,
                 stage: stage.code,
-                treatment_start: this.daysAgo(startDaysAgo),
-                baseline_weight: baseWeight,
+                treatment_start: treatmentStartDate,
+                baseline_weight: incompleteData && i % 3 === 0 ? null : baseWeight,
                 status: status,
-                radiation_dose: radiationDose,
-                radiation_fractions: radiationFractions,
+                radiation_dose: incompleteData ? null : radiationDose,
+                radiation_fractions: incompleteData ? null : radiationFractions,
                 sdm_choice: sdmChoice,
-                sdm_choice_date: sdmChoice ? this.daysAgo(Math.floor(startDaysAgo / 2)) : null,
+                sdm_choice_date: sdmChoice ? this.daysAgo(Math.floor(Math.abs(startDaysAgo) / 2)) : null,
                 created_at: new Date().toISOString()
             };
             
@@ -212,42 +258,57 @@ const DemoData = {
             const treatment = await DB.add('treatments', treatmentData);
             treatmentId++;
             
-            // 產生體重記錄
-            const numWeights = Math.floor(startDaysAgo / 4) + 2;
-            let currentWeight = baseWeight;
-            
-            // 根據場景決定體重趨勢
-            let weightDelta;
-            if (weightScenario === 'normal') {
-                weightDelta = -0.05; // 輕微下降或維持
-            } else if (weightScenario === 'sdm') {
-                weightDelta = -0.25; // 達到 -3% ~ -5%
-            } else {
-                weightDelta = -0.45; // 達到 -5% 以上
+            // 產生體重記錄（待上線、本日上線不產生）
+            if (weightScenario !== 'none' && startDaysAgo > 0) {
+                let numWeights;
+                if (weightScenario === 'overdue') {
+                    // 待輸體重：最後一次量測在 4-7 天前
+                    numWeights = 2;
+                } else {
+                    numWeights = Math.floor(startDaysAgo / 4) + 2;
+                }
+                
+                let currentWeight = baseWeight || 60;
+                
+                // 根據場景決定體重趨勢
+                let weightDelta;
+                if (weightScenario === 'normal' || weightScenario === 'overdue') {
+                    weightDelta = -0.05;
+                } else if (weightScenario === 'sdm') {
+                    weightDelta = -0.25;
+                } else {
+                    weightDelta = -0.45;
+                }
+                
+                for (let w = 0; w < numWeights; w++) {
+                    let measureDay;
+                    if (weightScenario === 'overdue') {
+                        // 最後一次量測在 4-7 天前
+                        measureDay = 4 + w * 5;
+                    } else {
+                        measureDay = startDaysAgo - Math.floor(w * (startDaysAgo / numWeights));
+                    }
+                    
+                    currentWeight += weightDelta + (Math.random() - 0.5) * 0.2;
+                    
+                    const minWeight = weightScenario === 'nutrition' 
+                        ? baseWeight * 0.92 
+                        : (weightScenario === 'sdm' ? baseWeight * 0.95 : baseWeight * 0.98);
+                    currentWeight = Math.max(currentWeight, minWeight);
+                    
+                    await DB.add('weight_records', {
+                        treatment_id: treatment.id,
+                        weight: parseFloat(currentWeight.toFixed(1)),
+                        measure_date: this.daysAgo(measureDay),
+                        source: Math.random() < 0.4 ? 'patient' : 'staff',
+                        created_at: new Date().toISOString()
+                    });
+                    weightId++;
+                }
             }
             
-            for (let w = 0; w < numWeights; w++) {
-                const measureDay = startDaysAgo - Math.floor(w * (startDaysAgo / numWeights));
-                currentWeight += weightDelta + (Math.random() - 0.5) * 0.2;
-                
-                // 限制最低體重
-                const minWeight = weightScenario === 'nutrition' 
-                    ? baseWeight * 0.92 
-                    : (weightScenario === 'sdm' ? baseWeight * 0.95 : baseWeight * 0.98);
-                currentWeight = Math.max(currentWeight, minWeight);
-                
-                await DB.add('weight_records', {
-                    treatment_id: treatment.id,
-                    weight: parseFloat(currentWeight.toFixed(1)),
-                    measure_date: this.daysAgo(measureDay),
-                    source: Math.random() < 0.4 ? 'patient' : 'staff',
-                    created_at: new Date().toISOString()
-                });
-                weightId++;
-            }
-            
-            // 產生副作用評估
-            if (Math.random() < 0.75) {
+            // 產生副作用評估（只有已開始治療的病人）
+            if (!futureStart && !todayStart && Math.random() < 0.75) {
                 const numSE = 2 + Math.floor(Math.random() * 4);
                 for (let s = 0; s < numSE; s++) {
                     const assessDay = startDaysAgo - Math.floor(s * (startDaysAgo / numSE));

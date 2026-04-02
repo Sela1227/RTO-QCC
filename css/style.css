@@ -1665,6 +1665,17 @@ body {
     border-color: var(--primary);
 }
 
+/* 天氣選項按鈕 */
+.weather-option.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+.weather-option:hover {
+    background: var(--bg-hover);
+}
+
 .db-search-box {
     display: flex;
     align-items: center;
