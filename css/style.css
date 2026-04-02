@@ -1785,7 +1785,7 @@ body {
     /* 內容區 */
     .content {
         padding: 12px;
-        padding-bottom: calc(var(--footer-height) + 12px);
+        padding-bottom: calc(var(--footer-height) + 80px);
     }
     
     /* 底部列隱藏 */
@@ -1797,6 +1797,20 @@ body {
     .page-header {
         flex-wrap: wrap;
         gap: 10px;
+    }
+    
+    /* 追蹤清單 Tab 3x2 */
+    .tab-group-3x2 {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        padding: 8px;
+    }
+    
+    .tab-group-3x2 .tab {
+        padding: 10px 8px;
+        font-size: 14px;
+        min-height: 40px;
     }
     
     .page-header h1 {
@@ -2165,17 +2179,21 @@ body {
         width: 100%;
         display: grid;
         grid-template-columns: repeat(4, 1fr);
-        gap: 6px;
+        grid-template-rows: auto auto;
+        gap: 8px;
     }
     
     .db-period-btns .btn {
-        padding: 8px 4px;
-        font-size: 12px;
+        padding: 10px 6px;
+        font-size: 13px;
         white-space: nowrap;
     }
     
-    /* 指定年和指定區間放在新行 */
-    .db-period-btns .btn[data-period="specific_year"],
+    /* 指定年佔 2 格，指定區間佔 2 格 */
+    .db-period-btns .btn[data-period="specific_year"] {
+        grid-column: span 2;
+    }
+    
     .db-period-btns .btn[data-period="custom"] {
         grid-column: span 2;
     }

@@ -302,6 +302,9 @@ const PatientDB = {
         // 排序
         patients = this.sortPatients(patients);
         
+        // 儲存篩選後的結果（供匯出使用）
+        this.filteredPatients = patients;
+        
         // 更新結果數量
         document.getElementById('db-result-count').textContent = `共 ${patients.length} 筆`;
         
