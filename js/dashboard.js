@@ -25,11 +25,84 @@ const Dashboard = {
      * 綁定事件
      */
     bindEvents() {
-        // 期間選擇器變更
-        const periodSelect = document.getElementById('dashboard-period');
-        if (periodSelect) {
-            periodSelect.addEventListener('change', () => this.onPeriodChange());
+        // 載入年份選項
+        this.initYearSelect();
+    },
+    
+    /**
+     * 初始化年份選擇器
+     */
+    async initYearSelect() {
+        const today = new Date();
+        const currentYear = today.getFullYear();
+        
+        // 取得最早的療程年份
+        const allTreatments = await DB.getAll('treatments');
+        let minYear = currentYear;
+        allTreatments.forEach(t => {
+            if (t.treatment_start) {
+                const year = new Date(t.treatment_start).getFullYear();
+                if (year < minYear) minYear = year;
+            }
+        });
+        
+        const yearSelect = document.getElementById('dashboard-year');
+        if (yearSelect) {
+            let yearOptions = '';
+            for (let y = currentYear; y >= minYear; y--) {
+                yearOptions += `<option value="${y}">${y} 年</option>`;
+            }
+            yearSelect.innerHTML = yearOptions;
         }
+        
+        // 設定預設日期
+        const monthAgo = new Date(today);
+        monthAgo.setMonth(monthAgo.getMonth() - 1);
+        document.getElementById('dashboard-date-from').value = monthAgo.toISOString().split('T')[0];
+        document.getElementById('dashboard-date-to').value = today.toISOString().split('T')[0];
+    },
+    
+    // 當前期間
+    currentPeriod: 'all',
+    
+    /**
+     * 設定期間（按鈕點擊）
+     */
+    setPeriod(period) {
+        this.currentPeriod = period;
+        
+        // 更新按鈕狀態
+        const container = document.querySelector('#page-dashboard .db-period-btns');
+        if (container) {
+            container.querySelectorAll('.btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.period === period);
+            });
+        }
+        
+        // 顯示/隱藏日期選擇器
+        const dateRange = document.getElementById('dashboard-date-range');
+        const yearSelect = document.getElementById('dashboard-year');
+        const dateFrom = document.getElementById('dashboard-date-from');
+        const dateTo = document.getElementById('dashboard-date-to');
+        const dateSep = document.getElementById('dashboard-date-sep');
+        
+        if (period === 'specific_year') {
+            dateRange.style.display = 'flex';
+            yearSelect.style.display = 'block';
+            dateFrom.style.display = 'none';
+            dateSep.style.display = 'none';
+            dateTo.style.display = 'none';
+        } else if (period === 'custom') {
+            dateRange.style.display = 'flex';
+            yearSelect.style.display = 'none';
+            dateFrom.style.display = 'block';
+            dateSep.style.display = 'inline';
+            dateTo.style.display = 'block';
+        } else {
+            dateRange.style.display = 'none';
+        }
+        
+        this.refresh();
     },
     
     /**
@@ -86,42 +159,20 @@ const Dashboard = {
     },
     
     /**
-     * 期間選擇變更
-     */
-    onPeriodChange() {
-        const period = document.getElementById('dashboard-period').value;
-        const fromGroup = document.getElementById('dashboard-date-from-group');
-        const toGroup = document.getElementById('dashboard-date-to-group');
-        
-        if (period === 'custom') {
-            fromGroup.style.display = 'block';
-            toGroup.style.display = 'block';
-            
-            // 設定預設日期
-            const today = new Date();
-            const monthAgo = new Date(today);
-            monthAgo.setMonth(monthAgo.getMonth() - 1);
-            
-            document.getElementById('dashboard-date-from').value = monthAgo.toISOString().split('T')[0];
-            document.getElementById('dashboard-date-to').value = today.toISOString().split('T')[0];
-        } else {
-            fromGroup.style.display = 'none';
-            toGroup.style.display = 'none';
-        }
-        
-        this.refresh();
-    },
-    
-    /**
      * 取得篩選的日期範圍
      */
     getDateRange() {
-        const period = document.getElementById('dashboard-period')?.value || 'all';
+        const period = this.currentPeriod || 'all';
         const today = new Date();
         let startDate = null;
         let endDate = today.toISOString().split('T')[0];
         
         switch (period) {
+            case 'week':
+                const weekStart = new Date(today);
+                weekStart.setDate(today.getDate() - today.getDay());
+                startDate = weekStart.toISOString().split('T')[0];
+                break;
             case 'month':
                 startDate = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
                 break;
@@ -131,6 +182,11 @@ const Dashboard = {
                 break;
             case 'year':
                 startDate = new Date(today.getFullYear(), 0, 1).toISOString().split('T')[0];
+                break;
+            case 'specific_year':
+                const selectedYear = parseInt(document.getElementById('dashboard-year')?.value) || today.getFullYear();
+                startDate = `${selectedYear}-01-01`;
+                endDate = `${selectedYear}-12-31`;
                 break;
             case 'custom':
                 startDate = document.getElementById('dashboard-date-from')?.value || null;

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>彰濱放腫體重監控預防系統</title>
-    <link rel="stylesheet" href="css/style.css?v=6.117">
+    <link rel="stylesheet" href="css/style.css?v=6.118">
     <!-- 外部套件 -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -33,7 +33,7 @@
                 <div class="logo">
                     <img src="logo.png" alt="SELA" class="logo-img" width="28" height="28" style="width:28px;height:28px;max-width:28px;max-height:28px;">
                     <span class="logo-text">彰濱放腫體重監控預防系統</span>
-                    <span class="header-version">v6.11.7</span>
+                    <span class="header-version">v6.11.8</span>
                 </div>
             </div>
             <div class="header-right">
@@ -452,35 +452,32 @@
                         </div>
                     </div>
                     <!-- 篩選區 -->
-                    <div class="report-filters" style="display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; align-items: flex-end;">
-                        <div class="form-group" style="margin: 0; min-width: 120px;">
-                            <label class="form-label">時間區間</label>
-                            <select class="form-select" id="report-period" onchange="Report.onFilterChange()">
-                                <option value="all">全部</option>
-                                <option value="week">本週</option>
-                                <option value="month" selected>本月</option>
-                                <option value="year">本年</option>
-                                <option value="specific_year">指定年份</option>
-                                <option value="custom">自訂日期</option>
-                            </select>
+                    <div class="report-filters" style="margin-bottom: 20px;">
+                        <!-- 第一列：收案區間 -->
+                        <div class="db-toolbar-row" style="margin-bottom: 12px;">
+                            <span class="db-toolbar-label">收案區間</span>
+                            <div class="db-period-btns">
+                                <button class="btn btn-outline btn-sm active" onclick="Report.setPeriod('all')" data-period="all">全部</button>
+                                <button class="btn btn-outline btn-sm" onclick="Report.setPeriod('week')" data-period="week">本週</button>
+                                <button class="btn btn-outline btn-sm" onclick="Report.setPeriod('month')" data-period="month">本月</button>
+                                <button class="btn btn-outline btn-sm" onclick="Report.setPeriod('quarter')" data-period="quarter">本季</button>
+                                <button class="btn btn-outline btn-sm" onclick="Report.setPeriod('year')" data-period="year">本年</button>
+                                <button class="btn btn-outline btn-sm" onclick="Report.setPeriod('specific_year')" data-period="specific_year">指定年</button>
+                                <button class="btn btn-outline btn-sm" onclick="Report.setPeriod('custom')" data-period="custom">指定區間</button>
+                            </div>
+                            <!-- 日期選擇器 -->
+                            <div id="report-date-range" style="display: none;">
+                                <select class="form-select" id="report-year" style="width: 100px;" onchange="Report.onFilterChange()"></select>
+                                <input type="date" class="form-input" id="report-date-from" style="width: 140px;" onchange="Report.onFilterChange()">
+                                <span id="report-date-sep" style="color: var(--text-hint);">～</span>
+                                <input type="date" class="form-input" id="report-date-to" style="width: 140px;" onchange="Report.onFilterChange()">
+                            </div>
                         </div>
-                        <div class="form-group" style="margin: 0; display: none;" id="report-year-group">
-                            <label class="form-label">年份</label>
-                            <select class="form-select" id="report-year" onchange="Report.onFilterChange()">
-                            </select>
-                        </div>
-                        <div class="form-group" style="margin: 0; display: none;" id="report-date-from-group">
-                            <label class="form-label">開始日期</label>
-                            <input type="date" class="form-input" id="report-date-from" onchange="Report.onFilterChange()">
-                        </div>
-                        <div class="form-group" style="margin: 0; display: none;" id="report-date-to-group">
-                            <label class="form-label">結束日期</label>
-                            <input type="date" class="form-input" id="report-date-to" onchange="Report.onFilterChange()">
-                        </div>
-                        <div class="form-group" style="margin: 0; min-width: 120px;">
-                            <label class="form-label">癌別</label>
-                            <select class="form-select" id="report-cancer-type" onchange="Report.onFilterChange()">
-                                <option value="all">全部</option>
+                        <!-- 第二列：癌別篩選 -->
+                        <div class="db-toolbar-row">
+                            <span class="db-toolbar-label">篩選</span>
+                            <select class="form-select" id="report-cancer-type" style="width: 120px;" onchange="Report.onFilterChange()">
+                                <option value="all">全部癌別</option>
                             </select>
                         </div>
                     </div>
@@ -535,24 +532,25 @@
                         </div>
                     </div>
                     <!-- 期間選擇 -->
-                    <div class="dashboard-filters" style="display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; align-items: flex-end;">
-                        <div class="form-group" style="margin: 0; min-width: 120px;">
-                            <label class="form-label">統計期間</label>
-                            <select class="form-select" id="dashboard-period" onchange="Dashboard.onPeriodChange()">
-                                <option value="all">全部</option>
-                                <option value="month" selected>本月</option>
-                                <option value="quarter">本季</option>
-                                <option value="year">本年</option>
-                                <option value="custom">自訂日期</option>
-                            </select>
-                        </div>
-                        <div class="form-group" style="margin: 0; display: none;" id="dashboard-date-from-group">
-                            <label class="form-label">開始日期</label>
-                            <input type="date" class="form-input" id="dashboard-date-from" onchange="Dashboard.refresh()">
-                        </div>
-                        <div class="form-group" style="margin: 0; display: none;" id="dashboard-date-to-group">
-                            <label class="form-label">結束日期</label>
-                            <input type="date" class="form-input" id="dashboard-date-to" onchange="Dashboard.refresh()">
+                    <div class="dashboard-filters" style="margin-bottom: 16px;">
+                        <div class="db-toolbar-row">
+                            <span class="db-toolbar-label">收案區間</span>
+                            <div class="db-period-btns">
+                                <button class="btn btn-outline btn-sm active" onclick="Dashboard.setPeriod('all')" data-period="all">全部</button>
+                                <button class="btn btn-outline btn-sm" onclick="Dashboard.setPeriod('week')" data-period="week">本週</button>
+                                <button class="btn btn-outline btn-sm" onclick="Dashboard.setPeriod('month')" data-period="month">本月</button>
+                                <button class="btn btn-outline btn-sm" onclick="Dashboard.setPeriod('quarter')" data-period="quarter">本季</button>
+                                <button class="btn btn-outline btn-sm" onclick="Dashboard.setPeriod('year')" data-period="year">本年</button>
+                                <button class="btn btn-outline btn-sm" onclick="Dashboard.setPeriod('specific_year')" data-period="specific_year">指定年</button>
+                                <button class="btn btn-outline btn-sm" onclick="Dashboard.setPeriod('custom')" data-period="custom">指定區間</button>
+                            </div>
+                            <!-- 日期選擇器 -->
+                            <div id="dashboard-date-range" style="display: none;">
+                                <select class="form-select" id="dashboard-year" style="width: 100px;" onchange="Dashboard.refresh()"></select>
+                                <input type="date" class="form-input" id="dashboard-date-from" style="width: 140px;" onchange="Dashboard.refresh()">
+                                <span id="dashboard-date-sep" style="color: var(--text-hint);">～</span>
+                                <input type="date" class="form-input" id="dashboard-date-to" style="width: 140px;" onchange="Dashboard.refresh()">
+                            </div>
                         </div>
                     </div>
                     <!-- 分項 Tab（多選） -->
@@ -626,22 +624,22 @@
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script></script>
 
     <!-- JS 模組 -->
-    <script src="js/config.js?v=6.117"></script>
-    <script src="js/db.js?v=6.117"></script>
-    <script src="js/utils.js?v=6.117"></script>
-    <script src="js/patient.js?v=6.117"></script>
-    <script src="js/treatment.js?v=6.117"></script>
-    <script src="js/weight.js?v=6.117"></script>
-    <script src="js/sideeffect.js?v=6.117"></script>
-    <script src="js/intervention.js?v=6.117"></script>
-    <script src="js/report.js?v=6.117"></script>
-    <script src="js/settings.js?v=6.117"></script>
-    <script src="js/sync.js?v=6.117"></script>
-    <script src="js/satisfaction.js?v=6.117"></script>
-    <script src="js/dashboard.js?v=6.117"></script>
-    <script src="js/patient-db.js?v=6.117"></script>
-    <script src="js/demo.js?v=6.117"></script>
-    <script src="js/app.js?v=6.117"></script>
+    <script src="js/config.js?v=6.118"></script>
+    <script src="js/db.js?v=6.118"></script>
+    <script src="js/utils.js?v=6.118"></script>
+    <script src="js/patient.js?v=6.118"></script>
+    <script src="js/treatment.js?v=6.118"></script>
+    <script src="js/weight.js?v=6.118"></script>
+    <script src="js/sideeffect.js?v=6.118"></script>
+    <script src="js/intervention.js?v=6.118"></script>
+    <script src="js/report.js?v=6.118"></script>
+    <script src="js/settings.js?v=6.118"></script>
+    <script src="js/sync.js?v=6.118"></script>
+    <script src="js/satisfaction.js?v=6.118"></script>
+    <script src="js/dashboard.js?v=6.118"></script>
+    <script src="js/patient-db.js?v=6.118"></script>
+    <script src="js/demo.js?v=6.118"></script>
+    <script src="js/app.js?v=6.118"></script>
     
     <!-- 登入驗證 -->
     <script>

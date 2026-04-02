@@ -77,7 +77,7 @@ const Report = {
         // 載入癌別選項
         const cancerTypes = await Settings.get('cancer_types', []);
         const select = document.getElementById('report-cancer-type');
-        select.innerHTML = '<option value="all">全部</option>' + 
+        select.innerHTML = '<option value="all">全部癌別</option>' + 
             cancerTypes.map(c => `<option value="${c.code}">${c.label}</option>`).join('');
         
         // 設定預設日期
@@ -104,60 +104,106 @@ const Report = {
             yearOptions += `<option value="${y}">${y} 年</option>`;
         }
         yearSelect.innerHTML = yearOptions;
+        
+        // 預設選擇「全部」
+        this.setPeriod('all');
     },
     
     /**
      * 篩選條件變更
      */
     onFilterChange() {
-        const period = document.getElementById('report-period').value;
-        this.filters.period = period;
         this.filters.cancerType = document.getElementById('report-cancer-type').value;
         
-        // 顯示/隱藏相關欄位
-        const showCustom = period === 'custom';
-        const showYear = period === 'specific_year';
+        const period = this.filters.period;
         
-        document.getElementById('report-date-from-group').style.display = showCustom ? 'block' : 'none';
-        document.getElementById('report-date-to-group').style.display = showCustom ? 'block' : 'none';
-        document.getElementById('report-year-group').style.display = showYear ? 'block' : 'none';
-        
-        if (showCustom) {
+        if (period === 'custom') {
             this.filters.dateFrom = document.getElementById('report-date-from').value;
             this.filters.dateTo = document.getElementById('report-date-to').value;
-        } else if (showYear) {
+        } else if (period === 'specific_year') {
             const selectedYear = parseInt(document.getElementById('report-year').value);
             this.filters.dateFrom = `${selectedYear}-01-01`;
             this.filters.dateTo = `${selectedYear}-12-31`;
+        }
+        
+        this.render();
+    },
+    
+    /**
+     * 設定期間（按鈕點擊）
+     */
+    setPeriod(period) {
+        this.filters.period = period;
+        
+        // 更新按鈕狀態
+        const container = document.querySelector('#page-reports .db-period-btns');
+        if (container) {
+            container.querySelectorAll('.btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.period === period);
+            });
+        }
+        
+        // 顯示/隱藏日期選擇器
+        const dateRange = document.getElementById('report-date-range');
+        const yearSelect = document.getElementById('report-year');
+        const dateFrom = document.getElementById('report-date-from');
+        const dateTo = document.getElementById('report-date-to');
+        const dateSep = document.getElementById('report-date-sep');
+        
+        if (period === 'specific_year') {
+            dateRange.style.display = 'flex';
+            yearSelect.style.display = 'block';
+            dateFrom.style.display = 'none';
+            dateSep.style.display = 'none';
+            dateTo.style.display = 'none';
+            
+            const selectedYear = parseInt(yearSelect.value);
+            this.filters.dateFrom = `${selectedYear}-01-01`;
+            this.filters.dateTo = `${selectedYear}-12-31`;
+        } else if (period === 'custom') {
+            dateRange.style.display = 'flex';
+            yearSelect.style.display = 'none';
+            dateFrom.style.display = 'block';
+            dateSep.style.display = 'inline';
+            dateTo.style.display = 'block';
+            
+            this.filters.dateFrom = dateFrom.value;
+            this.filters.dateTo = dateTo.value;
         } else {
+            dateRange.style.display = 'none';
+            
             // 計算日期範圍
             const today = new Date();
-            let dateFrom = null;
-            let dateTo = formatDate(today);
+            let dateFromVal = null;
+            let dateToVal = formatDate(today);
             
             switch (period) {
                 case 'week':
                     const weekStart = new Date(today);
                     weekStart.setDate(today.getDate() - today.getDay());
-                    dateFrom = formatDate(weekStart);
+                    dateFromVal = formatDate(weekStart);
                     break;
                 case 'month':
-                    dateFrom = formatDate(new Date(today.getFullYear(), today.getMonth(), 1));
+                    dateFromVal = formatDate(new Date(today.getFullYear(), today.getMonth(), 1));
+                    break;
+                case 'quarter':
+                    const quarterMonth = Math.floor(today.getMonth() / 3) * 3;
+                    dateFromVal = formatDate(new Date(today.getFullYear(), quarterMonth, 1));
                     break;
                 case 'year':
-                    dateFrom = formatDate(new Date(today.getFullYear(), 0, 1));
+                    dateFromVal = formatDate(new Date(today.getFullYear(), 0, 1));
                     break;
                 case 'all':
-                    dateFrom = null;
-                    dateTo = null;
+                    dateFromVal = null;
+                    dateToVal = null;
                     break;
             }
             
-            this.filters.dateFrom = dateFrom;
-            this.filters.dateTo = dateTo;
+            this.filters.dateFrom = dateFromVal;
+            this.filters.dateTo = dateToVal;
         }
         
-        this.render();
+        this.render();;
     },
     
     /**
