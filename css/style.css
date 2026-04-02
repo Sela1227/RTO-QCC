@@ -346,32 +346,33 @@ body {
 }
 
 .stats-grid-6 {
-    grid-template-columns: repeat(6, 1fr);
-    max-width: 100%;
-    gap: var(--space-sm);
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(2, auto);
+    max-width: 900px;
+    gap: var(--space-md);
 }
 
 .stats-grid-6 .stat-card {
-    padding: 14px 10px;
+    padding: 16px 14px;
     min-width: 0;
 }
 
 .stats-grid-6 .stat-icon {
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
 }
 
 .stats-grid-6 .stat-icon svg {
-    width: 20px;
-    height: 20px;
+    width: 22px;
+    height: 22px;
 }
 
 .stats-grid-6 .stat-value {
-    font-size: 26px;
+    font-size: 28px;
 }
 
 .stats-grid-6 .stat-label {
-    font-size: 12px;
+    font-size: 13px;
 }
 
 .stat-card {
@@ -632,6 +633,18 @@ body {
     background: var(--bg);
     padding: var(--space-xs);
     border-radius: var(--radius-md);
+}
+
+/* 3x2 網格 Tab */
+.tab-group-3x2 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-xs);
+}
+
+.tab-group-3x2 .tab {
+    text-align: center;
+    justify-content: center;
 }
 
 .tab {

@@ -43,7 +43,7 @@ const DemoData = {
     pauseReasons: ['身體不適', '治療副作用嚴重', '病人要求暫停', '等待其他檢查', '家庭因素'],
     terminateReasons: ['轉院', '放棄治療', '病情惡化', '病人過世', '經濟因素', '其他原因'],
     
-    staff: ['王孝宇', '陳詩韻', '廖芝穎', '張雅婷', '李佳蓉'],
+    staff: ['王孝宇', '陳詩韻', '廖芝穎', '林廣軒', '吳美玉', '楊欣菊'],
     
     formatDate(date) {
         return date.toISOString().split('T')[0];

@@ -452,6 +452,103 @@ const PatientDB = {
         
         html += '</tbody></table>';
         container.innerHTML = html;
+    },
+    
+    /**
+     * 匯出 Excel（依篩選範圍）
+     */
+    async exportExcel() {
+        try {
+            // 使用當前篩選後的資料
+            if (!this.filteredPatients || this.filteredPatients.length === 0) {
+                showToast('沒有資料可匯出', 'warning');
+                return;
+            }
+            
+            // 準備 Excel 資料
+            const headers = ['病歷號', '姓名', '性別', '年齡', '生日', '主治醫師', '癌別', '首療日期', '狀態', '基準體重(kg)', '最新體重(kg)', '體重變化率(%)'];
+            const rows = [];
+            
+            for (const p of this.filteredPatients) {
+                const age = p.birth_date ? calculateAge(p.birth_date) : '';
+                const gender = p.gender === 'M' ? '男' : p.gender === 'F' ? '女' : '';
+                const lastTx = p.lastTreatment;
+                const startDate = p.firstTreatment?.treatment_start || '';
+                
+                // 狀態
+                let status = '';
+                if (p.hasActive) status = '治療中';
+                else if (p.hasPaused) status = '暫停中';
+                else if (p.treatments.length > 0) status = '已結案';
+                else status = '無療程';
+                
+                // 最新體重和變化率
+                let latestWeight = '';
+                let changeRate = '';
+                if (lastTx) {
+                    const weights = await db.weight_records.where('treatment_id').equals(lastTx.id)
+                        .filter(w => !w.unable_to_measure && w.weight)
+                        .toArray();
+                    weights.sort((a, b) => new Date(b.measure_date) - new Date(a.measure_date));
+                    if (weights.length > 0) {
+                        latestWeight = weights[0].weight;
+                        if (lastTx.baseline_weight) {
+                            changeRate = ((weights[0].weight - lastTx.baseline_weight) / lastTx.baseline_weight * 100).toFixed(1);
+                        }
+                    }
+                }
+                
+                rows.push([
+                    p.medical_id,
+                    p.name,
+                    gender,
+                    age,
+                    p.birth_date || '',
+                    lastTx?.physician_name || '',
+                    lastTx?.cancer_type_label || '',
+                    startDate,
+                    status,
+                    lastTx?.baseline_weight || '',
+                    latestWeight,
+                    changeRate
+                ]);
+            }
+            
+            // 建立工作簿
+            const wb = XLSX.utils.book_new();
+            const wsData = [headers, ...rows];
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+            
+            // 設定欄寬
+            ws['!cols'] = [
+                { wch: 12 }, // 病歷號
+                { wch: 10 }, // 姓名
+                { wch: 6 },  // 性別
+                { wch: 6 },  // 年齡
+                { wch: 12 }, // 生日
+                { wch: 10 }, // 主治醫師
+                { wch: 12 }, // 癌別
+                { wch: 12 }, // 首療日期
+                { wch: 8 },  // 狀態
+                { wch: 14 }, // 基準體重
+                { wch: 14 }, // 最新體重
+                { wch: 14 }  // 變化率
+            ];
+            
+            XLSX.utils.book_append_sheet(wb, ws, '病人資料');
+            
+            // 產生檔名（含日期）
+            const today = new Date().toISOString().split('T')[0];
+            const filename = `RTO-QCC-病人資料-${today}.xlsx`;
+            
+            // 下載
+            XLSX.writeFile(wb, filename);
+            showToast(`已匯出 ${rows.length} 筆資料`);
+            
+        } catch (e) {
+            console.error('匯出失敗:', e);
+            showToast('匯出失敗: ' + e.message, 'error');
+        }
     }
 };
 
