@@ -421,9 +421,6 @@ const App = {
             item.onclick = () => this.navigate(item.dataset.page);
         });
         
-        // 設定按鈕
-        document.getElementById('btn-settings').onclick = () => SettingsUI.show();
-        
         // 對話框關閉
         document.getElementById('modal-close').onclick = closeModal;
         document.getElementById('modal-overlay').onclick = (e) => {
@@ -563,7 +560,10 @@ const App = {
                 await Report.render();
                 break;
             case 'dashboard':
-                await Dashboard.refresh();
+                await Dashboard.init();
+                break;
+            case 'settings':
+                await SettingsPage.init();
                 break;
         }
     },

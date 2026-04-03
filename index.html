@@ -33,16 +33,11 @@
                 <div class="logo">
                     <img src="logo.png" alt="SELA" class="logo-img" width="28" height="28" style="width:28px;height:28px;max-width:28px;max-height:28px;">
                     <span class="logo-text">彰濱放腫體重監控預防系統</span>
-                    <span class="header-version">v6.11.17</span>
+                    <span class="header-version">v6.11.18</span>
                 </div>
             </div>
             <div class="header-right">
-                <button class="btn-icon" id="btn-settings" title="設定">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="3"></circle>
-                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-                    </svg>
-                </button>
+                <!-- 設定已移至側邊欄 -->
             </div>
         </header>
 
@@ -90,6 +85,13 @@
                             <polyline points="12 6 12 12 16 14"></polyline>
                         </svg>
                         <span>系統成效</span>
+                    </li>
+                    <li class="nav-item" data-page="settings">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                        </svg>
+                        <span>系統設定</span>
                     </li>
                 </ul>
             </nav>
@@ -625,6 +627,28 @@
                         <!-- 動態載入 -->
                     </div>
                 </section>
+
+                <!-- 系統設定 -->
+                <section class="page" id="page-settings">
+                    <div class="page-header">
+                        <h1>系統設定</h1>
+                    </div>
+                    
+                    <!-- 設定 Tab -->
+                    <div class="settings-page-tabs">
+                        <button class="settings-page-tab active" data-tab="cancer" onclick="SettingsPage.switchTab('cancer')">癌別管理</button>
+                        <button class="settings-page-tab" data-tab="staff" onclick="SettingsPage.switchTab('staff')">人員管理</button>
+                        <button class="settings-page-tab" data-tab="alert" onclick="SettingsPage.switchTab('alert')">警示規則</button>
+                        <button class="settings-page-tab" data-tab="reasons" onclick="SettingsPage.switchTab('reasons')">暫停/終止原因</button>
+                        <button class="settings-page-tab" data-tab="backup" onclick="SettingsPage.switchTab('backup')">備份還原</button>
+                        <button class="settings-page-tab" data-tab="other" onclick="SettingsPage.switchTab('other')">其他設定</button>
+                    </div>
+                    
+                    <!-- 設定內容區 -->
+                    <div class="settings-page-content" id="settings-page-content">
+                        <!-- 動態載入 -->
+                    </div>
+                </section>
             </main>
         </div>
 
@@ -666,23 +690,23 @@
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script></script>
 
     <!-- JS 模組 -->
-    <script src="js/config.js?v=6.1117"></script>
-    <script src="js/db.js?v=6.1117"></script>
-    <script src="js/utils.js?v=6.1117"></script>
-    <script src="js/patient.js?v=6.1117"></script>
-    <script src="js/treatment.js?v=6.1117"></script>
-    <script src="js/weight.js?v=6.1117"></script>
-    <script src="js/sideeffect.js?v=6.1117"></script>
-    <script src="js/intervention.js?v=6.1117"></script>
-    <script src="js/report.js?v=6.1117"></script>
-    <script src="js/settings.js?v=6.1117"></script>
-    <script src="js/sync.js?v=6.1117"></script>
-    <script src="js/version-sync.js?v=6.1117"></script>
-    <script src="js/satisfaction.js?v=6.1117"></script>
-    <script src="js/dashboard.js?v=6.1117"></script>
-    <script src="js/patient-db.js?v=6.1117"></script>
-    <script src="js/demo.js?v=6.1117"></script>
-    <script src="js/app.js?v=6.1117"></script>
+    <script src="js/config.js?v=6.1118"></script>
+    <script src="js/db.js?v=6.1118"></script>
+    <script src="js/utils.js?v=6.1118"></script>
+    <script src="js/patient.js?v=6.1118"></script>
+    <script src="js/treatment.js?v=6.1118"></script>
+    <script src="js/weight.js?v=6.1118"></script>
+    <script src="js/sideeffect.js?v=6.1118"></script>
+    <script src="js/intervention.js?v=6.1118"></script>
+    <script src="js/report.js?v=6.1118"></script>
+    <script src="js/settings.js?v=6.1118"></script>
+    <script src="js/sync.js?v=6.1118"></script>
+    <script src="js/version-sync.js?v=6.1118"></script>
+    <script src="js/satisfaction.js?v=6.1118"></script>
+    <script src="js/dashboard.js?v=6.1118"></script>
+    <script src="js/patient-db.js?v=6.1118"></script>
+    <script src="js/demo.js?v=6.1118"></script>
+    <script src="js/app.js?v=6.1118"></script>
     
     <!-- 登入驗證 -->
     <script>

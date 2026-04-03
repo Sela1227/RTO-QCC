@@ -1450,3 +1450,677 @@ const SettingsUI = {
         }, 100);
     }
 };
+
+/**
+ * 系統設定頁面模組（側邊欄版本）
+ */
+const SettingsPage = {
+    currentTab: 'cancer',
+    
+    /**
+     * 初始化設定頁面
+     */
+    async init() {
+        this.currentTab = 'cancer';
+        await this.render();
+    },
+    
+    /**
+     * 切換 Tab
+     */
+    async switchTab(tab) {
+        this.currentTab = tab;
+        
+        // 更新 Tab 按鈕狀態
+        document.querySelectorAll('.settings-page-tab').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.tab === tab);
+        });
+        
+        await this.render();
+    },
+    
+    /**
+     * 渲染內容
+     */
+    async render() {
+        const container = document.getElementById('settings-page-content');
+        if (!container) return;
+        
+        let html = '';
+        
+        switch (this.currentTab) {
+            case 'cancer':
+                html = await this.renderCancerTypes();
+                break;
+            case 'staff':
+                html = await this.renderStaff();
+                break;
+            case 'alert':
+                html = await this.renderAlertRules();
+                break;
+            case 'reasons':
+                html = await this.renderReasons();
+                break;
+            case 'backup':
+                html = await this.renderBackup();
+                break;
+            case 'other':
+                html = await this.renderOther();
+                break;
+        }
+        
+        container.innerHTML = html;
+    },
+    
+    /**
+     * 癌別管理
+     */
+    async renderCancerTypes() {
+        const cancerTypes = await Settings.get('cancer_types', []);
+        
+        return `
+            <div class="settings-card">
+                <div class="settings-card-header">
+                    <h3>癌別管理</h3>
+                    <button class="btn btn-primary btn-sm" onclick="SettingsPage.addCancerType()">新增癌別</button>
+                </div>
+                <div class="settings-card-body">
+                    ${cancerTypes.length === 0 ? '<p class="text-hint">尚未設定癌別</p>' : `
+                        <table class="settings-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 80px;">代碼</th>
+                                    <th>名稱</th>
+                                    <th style="width: 120px;">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${cancerTypes.map((c, i) => `
+                                    <tr>
+                                        <td><code>${c.code}</code></td>
+                                        <td>${c.label}</td>
+                                        <td>
+                                            <button class="btn-mini" onclick="SettingsPage.moveCancerType(${i}, -1)" title="上移">▲</button>
+                                            <button class="btn-mini" onclick="SettingsPage.moveCancerType(${i}, 1)" title="下移">▼</button>
+                                            <button class="btn-mini" onclick="SettingsPage.editCancerType(${i})" title="編輯">✎</button>
+                                            <button class="btn-mini btn-mini-danger" onclick="SettingsPage.deleteCancerType(${i})" title="刪除">✕</button>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    `}
+                </div>
+            </div>
+        `;
+    },
+    
+    /**
+     * 人員管理
+     */
+    async renderStaff() {
+        const staffList = await Settings.get('staff_list', []);
+        
+        return `
+            <div class="settings-card">
+                <div class="settings-card-header">
+                    <h3>人員管理</h3>
+                    <button class="btn btn-primary btn-sm" onclick="SettingsPage.addStaff()">新增人員</button>
+                </div>
+                <div class="settings-card-body">
+                    ${staffList.length === 0 ? '<p class="text-hint">尚未設定人員</p>' : `
+                        <table class="settings-table">
+                            <thead>
+                                <tr>
+                                    <th>姓名</th>
+                                    <th style="width: 120px;">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${staffList.map((s, i) => `
+                                    <tr>
+                                        <td>${s}</td>
+                                        <td>
+                                            <button class="btn-mini" onclick="SettingsPage.moveStaff(${i}, -1)" title="上移">▲</button>
+                                            <button class="btn-mini" onclick="SettingsPage.moveStaff(${i}, 1)" title="下移">▼</button>
+                                            <button class="btn-mini" onclick="SettingsPage.editStaff(${i})" title="編輯">✎</button>
+                                            <button class="btn-mini btn-mini-danger" onclick="SettingsPage.deleteStaff(${i})" title="刪除">✕</button>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    `}
+                </div>
+            </div>
+        `;
+    },
+    
+    /**
+     * 警示規則
+     */
+    async renderAlertRules() {
+        const alertRules = await Settings.get('alert_rules', []);
+        
+        return `
+            <div class="settings-card">
+                <div class="settings-card-header">
+                    <h3>警示規則</h3>
+                    <button class="btn btn-primary btn-sm" onclick="SettingsPage.addAlertRule()">新增規則</button>
+                </div>
+                <div class="settings-card-body">
+                    ${alertRules.length === 0 ? '<p class="text-hint">尚未設定警示規則</p>' : `
+                        <table class="settings-table">
+                            <thead>
+                                <tr>
+                                    <th>名稱</th>
+                                    <th style="width: 80px;">閾值</th>
+                                    <th style="width: 80px;">類型</th>
+                                    <th style="width: 120px;">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${alertRules.map((r, i) => `
+                                    <tr>
+                                        <td>${r.name}</td>
+                                        <td>${r.threshold}%</td>
+                                        <td>${r.type === 'sdm' ? 'SDM' : '營養師'}</td>
+                                        <td>
+                                            <button class="btn-mini" onclick="SettingsPage.moveAlertRule(${i}, -1)" title="上移">▲</button>
+                                            <button class="btn-mini" onclick="SettingsPage.moveAlertRule(${i}, 1)" title="下移">▼</button>
+                                            <button class="btn-mini" onclick="SettingsPage.editAlertRule(${i})" title="編輯">✎</button>
+                                            ${!r.isDefault ? `<button class="btn-mini btn-mini-danger" onclick="SettingsPage.deleteAlertRule(${i})" title="刪除">✕</button>` : ''}
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    `}
+                </div>
+            </div>
+        `;
+    },
+    
+    /**
+     * 暫停/終止原因
+     */
+    async renderReasons() {
+        const pauseReasons = await Settings.get('pause_reasons', []);
+        const terminateReasons = await Settings.get('terminate_reasons', []);
+        
+        return `
+            <div class="settings-card">
+                <div class="settings-card-header">
+                    <h3>暫停原因</h3>
+                    <button class="btn btn-primary btn-sm" onclick="SettingsPage.addPauseReason()">新增</button>
+                </div>
+                <div class="settings-card-body">
+                    ${pauseReasons.length === 0 ? '<p class="text-hint">尚未設定</p>' : `
+                        <div class="settings-list">
+                            ${pauseReasons.map((r, i) => `
+                                <div class="settings-list-item">
+                                    <span>${r}</span>
+                                    <div>
+                                        <button class="btn-mini" onclick="SettingsPage.movePauseReason(${i}, -1)">▲</button>
+                                        <button class="btn-mini" onclick="SettingsPage.movePauseReason(${i}, 1)">▼</button>
+                                        <button class="btn-mini" onclick="SettingsPage.editPauseReason(${i})">✎</button>
+                                        <button class="btn-mini btn-mini-danger" onclick="SettingsPage.deletePauseReason(${i})">✕</button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `}
+                </div>
+            </div>
+            
+            <div class="settings-card" style="margin-top: 16px;">
+                <div class="settings-card-header">
+                    <h3>終止原因</h3>
+                    <button class="btn btn-primary btn-sm" onclick="SettingsPage.addTerminateReason()">新增</button>
+                </div>
+                <div class="settings-card-body">
+                    ${terminateReasons.length === 0 ? '<p class="text-hint">尚未設定</p>' : `
+                        <div class="settings-list">
+                            ${terminateReasons.map((r, i) => `
+                                <div class="settings-list-item">
+                                    <span>${r}</span>
+                                    <div>
+                                        <button class="btn-mini" onclick="SettingsPage.moveTerminateReason(${i}, -1)">▲</button>
+                                        <button class="btn-mini" onclick="SettingsPage.moveTerminateReason(${i}, 1)">▼</button>
+                                        <button class="btn-mini" onclick="SettingsPage.editTerminateReason(${i})">✎</button>
+                                        <button class="btn-mini btn-mini-danger" onclick="SettingsPage.deleteTerminateReason(${i})">✕</button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `}
+                </div>
+            </div>
+        `;
+    },
+    
+    /**
+     * 備份還原
+     */
+    async renderBackup() {
+        const lastBackup = await Settings.get('last_backup_date', null);
+        const lastSync = await Settings.get('last_sync_time', null);
+        
+        return `
+            <div class="settings-card">
+                <div class="settings-card-header">
+                    <h3>資料備份</h3>
+                </div>
+                <div class="settings-card-body">
+                    <p style="margin-bottom: 16px; color: var(--text-secondary);">
+                        上次備份：${lastBackup ? formatDate(new Date(lastBackup)) : '從未備份'}
+                    </p>
+                    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                        <button class="btn btn-primary" onclick="SettingsPage.exportBackup()">
+                            匯出備份檔
+                        </button>
+                        <button class="btn btn-outline" onclick="SettingsPage.importBackup()">
+                            匯入備份檔
+                        </button>
+                    </div>
+                    <input type="file" id="settings-import-file" accept=".json" style="display: none;" 
+                           onchange="SettingsPage.doImportBackup(this.files[0])">
+                </div>
+            </div>
+            
+            <div class="settings-card" style="margin-top: 16px;">
+                <div class="settings-card-header">
+                    <h3>資料同步</h3>
+                </div>
+                <div class="settings-card-body">
+                    <p style="margin-bottom: 16px; color: var(--text-secondary);">
+                        上次同步：${lastSync ? formatDate(new Date(lastSync)) : '從未同步'}
+                    </p>
+                    <p style="margin-bottom: 16px; color: var(--text-secondary);">
+                        共享資料夾：${VersionSync.isConnected() ? '已連接' : '未連接'}
+                    </p>
+                    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                        <button class="btn btn-primary" onclick="VersionSync.connectAndSync().then(() => SettingsPage.render())">
+                            ${VersionSync.isConnected() ? '重新連接' : '連接共享資料夾'}
+                        </button>
+                        ${VersionSync.isConnected() ? `
+                            <button class="btn btn-outline" onclick="VersionSync.save()">
+                                立即同步
+                            </button>
+                            <button class="btn btn-outline" onclick="VersionSync.disconnect().then(() => SettingsPage.render())">
+                                斷開連接
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="settings-card" style="margin-top: 16px; border-color: var(--danger);">
+                <div class="settings-card-header">
+                    <h3 style="color: var(--danger);">危險區域</h3>
+                </div>
+                <div class="settings-card-body">
+                    <p style="margin-bottom: 16px; color: var(--text-secondary);">
+                        清除所有資料將無法復原，請先備份！
+                    </p>
+                    <button class="btn btn-danger" onclick="SettingsPage.clearAllData()">
+                        清除所有資料
+                    </button>
+                </div>
+            </div>
+        `;
+    },
+    
+    /**
+     * 其他設定
+     */
+    async renderOther() {
+        const patientAppUrl = await Settings.get('patient_app_url', '');
+        const satisfactionEnabled = await Settings.get('satisfaction_enabled', false);
+        
+        return `
+            <div class="settings-card">
+                <div class="settings-card-header">
+                    <h3>病人端設定</h3>
+                </div>
+                <div class="settings-card-body">
+                    <div class="form-group">
+                        <label class="form-label">病人端網址</label>
+                        <input type="text" class="form-input" id="settings-patient-url" 
+                               value="${patientAppUrl}" placeholder="https://example.com/patient.html"
+                               onchange="SettingsPage.savePatientUrl()">
+                        <p class="form-hint">用於產生病人端 QR Code</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="settings-card" style="margin-top: 16px;">
+                <div class="settings-card-header">
+                    <h3>功能開關</h3>
+                </div>
+                <div class="settings-card-body">
+                    <label class="toggle-item">
+                        <input type="checkbox" ${satisfactionEnabled ? 'checked' : ''} 
+                               onchange="SettingsPage.toggleSatisfaction(this.checked)">
+                        <span>啟用滿意度調查</span>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="settings-card" style="margin-top: 16px;">
+                <div class="settings-card-header">
+                    <h3>演示資料</h3>
+                </div>
+                <div class="settings-card-body">
+                    <p style="margin-bottom: 16px; color: var(--text-secondary);">
+                        載入 100 位測試病人資料，用於功能展示
+                    </p>
+                    <button class="btn btn-outline" onclick="SettingsPage.loadDemoData()">
+                        載入演示資料
+                    </button>
+                </div>
+            </div>
+        `;
+    },
+    
+    // ==================== 操作函數 ====================
+    
+    // 癌別
+    async addCancerType() {
+        const code = prompt('請輸入癌別代碼（如 HNC）：');
+        if (!code) return;
+        const label = prompt('請輸入癌別名稱（如 頭頸癌）：');
+        if (!label) return;
+        
+        const cancerTypes = await Settings.get('cancer_types', []);
+        cancerTypes.push({ code: code.toUpperCase(), label });
+        await Settings.set('cancer_types', cancerTypes);
+        this.render();
+        showToast('已新增癌別', 'success');
+    },
+    
+    async editCancerType(index) {
+        const cancerTypes = await Settings.get('cancer_types', []);
+        const item = cancerTypes[index];
+        
+        const code = prompt('癌別代碼：', item.code);
+        if (!code) return;
+        const label = prompt('癌別名稱：', item.label);
+        if (!label) return;
+        
+        cancerTypes[index] = { code: code.toUpperCase(), label };
+        await Settings.set('cancer_types', cancerTypes);
+        this.render();
+    },
+    
+    async deleteCancerType(index) {
+        if (!confirm('確定要刪除此癌別？')) return;
+        
+        const cancerTypes = await Settings.get('cancer_types', []);
+        cancerTypes.splice(index, 1);
+        await Settings.set('cancer_types', cancerTypes);
+        this.render();
+        showToast('已刪除', 'success');
+    },
+    
+    async moveCancerType(index, direction) {
+        const cancerTypes = await Settings.get('cancer_types', []);
+        const newIndex = index + direction;
+        if (newIndex < 0 || newIndex >= cancerTypes.length) return;
+        
+        [cancerTypes[index], cancerTypes[newIndex]] = [cancerTypes[newIndex], cancerTypes[index]];
+        await Settings.set('cancer_types', cancerTypes);
+        this.render();
+    },
+    
+    // 人員
+    async addStaff() {
+        const name = prompt('請輸入人員姓名：');
+        if (!name) return;
+        
+        const staffList = await Settings.get('staff_list', []);
+        staffList.push(name);
+        await Settings.set('staff_list', staffList);
+        this.render();
+        showToast('已新增人員', 'success');
+    },
+    
+    async editStaff(index) {
+        const staffList = await Settings.get('staff_list', []);
+        const name = prompt('人員姓名：', staffList[index]);
+        if (!name) return;
+        
+        staffList[index] = name;
+        await Settings.set('staff_list', staffList);
+        this.render();
+    },
+    
+    async deleteStaff(index) {
+        if (!confirm('確定要刪除此人員？')) return;
+        
+        const staffList = await Settings.get('staff_list', []);
+        staffList.splice(index, 1);
+        await Settings.set('staff_list', staffList);
+        this.render();
+        showToast('已刪除', 'success');
+    },
+    
+    async moveStaff(index, direction) {
+        const staffList = await Settings.get('staff_list', []);
+        const newIndex = index + direction;
+        if (newIndex < 0 || newIndex >= staffList.length) return;
+        
+        [staffList[index], staffList[newIndex]] = [staffList[newIndex], staffList[index]];
+        await Settings.set('staff_list', staffList);
+        this.render();
+    },
+    
+    // 警示規則
+    async addAlertRule() {
+        const name = prompt('規則名稱：');
+        if (!name) return;
+        const threshold = prompt('閾值（負數，如 -3）：');
+        if (!threshold) return;
+        const type = prompt('類型（sdm 或 nutrition）：', 'sdm');
+        if (!type) return;
+        
+        const alertRules = await Settings.get('alert_rules', []);
+        alertRules.push({ name, threshold: parseFloat(threshold), type });
+        await Settings.set('alert_rules', alertRules);
+        this.render();
+        showToast('已新增規則', 'success');
+    },
+    
+    async editAlertRule(index) {
+        const alertRules = await Settings.get('alert_rules', []);
+        const item = alertRules[index];
+        
+        const name = prompt('規則名稱：', item.name);
+        if (!name) return;
+        const threshold = prompt('閾值：', item.threshold);
+        if (!threshold) return;
+        
+        alertRules[index] = { ...item, name, threshold: parseFloat(threshold) };
+        await Settings.set('alert_rules', alertRules);
+        this.render();
+    },
+    
+    async deleteAlertRule(index) {
+        if (!confirm('確定要刪除此規則？')) return;
+        
+        const alertRules = await Settings.get('alert_rules', []);
+        alertRules.splice(index, 1);
+        await Settings.set('alert_rules', alertRules);
+        this.render();
+        showToast('已刪除', 'success');
+    },
+    
+    async moveAlertRule(index, direction) {
+        const alertRules = await Settings.get('alert_rules', []);
+        const newIndex = index + direction;
+        if (newIndex < 0 || newIndex >= alertRules.length) return;
+        
+        [alertRules[index], alertRules[newIndex]] = [alertRules[newIndex], alertRules[index]];
+        await Settings.set('alert_rules', alertRules);
+        this.render();
+    },
+    
+    // 暫停原因
+    async addPauseReason() {
+        const reason = prompt('請輸入暫停原因：');
+        if (!reason) return;
+        
+        const reasons = await Settings.get('pause_reasons', []);
+        reasons.push(reason);
+        await Settings.set('pause_reasons', reasons);
+        this.render();
+        showToast('已新增', 'success');
+    },
+    
+    async editPauseReason(index) {
+        const reasons = await Settings.get('pause_reasons', []);
+        const reason = prompt('暫停原因：', reasons[index]);
+        if (!reason) return;
+        
+        reasons[index] = reason;
+        await Settings.set('pause_reasons', reasons);
+        this.render();
+    },
+    
+    async deletePauseReason(index) {
+        if (!confirm('確定要刪除？')) return;
+        
+        const reasons = await Settings.get('pause_reasons', []);
+        reasons.splice(index, 1);
+        await Settings.set('pause_reasons', reasons);
+        this.render();
+        showToast('已刪除', 'success');
+    },
+    
+    async movePauseReason(index, direction) {
+        const reasons = await Settings.get('pause_reasons', []);
+        const newIndex = index + direction;
+        if (newIndex < 0 || newIndex >= reasons.length) return;
+        
+        [reasons[index], reasons[newIndex]] = [reasons[newIndex], reasons[index]];
+        await Settings.set('pause_reasons', reasons);
+        this.render();
+    },
+    
+    // 終止原因
+    async addTerminateReason() {
+        const reason = prompt('請輸入終止原因：');
+        if (!reason) return;
+        
+        const reasons = await Settings.get('terminate_reasons', []);
+        reasons.push(reason);
+        await Settings.set('terminate_reasons', reasons);
+        this.render();
+        showToast('已新增', 'success');
+    },
+    
+    async editTerminateReason(index) {
+        const reasons = await Settings.get('terminate_reasons', []);
+        const reason = prompt('終止原因：', reasons[index]);
+        if (!reason) return;
+        
+        reasons[index] = reason;
+        await Settings.set('terminate_reasons', reasons);
+        this.render();
+    },
+    
+    async deleteTerminateReason(index) {
+        if (!confirm('確定要刪除？')) return;
+        
+        const reasons = await Settings.get('terminate_reasons', []);
+        reasons.splice(index, 1);
+        await Settings.set('terminate_reasons', reasons);
+        this.render();
+        showToast('已刪除', 'success');
+    },
+    
+    async moveTerminateReason(index, direction) {
+        const reasons = await Settings.get('terminate_reasons', []);
+        const newIndex = index + direction;
+        if (newIndex < 0 || newIndex >= reasons.length) return;
+        
+        [reasons[index], reasons[newIndex]] = [reasons[newIndex], reasons[index]];
+        await Settings.set('terminate_reasons', reasons);
+        this.render();
+    },
+    
+    // 備份還原
+    async exportBackup() {
+        try {
+            const data = await exportAllData();
+            const filename = `RTO-QCC-備份-${formatDate(new Date())}.json`;
+            await downloadJSON(data, filename);
+            await Settings.set('last_backup_date', new Date().toISOString());
+            showToast('備份已匯出', 'success');
+            this.render();
+        } catch (e) {
+            showToast('匯出失敗: ' + e.message, 'error');
+        }
+    },
+    
+    importBackup() {
+        document.getElementById('settings-import-file').click();
+    },
+    
+    async doImportBackup(file) {
+        if (!file) return;
+        if (!confirm('匯入將覆蓋現有資料，確定要繼續？')) return;
+        
+        try {
+            const data = await readJSONFile(file);
+            await importAllData(data);
+            showToast('匯入成功', 'success');
+            this.render();
+            document.getElementById('settings-import-file').value = '';
+        } catch (e) {
+            showToast('匯入失敗: ' + e.message, 'error');
+        }
+    },
+    
+    async clearAllData() {
+        if (!confirm('確定要清除所有資料？此操作無法復原！')) return;
+        if (!confirm('再次確認：清除後資料將永久刪除，確定？')) return;
+        
+        try {
+            await DB.clear('patients');
+            await DB.clear('treatments');
+            await DB.clear('weight_records');
+            await DB.clear('side_effects');
+            await DB.clear('interventions');
+            await DB.clear('satisfaction');
+            showToast('資料已清除', 'success');
+            location.reload();
+        } catch (e) {
+            showToast('清除失敗: ' + e.message, 'error');
+        }
+    },
+    
+    // 其他設定
+    async savePatientUrl() {
+        const url = document.getElementById('settings-patient-url').value;
+        await Settings.set('patient_app_url', url);
+        showToast('已儲存', 'success');
+    },
+    
+    async toggleSatisfaction(enabled) {
+        await Settings.set('satisfaction_enabled', enabled);
+        showToast(enabled ? '已啟用滿意度調查' : '已停用滿意度調查', 'success');
+    },
+    
+    async loadDemoData() {
+        if (!confirm('載入演示資料將新增 100 位測試病人，確定？')) return;
+        
+        try {
+            await loadDemoData();
+            showToast('演示資料已載入', 'success');
+            location.reload();
+        } catch (e) {
+            showToast('載入失敗: ' + e.message, 'error');
+        }
+    }
+};
