@@ -86,10 +86,10 @@ const Report = {
         document.getElementById('report-date-from').value = formatDate(monthStart);
         document.getElementById('report-date-to').value = formatDate(today);
         
-        // 載入年份選項（從最早療程到今年）
+        // 載入年份選項（從最早療程到今年，至少顯示 5 年）
         const allTreatments = await DB.getAll('treatments');
         const currentYear = today.getFullYear();
-        let minYear = currentYear;
+        let minYear = currentYear - 4; // 預設至少顯示 5 年
         
         allTreatments.forEach(t => {
             if (t.treatment_start) {

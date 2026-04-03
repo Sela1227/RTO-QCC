@@ -38,7 +38,7 @@ const Dashboard = {
         
         // 取得最早的療程年份
         const allTreatments = await DB.getAll('treatments');
-        let minYear = currentYear;
+        let minYear = currentYear - 4; // 預設至少顯示 5 年
         allTreatments.forEach(t => {
             if (t.treatment_start) {
                 const year = new Date(t.treatment_start).getFullYear();

@@ -333,15 +333,21 @@ body {
 .sync-menu {
     display: none;
     position: absolute;
-    top: calc(100% + 4px);
+    top: calc(100% + 8px);
     right: 0;
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    min-width: 200px;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    min-width: 240px;
     z-index: 100;
     overflow: hidden;
+    animation: syncMenuFadeIn 0.15s ease-out;
+}
+
+@keyframes syncMenuFadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .sync-menu.active {
@@ -349,40 +355,85 @@ body {
 }
 
 .sync-menu-status {
-    padding: 10px 14px;
+    padding: 14px 16px;
     font-size: 12px;
     color: var(--text-hint);
-    border-bottom: 1px solid var(--border);
-    background: var(--bg);
+    border-bottom: 1px solid var(--border-light);
+    background: linear-gradient(to bottom, var(--bg), var(--bg-card));
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sync-menu-status::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-hint);
+    flex-shrink: 0;
 }
 
 .sync-menu-status.sync-connected {
     color: var(--success);
 }
 
+.sync-menu-status.sync-connected::before {
+    background: var(--success);
+    box-shadow: 0 0 0 3px rgba(107, 175, 141, 0.2);
+}
+
 .sync-menu-status.sync-disconnected {
     color: var(--text-hint);
 }
 
-.sync-menu button {
-    display: block;
+.sync-menu-status.sync-disconnected::before {
+    background: var(--warning);
+    box-shadow: 0 0 0 3px rgba(228, 185, 90, 0.2);
+}
+
+.sync-menu-items {
+    padding: 6px 0;
+}
+
+.sync-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
     width: 100%;
-    padding: 10px 14px;
+    padding: 12px 16px;
     text-align: left;
     background: transparent;
     border: none;
     cursor: pointer;
     font-size: 13px;
     color: var(--text);
-    transition: background 0.15s;
+    transition: all 0.15s;
 }
 
-.sync-menu button:hover {
+.sync-menu-item:hover {
     background: var(--bg);
 }
 
-.sync-menu button:not(:last-child) {
-    border-bottom: 1px solid var(--border-light);
+.sync-menu-item:active {
+    background: var(--border-light);
+}
+
+.sync-menu-item svg {
+    width: 18px;
+    height: 18px;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+}
+
+.sync-menu-item:hover svg {
+    color: var(--primary);
+}
+
+.sync-menu-divider {
+    height: 1px;
+    background: var(--border-light);
+    margin: 6px 0;
 }
 
 /* === 統計卡片 === */

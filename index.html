@@ -33,7 +33,7 @@
                 <div class="logo">
                     <img src="logo.png" alt="SELA" class="logo-img" width="28" height="28" style="width:28px;height:28px;max-width:28px;max-height:28px;">
                     <span class="logo-text">彰濱放腫體重監控預防系統</span>
-                    <span class="header-version">v6.11.16</span>
+                    <span class="header-version">v6.11.17</span>
                 </div>
             </div>
             <div class="header-right">
@@ -111,11 +111,42 @@
                                     同步
                                 </button>
                                 <div class="sync-menu" id="sync-menu">
-                                    <div class="sync-menu-status" id="sync-status">未連接共享資料夾</div>
-                                    <button onclick="App.connectSharedFolder()">連接共享資料夾</button>
-                                    <button onclick="App.saveToSync()">儲存同步</button>
-                                    <button onclick="App.syncFromFile()">從檔案匯入</button>
-                                    <button onclick="App.exportBackup()">匯出備份</button>
+                                    <div class="sync-menu-status sync-disconnected" id="sync-status">未連接共享資料夾</div>
+                                    <div class="sync-menu-items">
+                                        <button class="sync-menu-item" onclick="App.connectSharedFolder()">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                                                <line x1="12" y1="11" x2="12" y2="17"></line>
+                                                <line x1="9" y1="14" x2="15" y2="14"></line>
+                                            </svg>
+                                            連接共享資料夾
+                                        </button>
+                                        <button class="sync-menu-item" onclick="App.saveToSync()">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                                                <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                                                <polyline points="7 3 7 8 15 8"></polyline>
+                                            </svg>
+                                            儲存同步
+                                        </button>
+                                        <div class="sync-menu-divider"></div>
+                                        <button class="sync-menu-item" onclick="App.syncFromFile()">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                                <polyline points="7 10 12 15 17 10"></polyline>
+                                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                                            </svg>
+                                            從檔案匯入
+                                        </button>
+                                        <button class="sync-menu-item" onclick="App.exportBackup()">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                                <polyline points="17 8 12 3 7 8"></polyline>
+                                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                                            </svg>
+                                            匯出備份
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                             <input type="file" id="home-sync-file" accept=".json" style="display: none;" 
@@ -635,23 +666,23 @@
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script></script>
 
     <!-- JS 模組 -->
-    <script src="js/config.js?v=6.1116"></script>
-    <script src="js/db.js?v=6.1116"></script>
-    <script src="js/utils.js?v=6.1116"></script>
-    <script src="js/patient.js?v=6.1116"></script>
-    <script src="js/treatment.js?v=6.1116"></script>
-    <script src="js/weight.js?v=6.1116"></script>
-    <script src="js/sideeffect.js?v=6.1116"></script>
-    <script src="js/intervention.js?v=6.1116"></script>
-    <script src="js/report.js?v=6.1116"></script>
-    <script src="js/settings.js?v=6.1116"></script>
-    <script src="js/sync.js?v=6.1116"></script>
-    <script src="js/version-sync.js?v=6.1116"></script>
-    <script src="js/satisfaction.js?v=6.1116"></script>
-    <script src="js/dashboard.js?v=6.1116"></script>
-    <script src="js/patient-db.js?v=6.1116"></script>
-    <script src="js/demo.js?v=6.1116"></script>
-    <script src="js/app.js?v=6.1116"></script>
+    <script src="js/config.js?v=6.1117"></script>
+    <script src="js/db.js?v=6.1117"></script>
+    <script src="js/utils.js?v=6.1117"></script>
+    <script src="js/patient.js?v=6.1117"></script>
+    <script src="js/treatment.js?v=6.1117"></script>
+    <script src="js/weight.js?v=6.1117"></script>
+    <script src="js/sideeffect.js?v=6.1117"></script>
+    <script src="js/intervention.js?v=6.1117"></script>
+    <script src="js/report.js?v=6.1117"></script>
+    <script src="js/settings.js?v=6.1117"></script>
+    <script src="js/sync.js?v=6.1117"></script>
+    <script src="js/version-sync.js?v=6.1117"></script>
+    <script src="js/satisfaction.js?v=6.1117"></script>
+    <script src="js/dashboard.js?v=6.1117"></script>
+    <script src="js/patient-db.js?v=6.1117"></script>
+    <script src="js/demo.js?v=6.1117"></script>
+    <script src="js/app.js?v=6.1117"></script>
     
     <!-- 登入驗證 -->
     <script>
