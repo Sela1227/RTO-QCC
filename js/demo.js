@@ -1,6 +1,6 @@
 /**
  * 演示數據模組
- * 產生 80 位測試病人及完整記錄，覆蓋所有功能場景
+ * 產生 30 位測試病人及完整記錄，覆蓋所有功能場景
  */
 
 const DemoData = {
@@ -73,7 +73,7 @@ const DemoData = {
             return false;
         }
         
-        console.log('開始產生 100 位測試病人（含完整功能測試數據）...');
+        console.log('開始產生 30 位測試病人（含完整功能測試數據）...');
         
         // 初始化設定
         await this.initSettings();
@@ -88,21 +88,21 @@ const DemoData = {
         const todayStr = this.formatDate(new Date());
         
         /**
-         * 病人分布設計（100位）：
-         * 0-14:  治療中，體重正常（測試基本功能）
-         * 15-24: 治療中，需關注（達 SDM 閾值，7天內有處置）
-         * 25-34: 治療中，需處理（達 SDM 閾值，7天內無處置）
-         * 35-44: 治療中，營養師閾值（測試嚴重警示）
-         * 45-49: 治療中，待輸體重（超過3天沒量體重）
-         * 50-54: 治療中，待補資料（缺少基準體重/醫師/劑量）
-         * 55-57: 待上線（首療日期在未來）
-         * 58-60: 本日上線（首療日期是今天）
-         * 61-74: 已結案（含滿意度調查）
-         * 75-87: 暫停中
-         * 88-99: 已終止
+         * 病人分布設計（30位，覆蓋所有功能場景）：
+         * 0-4:   治療中，體重正常（5人）
+         * 5-7:   治療中，需關注（達 SDM 閾值，7天內有處置）（3人）
+         * 8-10:  治療中，需處理（達 SDM 閾值，7天內無處置）（3人）
+         * 11-12: 治療中，營養師閾值（2人）
+         * 13-14: 治療中，待輸體重（超過3天沒量體重）（2人）
+         * 15-16: 治療中，待補資料（缺少基準體重/醫師/劑量）（2人）
+         * 17:    待上線（首療日期在未來）（1人）
+         * 18:    本日上線（首療日期是今天）（1人）
+         * 19-23: 已結案（含滿意度調查）（5人）
+         * 24-27: 暫停中（4人）
+         * 28-29: 已終止（2人）
          */
         
-        for (let i = 0; i < 100; i++) {
+        for (let i = 0; i < 30; i++) {
             const surname = this.surnames[i % this.surnames.length];
             const given = this.givenNames[i % this.givenNames.length];
             const name = surname + given;
@@ -129,62 +129,62 @@ const DemoData = {
             let futureStart = false; // 待上線
             let todayStart = false; // 本日上線
             
-            if (i < 15) {
+            if (i < 5) {
                 // 治療中，體重正常
                 status = 'active';
                 startDaysAgo = 14 + Math.floor(Math.random() * 21);
                 weightScenario = 'normal';
-            } else if (i < 25) {
+            } else if (i < 8) {
                 // 治療中，SDM 閾值，已處置（需關注）
                 status = 'active';
                 startDaysAgo = 21 + Math.floor(Math.random() * 21);
                 weightScenario = 'sdm';
                 hasRecentIntervention = true;
                 sdmChoice = this.sdmChoices[i % this.sdmChoices.length];
-            } else if (i < 35) {
+            } else if (i < 11) {
                 // 治療中，SDM 閾值，未處置（需處理）
                 status = 'active';
                 startDaysAgo = 21 + Math.floor(Math.random() * 14);
                 weightScenario = 'sdm';
                 hasRecentIntervention = false;
-            } else if (i < 45) {
+            } else if (i < 13) {
                 // 治療中，營養師閾值
                 status = 'active';
                 startDaysAgo = 28 + Math.floor(Math.random() * 21);
                 weightScenario = 'nutrition';
                 hasRecentIntervention = Math.random() < 0.5;
                 sdmChoice = this.sdmChoices[Math.floor(Math.random() * 5)];
-            } else if (i < 50) {
+            } else if (i < 15) {
                 // 治療中，待輸體重（超過3天沒量）
                 status = 'active';
                 startDaysAgo = 14 + Math.floor(Math.random() * 14);
                 weightScenario = 'overdue';
-            } else if (i < 55) {
+            } else if (i < 17) {
                 // 治療中，待補資料
                 status = 'active';
                 startDaysAgo = 10 + Math.floor(Math.random() * 10);
                 weightScenario = 'normal';
                 incompleteData = true;
-            } else if (i < 58) {
+            } else if (i < 18) {
                 // 待上線（首療日期在未來）
                 status = 'active';
                 startDaysAgo = -(3 + Math.floor(Math.random() * 7)); // 負數表示未來
                 weightScenario = 'none';
                 futureStart = true;
-            } else if (i < 61) {
+            } else if (i < 19) {
                 // 本日上線（首療日期是今天）
                 status = 'active';
                 startDaysAgo = 0;
                 weightScenario = 'none';
                 todayStart = true;
-            } else if (i < 75) {
+            } else if (i < 24) {
                 // 已結案
                 status = 'completed';
                 startDaysAgo = 50 + Math.floor(Math.random() * 30);
                 endDate = this.daysAgo(5 + Math.floor(Math.random() * 15));
                 weightScenario = Math.random() < 0.6 ? 'normal' : 'sdm';
                 sdmChoice = Math.random() < 0.7 ? this.sdmChoices[Math.floor(Math.random() * 5)] : null;
-            } else if (i < 88) {
+            } else if (i < 28) {
                 // 暫停中
                 status = 'paused';
                 startDaysAgo = 21 + Math.floor(Math.random() * 28);
@@ -421,20 +421,24 @@ const DemoData = {
         }
         
         console.log(`演示數據初始化完成：`);
-        console.log(`- 病人：100 位`);
-        console.log(`- 療程：100 個`);
+        console.log(`- 病人：30 位`);
+        console.log(`- 療程：30 個`);
         console.log(`- 體重記錄：${weightId} 筆`);
         console.log(`- 副作用評估：${seId} 筆`);
         console.log(`- 介入記錄：${intId} 筆`);
         console.log(`- 滿意度：${satId} 筆`);
         console.log(`\n場景分布：`);
-        console.log(`- 治療中（正常）：10 位`);
-        console.log(`- 治療中（需關注）：8 位`);
-        console.log(`- 治療中（需處理）：7 位`);
-        console.log(`- 治療中（嚴重）：5 位`);
-        console.log(`- 已結案：8 位`);
-        console.log(`- 暫停中：6 位`);
-        console.log(`- 已終止：6 位`);
+        console.log(`- 治療中（正常）：5 位`);
+        console.log(`- 治療中（需關注）：3 位`);
+        console.log(`- 治療中（需處理）：3 位`);
+        console.log(`- 治療中（嚴重）：2 位`);
+        console.log(`- 待輸體重：2 位`);
+        console.log(`- 待補資料：2 位`);
+        console.log(`- 待上線：1 位`);
+        console.log(`- 本日上線：1 位`);
+        console.log(`- 已結案：5 位`);
+        console.log(`- 暫停中：4 位`);
+        console.log(`- 已終止：2 位`);
         
         return true;
     },

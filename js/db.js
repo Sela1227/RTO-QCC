@@ -433,7 +433,7 @@ async function initDefaultSettings() {
     ]);
     
     // 人員
-    await Settings.set('staff_list', ['王孝宇', '陳詩韻', '廖芝穎']);
+    await Settings.set('staff_list', ['王孝宇', '陳詩韻', '廖芝穎', '熊敬業', '劉育昌', '林伯儒']);
     
     // 警示規則
     await Settings.set('alert_rules', [
