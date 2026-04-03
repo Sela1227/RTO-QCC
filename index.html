@@ -33,7 +33,7 @@
                 <div class="logo">
                     <img src="logo.png" alt="SELA" class="logo-img" width="28" height="28" style="width:28px;height:28px;max-width:28px;max-height:28px;">
                     <span class="logo-text">彰濱放腫體重監控預防系統</span>
-                    <span class="header-version">v6.11.14</span>
+                    <span class="header-version">v6.11.15</span>
                 </div>
             </div>
             <div class="header-right">
@@ -101,14 +101,23 @@
                     <div class="page-header">
                         <h1>儀表板</h1>
                         <div class="header-actions">
-                            <button class="btn btn-outline btn-sm" onclick="App.syncFromFile()">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <polyline points="23 4 23 10 17 10"></polyline>
-                                    <polyline points="1 20 1 14 7 14"></polyline>
-                                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-                                </svg>
-                                同步
-                            </button>
+                            <div class="sync-dropdown">
+                                <button class="btn btn-outline btn-sm" onclick="App.toggleSyncMenu()">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="23 4 23 10 17 10"></polyline>
+                                        <polyline points="1 20 1 14 7 14"></polyline>
+                                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                                    </svg>
+                                    同步
+                                </button>
+                                <div class="sync-menu" id="sync-menu">
+                                    <div class="sync-menu-status" id="sync-status">未連接共享資料夾</div>
+                                    <button onclick="App.connectSharedFolder()">連接共享資料夾</button>
+                                    <button onclick="App.saveToSync()">儲存同步</button>
+                                    <button onclick="App.syncFromFile()">從檔案匯入</button>
+                                    <button onclick="App.exportBackup()">匯出備份</button>
+                                </div>
+                            </div>
                             <input type="file" id="home-sync-file" accept=".json" style="display: none;" 
                                    onchange="App.doSyncFromFile(this.files[0])">
                             <button class="btn btn-outline btn-sm" onclick="location.reload()">
@@ -626,22 +635,23 @@
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script></script>
 
     <!-- JS 模組 -->
-    <script src="js/config.js?v=6.1114"></script>
-    <script src="js/db.js?v=6.1114"></script>
-    <script src="js/utils.js?v=6.1114"></script>
-    <script src="js/patient.js?v=6.1114"></script>
-    <script src="js/treatment.js?v=6.1114"></script>
-    <script src="js/weight.js?v=6.1114"></script>
-    <script src="js/sideeffect.js?v=6.1114"></script>
-    <script src="js/intervention.js?v=6.1114"></script>
-    <script src="js/report.js?v=6.1114"></script>
-    <script src="js/settings.js?v=6.1114"></script>
-    <script src="js/sync.js?v=6.1114"></script>
-    <script src="js/satisfaction.js?v=6.1114"></script>
-    <script src="js/dashboard.js?v=6.1114"></script>
-    <script src="js/patient-db.js?v=6.1114"></script>
-    <script src="js/demo.js?v=6.1114"></script>
-    <script src="js/app.js?v=6.1114"></script>
+    <script src="js/config.js?v=6.1115"></script>
+    <script src="js/db.js?v=6.1115"></script>
+    <script src="js/utils.js?v=6.1115"></script>
+    <script src="js/patient.js?v=6.1115"></script>
+    <script src="js/treatment.js?v=6.1115"></script>
+    <script src="js/weight.js?v=6.1115"></script>
+    <script src="js/sideeffect.js?v=6.1115"></script>
+    <script src="js/intervention.js?v=6.1115"></script>
+    <script src="js/report.js?v=6.1115"></script>
+    <script src="js/settings.js?v=6.1115"></script>
+    <script src="js/sync.js?v=6.1115"></script>
+    <script src="js/version-sync.js?v=6.1115"></script>
+    <script src="js/satisfaction.js?v=6.1115"></script>
+    <script src="js/dashboard.js?v=6.1115"></script>
+    <script src="js/patient-db.js?v=6.1115"></script>
+    <script src="js/demo.js?v=6.1115"></script>
+    <script src="js/app.js?v=6.1115"></script>
     
     <!-- 登入驗證 -->
     <script>

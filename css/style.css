@@ -325,6 +325,66 @@ body {
     align-items: center;
 }
 
+/* === 同步下拉選單 === */
+.sync-dropdown {
+    position: relative;
+}
+
+.sync-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    min-width: 200px;
+    z-index: 100;
+    overflow: hidden;
+}
+
+.sync-menu.active {
+    display: block;
+}
+
+.sync-menu-status {
+    padding: 10px 14px;
+    font-size: 12px;
+    color: var(--text-hint);
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+}
+
+.sync-menu-status.sync-connected {
+    color: var(--success);
+}
+
+.sync-menu-status.sync-disconnected {
+    color: var(--text-hint);
+}
+
+.sync-menu button {
+    display: block;
+    width: 100%;
+    padding: 10px 14px;
+    text-align: left;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text);
+    transition: background 0.15s;
+}
+
+.sync-menu button:hover {
+    background: var(--bg);
+}
+
+.sync-menu button:not(:last-child) {
+    border-bottom: 1px solid var(--border-light);
+}
+
 /* === 統計卡片 === */
 .stats-grid {
     display: grid;

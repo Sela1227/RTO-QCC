@@ -25,6 +25,9 @@ const App = {
             await initDB();
             await initDefaultSettings();
             
+            // 初始化版本同步模組
+            await VersionSync.init();
+            
             // 綁定事件
             this.bindEvents();
             
@@ -40,6 +43,9 @@ const App = {
             // 初始化日期天氣顯示
             this.initDateWeather();
             
+            // 更新同步狀態顯示
+            this.updateSyncStatus();
+            
             // 檢查備份狀態（暫時關閉強制備份）
             // await this.checkBackupStatus();
             
@@ -48,12 +54,36 @@ const App = {
             
             console.log('彰濱放腫體重監控預防系統已啟動');
             
-            // 延遲顯示同步提示（讓畫面先載入）
-            setTimeout(() => Sync.checkOnStartup(), 500);
+            // 延遲檢查共享資料夾同步
+            setTimeout(() => this.checkVersionSync(), 500);
             
         } catch (e) {
             console.error('初始化失敗:', e);
             showToast('系統初始化失敗', 'error');
+        }
+    },
+    
+    /**
+     * 更新同步狀態顯示
+     */
+    updateSyncStatus() {
+        const statusEl = document.getElementById('sync-status');
+        if (statusEl) {
+            statusEl.textContent = VersionSync.getStatusText();
+            statusEl.className = VersionSync.isConnected() ? 'sync-connected' : 'sync-disconnected';
+        }
+    },
+    
+    /**
+     * 檢查版本同步
+     */
+    async checkVersionSync() {
+        if (VersionSync.isConnected()) {
+            // 已連接共享資料夾，檢查是否需要同步
+            const result = await VersionSync.load();
+            if (result.loaded) {
+                await this.refresh();
+            }
         }
     },
     
@@ -671,10 +701,84 @@ const App = {
         }
     },
     
+    // ==================== 版本同步功能 ====================
+    
+    /**
+     * 切換同步選單顯示
+     */
+    toggleSyncMenu() {
+        const menu = document.getElementById('sync-menu');
+        const isActive = menu.classList.contains('active');
+        
+        // 關閉其他選單
+        document.querySelectorAll('.sync-menu.active').forEach(m => m.classList.remove('active'));
+        
+        if (!isActive) {
+            menu.classList.add('active');
+            this.updateSyncStatus();
+            
+            // 點擊外部關閉
+            setTimeout(() => {
+                document.addEventListener('click', this.closeSyncMenuOnClickOutside, { once: true });
+            }, 0);
+        }
+    },
+    
+    closeSyncMenuOnClickOutside(e) {
+        const menu = document.getElementById('sync-menu');
+        const dropdown = e.target.closest('.sync-dropdown');
+        if (!dropdown) {
+            menu.classList.remove('active');
+        }
+    },
+    
+    /**
+     * 連接共享資料夾
+     */
+    async connectSharedFolder() {
+        document.getElementById('sync-menu').classList.remove('active');
+        
+        const connected = await VersionSync.connectAndSync();
+        if (connected) {
+            this.updateSyncStatus();
+            await this.refresh();
+        }
+    },
+    
+    /**
+     * 儲存同步（雙寫共享資料夾 + localStorage）
+     */
+    async saveToSync() {
+        document.getElementById('sync-menu').classList.remove('active');
+        
+        const result = await VersionSync.save();
+        if (result.success) {
+            this.updateSyncStatus();
+        }
+    },
+    
+    /**
+     * 匯出備份檔案
+     */
+    async exportBackup() {
+        document.getElementById('sync-menu').classList.remove('active');
+        
+        try {
+            const data = await exportAllData();
+            const filename = `RTO-QCC-備份-${formatDate(new Date())}.json`;
+            await downloadJSON(data, filename);
+            showToast('備份已匯出', 'success');
+        } catch (e) {
+            console.error('匯出失敗:', e);
+            showToast('匯出失敗: ' + e.message, 'error');
+        }
+    },
+    
     /**
      * 點擊同步按鈕（開啟檔案選擇）
      */
     syncFromFile() {
+        document.getElementById('sync-menu').classList.remove('active');
         document.getElementById('home-sync-file').click();
     },
     

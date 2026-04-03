@@ -128,12 +128,25 @@ RTO-QCC/
     ├── dashboard.js    # 成效儀表板
     ├── report.js       # 報表模組
     ├── settings.js     # 設定模組
-    ├── sync.js         # 同步模組
+    ├── sync.js         # 同步模組（舊版，衝突處理）
+    ├── version-sync.js # 版本同步模組（共享資料夾）
     ├── demo.js         # 示範資料
     └── patient-app.js  # 病人端應用
 ```
 
 ## 版本歷史
+
+### v6.11.15 (2026-04-03)
+- 新增版本同步模組（version-sync.js）
+- 支援共享資料夾同步（File System Access API）
+- 雙儲存機制：共享資料夾 + localStorage 備份
+- 版本號衝突檢測與解決 UI
+- 網路時間取得（TimeAPI.io → Cloudflare → local fallback）
+- 儀表板同步按鈕改為下拉選單：
+  - 連接共享資料夾
+  - 儲存同步
+  - 從檔案匯入
+  - 匯出備份
 
 ### v6.11.6 (2026-04-02)
 - 天氣 API 多備援機制（Open-Meteo + wttr.in，各 5 秒超時）
