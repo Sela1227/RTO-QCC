@@ -2153,7 +2153,7 @@ const SettingsPage = {
     },
     
     async loadDemoData() {
-        if (!confirm('載入演示資料將新增 30 位測試病人，確定？')) return;
+        if (!confirm('載入演示資料將新增 100 位測試病人（2024-2026），確定？')) return;
         
         try {
             await DemoData.init();

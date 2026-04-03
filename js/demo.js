@@ -1,6 +1,7 @@
 /**
  * 演示數據模組
- * 產生 30 位測試病人及完整記錄，覆蓋所有功能場景
+ * 產生 100 位測試病人及完整記錄，覆蓋所有功能場景
+ * 收案時間範圍：2024-01-01 ~ 2026-04-03
  */
 
 const DemoData = {
@@ -49,10 +50,17 @@ const DemoData = {
         return date.toISOString().split('T')[0];
     },
     
+    // 從今天往前算 n 天
     daysAgo(n) {
         const d = new Date();
         d.setDate(d.getDate() - n);
         return this.formatDate(d);
+    },
+    
+    // 產生指定範圍內的隨機日期（2024-01-01 ~ 2026-04-03）
+    randomDateInRange(minDaysAgo, maxDaysAgo) {
+        const days = minDaysAgo + Math.floor(Math.random() * (maxDaysAgo - minDaysAgo));
+        return this.daysAgo(days);
     },
     
     randomPhone() {
@@ -73,7 +81,7 @@ const DemoData = {
             return false;
         }
         
-        console.log('開始產生 30 位測試病人（含完整功能測試數據）...');
+        console.log('開始產生 100 位測試病人（2024-2026 完整功能測試數據）...');
         
         // 初始化設定
         await this.initSettings();
@@ -87,22 +95,31 @@ const DemoData = {
         // 今天日期
         const todayStr = this.formatDate(new Date());
         
+        // 計算 2024-01-01 距今天數（約 820 天）
+        const maxDaysAgo = Math.floor((new Date() - new Date('2024-01-01')) / (1000 * 60 * 60 * 24));
+        
         /**
-         * 病人分布設計（30位，覆蓋所有功能場景）：
-         * 0-4:   治療中，體重正常（5人）
-         * 5-7:   治療中，需關注（達 SDM 閾值，7天內有處置）（3人）
-         * 8-10:  治療中，需處理（達 SDM 閾值，7天內無處置）（3人）
-         * 11-12: 治療中，營養師閾值（2人）
-         * 13-14: 治療中，待輸體重（超過3天沒量體重）（2人）
-         * 15-16: 治療中，待補資料（缺少基準體重/醫師/劑量）（2人）
-         * 17:    待上線（首療日期在未來）（1人）
-         * 18:    本日上線（首療日期是今天）（1人）
-         * 19-23: 已結案（含滿意度調查）（5人）
-         * 24-27: 暫停中（4人）
-         * 28-29: 已終止（2人）
+         * 病人分布設計（100位）：
+         * 
+         * === 治療中 ===
+         * 0-9:   體重正常（10人）- 近期收案
+         * 10-17: 需關注（8人）- 達 SDM 閾值，7天內有處置
+         * 18-25: 需處理（8人）- 達 SDM 閾值，7天內無處置
+         * 26-31: 營養師閾值（6人）
+         * 32-35: 待輸體重（4人）- 超過7天沒量體重
+         * 36-39: 待補資料（4人）- 缺少基準體重/醫師/劑量
+         * 
+         * === 待上線 ===
+         * 40-42: 待上線（3人）- 首療日期在未來 1-14 天
+         * 43-44: 本日上線（2人）- 首療日期是今天
+         * 
+         * === 歷史案例（2024-2025）===
+         * 45-64: 已結案（20人）- 含滿意度調查
+         * 65-79: 暫停中（15人）
+         * 80-99: 已終止（20人）
          */
         
-        for (let i = 0; i < 30; i++) {
+        for (let i = 0; i < 100; i++) {
             const surname = this.surnames[i % this.surnames.length];
             const given = this.givenNames[i % this.givenNames.length];
             const name = surname + given;
@@ -125,76 +142,76 @@ const DemoData = {
             let hasRecentIntervention = false;
             let pauseReason = null, terminateReason = null;
             let sdmChoice = null;
-            let incompleteData = false; // 待補資料
-            let futureStart = false; // 待上線
-            let todayStart = false; // 本日上線
+            let incompleteData = false;
+            let futureStart = false;
+            let todayStart = false;
             
-            if (i < 5) {
-                // 治療中，體重正常
+            if (i < 10) {
+                // 治療中，體重正常（近期收案）
                 status = 'active';
-                startDaysAgo = 14 + Math.floor(Math.random() * 21);
+                startDaysAgo = 7 + Math.floor(Math.random() * 28); // 7-35 天前
                 weightScenario = 'normal';
-            } else if (i < 8) {
+            } else if (i < 18) {
                 // 治療中，SDM 閾值，已處置（需關注）
                 status = 'active';
-                startDaysAgo = 21 + Math.floor(Math.random() * 21);
+                startDaysAgo = 21 + Math.floor(Math.random() * 28);
                 weightScenario = 'sdm';
                 hasRecentIntervention = true;
                 sdmChoice = this.sdmChoices[i % this.sdmChoices.length];
-            } else if (i < 11) {
+            } else if (i < 26) {
                 // 治療中，SDM 閾值，未處置（需處理）
                 status = 'active';
-                startDaysAgo = 21 + Math.floor(Math.random() * 14);
+                startDaysAgo = 21 + Math.floor(Math.random() * 21);
                 weightScenario = 'sdm';
                 hasRecentIntervention = false;
-            } else if (i < 13) {
+            } else if (i < 32) {
                 // 治療中，營養師閾值
                 status = 'active';
-                startDaysAgo = 28 + Math.floor(Math.random() * 21);
+                startDaysAgo = 35 + Math.floor(Math.random() * 28);
                 weightScenario = 'nutrition';
                 hasRecentIntervention = Math.random() < 0.5;
                 sdmChoice = this.sdmChoices[Math.floor(Math.random() * 5)];
-            } else if (i < 15) {
-                // 治療中，待輸體重（超過3天沒量）
+            } else if (i < 36) {
+                // 治療中，待輸體重（超過7天沒量）
                 status = 'active';
-                startDaysAgo = 14 + Math.floor(Math.random() * 14);
+                startDaysAgo = 21 + Math.floor(Math.random() * 21);
                 weightScenario = 'overdue';
-            } else if (i < 17) {
+            } else if (i < 40) {
                 // 治療中，待補資料
                 status = 'active';
-                startDaysAgo = 10 + Math.floor(Math.random() * 10);
+                startDaysAgo = 7 + Math.floor(Math.random() * 14);
                 weightScenario = 'normal';
                 incompleteData = true;
-            } else if (i < 18) {
-                // 待上線（首療日期在未來）
+            } else if (i < 43) {
+                // 待上線（首療日期在未來 1-14 天）
                 status = 'active';
-                startDaysAgo = -(3 + Math.floor(Math.random() * 7)); // 負數表示未來
+                startDaysAgo = -(1 + Math.floor(Math.random() * 14)); // 負數表示未來
                 weightScenario = 'none';
                 futureStart = true;
-            } else if (i < 19) {
+            } else if (i < 45) {
                 // 本日上線（首療日期是今天）
                 status = 'active';
                 startDaysAgo = 0;
                 weightScenario = 'none';
                 todayStart = true;
-            } else if (i < 24) {
-                // 已結案
+            } else if (i < 65) {
+                // 已結案（2024-2025 歷史案例）
                 status = 'completed';
-                startDaysAgo = 50 + Math.floor(Math.random() * 30);
-                endDate = this.daysAgo(5 + Math.floor(Math.random() * 15));
+                startDaysAgo = 90 + Math.floor(Math.random() * (maxDaysAgo - 120)); // 90天~最遠
+                endDate = this.daysAgo(30 + Math.floor(Math.random() * 60));
                 weightScenario = Math.random() < 0.6 ? 'normal' : 'sdm';
                 sdmChoice = Math.random() < 0.7 ? this.sdmChoices[Math.floor(Math.random() * 5)] : null;
-            } else if (i < 28) {
+            } else if (i < 80) {
                 // 暫停中
                 status = 'paused';
-                startDaysAgo = 21 + Math.floor(Math.random() * 28);
+                startDaysAgo = 45 + Math.floor(Math.random() * 180);
                 weightScenario = Math.random() < 0.5 ? 'normal' : 'sdm';
                 pauseReason = this.pauseReasons[i % this.pauseReasons.length];
             } else {
-                // 已終止
+                // 已終止（2024-2025 歷史案例）
                 status = 'terminated';
-                startDaysAgo = 35 + Math.floor(Math.random() * 30);
-                endDate = this.daysAgo(3 + Math.floor(Math.random() * 20));
+                startDaysAgo = 60 + Math.floor(Math.random() * (maxDaysAgo - 90));
+                endDate = this.daysAgo(14 + Math.floor(Math.random() * 45));
                 weightScenario = 'sdm';
                 terminateReason = this.terminateReasons[i % this.terminateReasons.length];
             }
@@ -265,8 +282,8 @@ const DemoData = {
             if (weightScenario !== 'none' && startDaysAgo > 0) {
                 let numWeights;
                 if (weightScenario === 'overdue') {
-                    // 待輸體重：最後一次量測在 4-7 天前
-                    numWeights = 2;
+                    // 待輸體重：只產生早期幾筆，最後一筆在 8-14 天前
+                    numWeights = 2 + Math.floor(Math.random() * 2);
                 } else {
                     numWeights = Math.floor(startDaysAgo / 4) + 2;
                 }
@@ -284,8 +301,8 @@ const DemoData = {
                 for (let w = 0; w < numWeights; w++) {
                     let measureDay;
                     if (weightScenario === 'overdue') {
-                        // 最後一次量測在 4-7 天前
-                        measureDay = 4 + w * 5;
+                        // 待輸體重：最後一筆在 8-14 天前（確保超過 7 天）
+                        measureDay = 8 + w * 7 + Math.floor(Math.random() * 3);
                     } else {
                         measureDay = startDaysAgo - Math.floor(w * (startDaysAgo / numWeights));
                     }
@@ -421,24 +438,25 @@ const DemoData = {
         }
         
         console.log(`演示數據初始化完成：`);
-        console.log(`- 病人：30 位`);
-        console.log(`- 療程：30 個`);
+        console.log(`- 病人：100 位`);
+        console.log(`- 療程：100 個`);
         console.log(`- 體重記錄：${weightId} 筆`);
         console.log(`- 副作用評估：${seId} 筆`);
         console.log(`- 介入記錄：${intId} 筆`);
         console.log(`- 滿意度：${satId} 筆`);
         console.log(`\n場景分布：`);
-        console.log(`- 治療中（正常）：5 位`);
-        console.log(`- 治療中（需關注）：3 位`);
-        console.log(`- 治療中（需處理）：3 位`);
-        console.log(`- 治療中（嚴重）：2 位`);
-        console.log(`- 待輸體重：2 位`);
-        console.log(`- 待補資料：2 位`);
-        console.log(`- 待上線：1 位`);
-        console.log(`- 本日上線：1 位`);
-        console.log(`- 已結案：5 位`);
-        console.log(`- 暫停中：4 位`);
-        console.log(`- 已終止：2 位`);
+        console.log(`- 治療中（正常）：10 位`);
+        console.log(`- 治療中（需關注）：8 位`);
+        console.log(`- 治療中（需處理）：8 位`);
+        console.log(`- 治療中（嚴重）：6 位`);
+        console.log(`- 待輸體重：4 位`);
+        console.log(`- 待補資料：4 位`);
+        console.log(`- 待上線：3 位`);
+        console.log(`- 本日上線：2 位`);
+        console.log(`- 已結案：20 位`);
+        console.log(`- 暫停中：15 位`);
+        console.log(`- 已終止：20 位`);
+        console.log(`\n收案時間範圍：2024-01-01 ~ 2026-04-03`);
         
         return true;
     },
