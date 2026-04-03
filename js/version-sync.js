@@ -29,6 +29,13 @@ const VersionSync = {
     },
     
     /**
+     * 取得資料夾名稱
+     */
+    getFolderName() {
+        return this.directoryHandle?.name || null;
+    },
+    
+    /**
      * 設定當前用戶
      */
     setCurrentUser(name) {

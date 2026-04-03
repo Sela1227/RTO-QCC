@@ -1601,38 +1601,45 @@ const SettingsPage = {
      */
     async renderAlertRules() {
         const alertRules = await Settings.get('alert_rules', []);
+        const cancerTypes = await Settings.get('cancer_types', []);
         
         return `
             <div class="settings-card">
                 <div class="settings-card-header">
                     <h3>警示規則</h3>
-                    <button class="btn btn-primary btn-sm" onclick="SettingsPage.addAlertRule()">新增規則</button>
+                    <button class="btn btn-primary btn-sm" onclick="SettingsPage.addAlertRule()">新增癌別規則</button>
                 </div>
                 <div class="settings-card-body">
+                    <p style="margin-bottom: 16px; color: var(--text-secondary); font-size: 13px;">
+                        體重下降達閾值時自動觸發介入提醒
+                    </p>
                     ${alertRules.length === 0 ? '<p class="text-hint">尚未設定警示規則</p>' : `
                         <table class="settings-table">
                             <thead>
                                 <tr>
-                                    <th>名稱</th>
-                                    <th style="width: 80px;">閾值</th>
-                                    <th style="width: 80px;">類型</th>
+                                    <th>適用癌別</th>
+                                    <th style="width: 100px;">SDM 閾值</th>
+                                    <th style="width: 100px;">營養師閾值</th>
                                     <th style="width: 120px;">操作</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                ${alertRules.map((r, i) => `
+                                ${alertRules.map((r, i) => {
+                                    const label = r.cancer_type === 'default' ? '預設規則' : 
+                                        (cancerTypes.find(c => c.code === r.cancer_type)?.label || r.cancer_type);
+                                    return `
                                     <tr>
-                                        <td>${r.name}</td>
-                                        <td>${r.threshold}%</td>
-                                        <td>${r.type === 'sdm' ? 'SDM' : '營養師'}</td>
+                                        <td>${label}</td>
+                                        <td>${r.sdm_threshold}%</td>
+                                        <td>${r.nutrition_threshold}%</td>
                                         <td>
                                             <button class="btn-mini" onclick="SettingsPage.moveAlertRule(${i}, -1)" title="上移">▲</button>
                                             <button class="btn-mini" onclick="SettingsPage.moveAlertRule(${i}, 1)" title="下移">▼</button>
                                             <button class="btn-mini" onclick="SettingsPage.editAlertRule(${i})" title="編輯">✎</button>
-                                            ${!r.isDefault ? `<button class="btn-mini btn-mini-danger" onclick="SettingsPage.deleteAlertRule(${i})" title="刪除">✕</button>` : ''}
+                                            ${r.cancer_type !== 'default' ? `<button class="btn-mini btn-mini-danger" onclick="SettingsPage.deleteAlertRule(${i})" title="刪除">✕</button>` : ''}
                                         </td>
                                     </tr>
-                                `).join('')}
+                                `}).join('')}
                             </tbody>
                         </table>
                     `}
@@ -1659,7 +1666,7 @@ const SettingsPage = {
                         <div class="settings-list">
                             ${pauseReasons.map((r, i) => `
                                 <div class="settings-list-item">
-                                    <span>${r}</span>
+                                    <span>${r.label || r}</span>
                                     <div>
                                         <button class="btn-mini" onclick="SettingsPage.movePauseReason(${i}, -1)">▲</button>
                                         <button class="btn-mini" onclick="SettingsPage.movePauseReason(${i}, 1)">▼</button>
@@ -1683,7 +1690,7 @@ const SettingsPage = {
                         <div class="settings-list">
                             ${terminateReasons.map((r, i) => `
                                 <div class="settings-list-item">
-                                    <span>${r}</span>
+                                    <span>${r.label || r}</span>
                                     <div>
                                         <button class="btn-mini" onclick="SettingsPage.moveTerminateReason(${i}, -1)">▲</button>
                                         <button class="btn-mini" onclick="SettingsPage.moveTerminateReason(${i}, 1)">▼</button>
@@ -1705,6 +1712,8 @@ const SettingsPage = {
     async renderBackup() {
         const lastBackup = await Settings.get('last_backup_date', null);
         const lastSync = await Settings.get('last_sync_time', null);
+        const isConnected = VersionSync.isConnected();
+        const folderName = VersionSync.getFolderName();
         
         return `
             <div class="settings-card">
@@ -1733,17 +1742,22 @@ const SettingsPage = {
                     <h3>資料同步</h3>
                 </div>
                 <div class="settings-card-body">
-                    <p style="margin-bottom: 16px; color: var(--text-secondary);">
+                    <p style="margin-bottom: 12px; color: var(--text-secondary);">
                         上次同步：${lastSync ? formatDate(new Date(lastSync)) : '從未同步'}
                     </p>
-                    <p style="margin-bottom: 16px; color: var(--text-secondary);">
-                        共享資料夾：${VersionSync.isConnected() ? '已連接' : '未連接'}
+                    <p style="margin-bottom: ${isConnected ? '8px' : '16px'}; color: var(--text-secondary);">
+                        共享資料夾：${isConnected ? '<span style="color: var(--success);">已連接</span>' : '未連接'}
                     </p>
+                    ${isConnected && folderName ? `
+                        <p style="margin-bottom: 16px; color: var(--text-hint); font-size: 12px;">
+                            路徑：${folderName}/RTO-QCC-DATA.json
+                        </p>
+                    ` : ''}
                     <div style="display: flex; gap: 12px; flex-wrap: wrap;">
                         <button class="btn btn-primary" onclick="VersionSync.connectAndSync().then(() => SettingsPage.render())">
-                            ${VersionSync.isConnected() ? '重新連接' : '連接共享資料夾'}
+                            ${isConnected ? '重新連接' : '連接共享資料夾'}
                         </button>
-                        ${VersionSync.isConnected() ? `
+                        ${isConnected ? `
                             <button class="btn btn-outline" onclick="VersionSync.save()">
                                 立即同步
                             </button>
@@ -1917,15 +1931,24 @@ const SettingsPage = {
     
     // 警示規則
     async addAlertRule() {
-        const name = prompt('規則名稱：');
-        if (!name) return;
-        const threshold = prompt('閾值（負數，如 -3）：');
-        if (!threshold) return;
-        const type = prompt('類型（sdm 或 nutrition）：', 'sdm');
-        if (!type) return;
+        const cancerTypes = await Settings.get('cancer_types', []);
+        const options = cancerTypes.map(c => c.code).join(', ');
+        
+        const cancerType = prompt(`請輸入癌別代碼（${options}）：`);
+        if (!cancerType) return;
+        
+        const sdmThreshold = prompt('SDM 閾值（負數，如 -3）：', '-3');
+        if (!sdmThreshold) return;
+        
+        const nutritionThreshold = prompt('營養師閾值（負數，如 -5）：', '-5');
+        if (!nutritionThreshold) return;
         
         const alertRules = await Settings.get('alert_rules', []);
-        alertRules.push({ name, threshold: parseFloat(threshold), type });
+        alertRules.push({ 
+            cancer_type: cancerType, 
+            sdm_threshold: parseFloat(sdmThreshold), 
+            nutrition_threshold: parseFloat(nutritionThreshold) 
+        });
         await Settings.set('alert_rules', alertRules);
         this.render();
         showToast('已新增規則', 'success');
@@ -1935,12 +1958,17 @@ const SettingsPage = {
         const alertRules = await Settings.get('alert_rules', []);
         const item = alertRules[index];
         
-        const name = prompt('規則名稱：', item.name);
-        if (!name) return;
-        const threshold = prompt('閾值：', item.threshold);
-        if (!threshold) return;
+        const sdmThreshold = prompt('SDM 閾值：', item.sdm_threshold);
+        if (sdmThreshold === null) return;
         
-        alertRules[index] = { ...item, name, threshold: parseFloat(threshold) };
+        const nutritionThreshold = prompt('營養師閾值：', item.nutrition_threshold);
+        if (nutritionThreshold === null) return;
+        
+        alertRules[index] = { 
+            ...item, 
+            sdm_threshold: parseFloat(sdmThreshold), 
+            nutrition_threshold: parseFloat(nutritionThreshold) 
+        };
         await Settings.set('alert_rules', alertRules);
         this.render();
     },
@@ -1967,11 +1995,12 @@ const SettingsPage = {
     
     // 暫停原因
     async addPauseReason() {
-        const reason = prompt('請輸入暫停原因：');
-        if (!reason) return;
+        const label = prompt('請輸入暫停原因：');
+        if (!label) return;
         
+        const code = 'pause_' + Date.now();
         const reasons = await Settings.get('pause_reasons', []);
-        reasons.push(reason);
+        reasons.push({ code, label });
         await Settings.set('pause_reasons', reasons);
         this.render();
         showToast('已新增', 'success');
@@ -1979,10 +2008,11 @@ const SettingsPage = {
     
     async editPauseReason(index) {
         const reasons = await Settings.get('pause_reasons', []);
-        const reason = prompt('暫停原因：', reasons[index]);
-        if (!reason) return;
+        const item = reasons[index];
+        const label = prompt('暫停原因：', item.label || item);
+        if (!label) return;
         
-        reasons[index] = reason;
+        reasons[index] = typeof item === 'object' ? { ...item, label } : { code: 'pause_' + index, label };
         await Settings.set('pause_reasons', reasons);
         this.render();
     },
@@ -2009,11 +2039,12 @@ const SettingsPage = {
     
     // 終止原因
     async addTerminateReason() {
-        const reason = prompt('請輸入終止原因：');
-        if (!reason) return;
+        const label = prompt('請輸入終止原因：');
+        if (!label) return;
         
+        const code = 'terminate_' + Date.now();
         const reasons = await Settings.get('terminate_reasons', []);
-        reasons.push(reason);
+        reasons.push({ code, label });
         await Settings.set('terminate_reasons', reasons);
         this.render();
         showToast('已新增', 'success');
@@ -2021,10 +2052,11 @@ const SettingsPage = {
     
     async editTerminateReason(index) {
         const reasons = await Settings.get('terminate_reasons', []);
-        const reason = prompt('終止原因：', reasons[index]);
-        if (!reason) return;
+        const item = reasons[index];
+        const label = prompt('終止原因：', item.label || item);
+        if (!label) return;
         
-        reasons[index] = reason;
+        reasons[index] = typeof item === 'object' ? { ...item, label } : { code: 'terminate_' + index, label };
         await Settings.set('terminate_reasons', reasons);
         this.render();
     },
@@ -2083,8 +2115,16 @@ const SettingsPage = {
     },
     
     async clearAllData() {
-        if (!confirm('確定要清除所有資料？此操作無法復原！')) return;
-        if (!confirm('再次確認：清除後資料將永久刪除，確定？')) return;
+        // 產生隨機四碼
+        const code = Math.floor(1000 + Math.random() * 9000).toString();
+        const input = prompt(`此操作無法復原！請輸入 ${code} 確認清除所有資料：`);
+        
+        if (input !== code) {
+            if (input !== null) {
+                showToast('驗證碼不正確，操作已取消', 'error');
+            }
+            return;
+        }
         
         try {
             await DB.clear('patients');
