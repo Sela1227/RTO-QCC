@@ -136,6 +136,11 @@ RTO-QCC/
 
 ## 版本歷史
 
+### v6.11.16 (2026-04-03)
+- 天氣 API 改為 7Timer! 優先（醫院網路實測可用）
+- 移除 wttr.in（醫院網路被阻擋）
+- 備援順序：7Timer! → Open-Meteo → localStorage 暫存
+
 ### v6.11.15 (2026-04-03)
 - 新增版本同步模組（version-sync.js）
 - 支援共享資料夾同步（File System Access API）
