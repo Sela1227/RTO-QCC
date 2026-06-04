@@ -1,0 +1,59 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+ENV/
+env/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment
+.env
+.env.local
+*.local
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node (if applicable)
+node_modules/
+
+# Flet
+.flet/
+
+# === RTO-QCC 專案特定 ===
+# 純 JS 靜態網頁，無 build step（部署檔 = 原始檔）
+# 病人資料存於瀏覽器 IndexedDB，不落地成檔案
+# 本機測試暫存
+.cache/
+*.tmp

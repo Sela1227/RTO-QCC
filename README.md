@@ -1,6 +1,8 @@
-# RTO-QCC 彰濱放腫體重監控預防系統
-
-放射線治療病人體重監控與營養介入管理系統。
+<div align="center">
+  <img src="favicon/sela.svg" width="120" alt="SELA"/>
+  <h1>RTO-QCC 彰濱放腫體重監控預防系統</h1>
+  <p>放射線治療病人體重監控與營養介入管理系統</p>
+</div>
 
 ## 系統特色
 
@@ -135,6 +137,16 @@ RTO-QCC/
 ```
 
 ## 版本歷史
+
+### V7.0.0 (2026-06-04) — 對齊 SELA Starter Kit 里程碑
+- 首次對齊 SELA Starter Kit V1.11.1 開發規範
+- 版號改採嚴格三位制（V7.0.0，逢十進位 + 對齊重大里程碑）
+- 整合 SELA 品牌 logo 與整套 favicon
+- 新增 `.gitignore`（Git Pusher 部署必備）
+- 新增 `CLAUDE.md`（取代並整合原 HANDOVER.md，符合章法手冊）
+- 新增 `SELA-handoff.md`（首次對齊里程碑回流文件）
+- ZIP 命名改 `RTO-QCC V7.0.0.zip` 格式（空格分隔）
+- 涵蓋 v6.11.17–v6.11.23 累積變更：生日改可選欄位、待輸體重門檻 >7 天、預載病人擴充至 100 位（2024–2026）、系統設定移至側邊欄六分頁
 
 ### v6.11.16 (2026-04-03)
 - 天氣 API 改為 7Timer! 優先（醫院網路實測可用）
