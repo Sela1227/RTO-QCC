@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>彰濱放腫體重監控預防系統</title>
+    <link rel="stylesheet" href="css/style.css?v=6.1114">
+    <!-- 外部套件 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+    <!-- 登入畫面 -->
+    <div class="login-screen" id="login-screen">
+        <div class="login-box">
+            <img src="logo.png" alt="SELA" width="64" height="64" style="width:64px;height:64px;border-radius:12px;margin-bottom:16px;">
+            <h1>彰濱放腫體重監控預防系統</h1>
+            <p>請輸入密碼進入系統</p>
+            <form id="login-form" onsubmit="return handleLogin(event)">
+                <input type="password" id="login-password" class="login-input" placeholder="請輸入密碼" autofocus>
+                <button type="submit" class="btn btn-primary login-btn">進入系統</button>
+            </form>
+            <p class="login-error" id="login-error"></p>
+        </div>
+    </div>
+
+    <div class="app" id="main-app" style="display: none;">
+        <!-- 頂部列 -->
+        <header class="header">
+            <div class="header-left">
+                <div class="logo">
+                    <img src="logo.png" alt="SELA" class="logo-img" width="28" height="28" style="width:28px;height:28px;max-width:28px;max-height:28px;">
+                    <span class="logo-text">彰濱放腫體重監控預防系統</span>
+                    <span class="header-version">v6.11.23</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <!-- 設定已移至側邊欄 -->
+            </div>
+        </header>
+
+        <!-- 主內容區 -->
+        <div class="main">
+            <!-- 左側選單 -->
+            <nav class="sidebar">
+                <ul class="nav-list">
+                    <li class="nav-item active" data-page="home">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                        </svg>
+                        <span>儀表板</span>
+                    </li>
+                    <li class="nav-item" data-page="tracking">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                            <polyline points="10 9 9 9 8 9"></polyline>
+                        </svg>
+                        <span>追蹤清單</span>
+                    </li>
+                    <li class="nav-item" data-page="patients">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+                            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+                        </svg>
+                        <span>資料庫</span>
+                    </li>
+                    <li class="nav-item" data-page="reports">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="20" x2="18" y2="10"></line>
+                            <line x1="12" y1="20" x2="12" y2="4"></line>
+                            <line x1="6" y1="20" x2="6" y2="14"></line>
+                        </svg>
+                        <span>統計報表</span>
+                    </li>
+                    <li class="nav-item" data-page="dashboard">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                        <span>系統成效</span>
+                    </li>
+                    <li class="nav-item" data-page="settings">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                        </svg>
+                        <span>系統設定</span>
+                    </li>
+                </ul>
+            </nav>
+
+            <!-- 內容區 -->
+            <main class="content">
+                <!-- 儀表板 -->
+                <section class="page active" id="page-home">
+                    <div class="page-header">
+                        <h1>儀表板</h1>
+                        <div class="header-actions">
+                            <div class="sync-dropdown">
+                                <button class="btn btn-outline btn-sm" onclick="App.toggleSyncMenu()">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="23 4 23 10 17 10"></polyline>
+                                        <polyline points="1 20 1 14 7 14"></polyline>
+                                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                                    </svg>
+                                    同步
+                                </button>
+                                <div class="sync-menu" id="sync-menu">
+                                    <div class="sync-menu-status sync-disconnected" id="sync-status">未連接共享資料夾</div>
+                                    <div class="sync-menu-items">
+                                        <button class="sync-menu-item" onclick="App.connectSharedFolder()">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                                                <line x1="12" y1="11" x2="12" y2="17"></line>
+                                                <line x1="9" y1="14" x2="15" y2="14"></line>
+                                            </svg>
+                                            連接共享資料夾
+                                        </button>
+                                        <button class="sync-menu-item" onclick="App.saveToSync()">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                                                <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                                                <polyline points="7 3 7 8 15 8"></polyline>
+                                            </svg>
+                                            儲存同步
+                                        </button>
+                                        <div class="sync-menu-divider"></div>
+                                        <button class="sync-menu-item" onclick="App.syncFromFile()">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                                <polyline points="7 10 12 15 17 10"></polyline>
+                                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                                            </svg>
+                                            從檔案匯入
+                                        </button>
+                                        <button class="sync-menu-item" onclick="App.exportBackup()">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                                <polyline points="17 8 12 3 7 8"></polyline>
+                                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                                            </svg>
+                                            匯出備份
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <input type="file" id="home-sync-file" accept=".json" style="display: none;" 
+                                   onchange="App.doSyncFromFile(this.files[0])">
+                            <button class="btn btn-outline btn-sm" onclick="location.reload()">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 2v6h-6"></path>
+                                    <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
+                                    <path d="M3 22v-6h6"></path>
+                                    <path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
+                                </svg>
+                                更新
+                            </button>
+                            <button class="btn btn-primary btn-sm" id="btn-new-patient">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                                新增病人
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="stats-grid stats-grid-9">
+                        <!-- 日期天氣區塊（佔 3 欄） -->
+                        <div class="date-weather-bar">
+                            <div class="date-info">
+                                <span class="date-today" id="date-today"></span>
+                                <span class="date-lunar" id="date-lunar"></span>
+                            </div>
+                            <div class="weather-info" id="weather-info">
+                                <span class="weather-icon" id="weather-icon"></span>
+                                <span class="weather-temp" id="weather-temp"></span>
+                                <span class="weather-desc" id="weather-desc"></span>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card" data-filter="active">
+                            <div class="stat-icon stat-icon-blue">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                                </svg>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="stat-active">0</span>
+                                <span class="stat-label">治療中</span>
+                            </div>
+                        </div>
+                        <div class="stat-card" data-filter="paused">
+                            <div class="stat-icon stat-icon-gray">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <line x1="10" y1="15" x2="10" y2="9"></line>
+                                    <line x1="14" y1="15" x2="14" y2="9"></line>
+                                </svg>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="stat-paused">0</span>
+                                <span class="stat-label">暫停中</span>
+                            </div>
+                        </div>
+                        <div class="stat-card" data-filter="attention">
+                            <div class="stat-icon stat-icon-teal">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="stat-attention">0</span>
+                                <span class="stat-label">需關注</span>
+                            </div>
+                        </div>
+                        <div class="stat-card stat-card-warning" data-filter="pending">
+                            <div class="stat-icon stat-icon-amber">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                                </svg>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="stat-pending">0</span>
+                                <span class="stat-label">需處理</span>
+                            </div>
+                        </div>
+                        <div class="stat-card stat-card-danger" data-filter="overdue">
+                            <div class="stat-icon stat-icon-coral">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <polyline points="12 6 12 12 16 14"></polyline>
+                                </svg>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="stat-overdue">0</span>
+                                <span class="stat-label">待輸體重</span>
+                            </div>
+                        </div>
+                        <div class="stat-card" data-filter="incomplete">
+                            <div class="stat-icon stat-icon-purple">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                    <line x1="12" y1="18" x2="12" y2="12"></line>
+                                    <line x1="9" y1="15" x2="15" y2="15"></line>
+                                </svg>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="stat-incomplete">0</span>
+                                <span class="stat-label">待補資料</span>
+                            </div>
+                        </div>
+                        <div class="stat-card" data-filter="upcoming">
+                            <div class="stat-icon stat-icon-indigo">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                                </svg>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="stat-upcoming">0</span>
+                                <span class="stat-label">待上線</span>
+                            </div>
+                        </div>
+                        <div class="stat-card" data-filter="today">
+                            <div class="stat-icon stat-icon-green">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                                </svg>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="stat-today">0</span>
+                                <span class="stat-label">本日上線</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 備份提醒 -->
+                    <div id="backup-reminder" class="backup-reminder" style="display: none;">
+                        <div class="backup-reminder-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                        </div>
+                        <div class="backup-reminder-text">
+                            <strong>資料備份提醒</strong>
+                            <span id="backup-reminder-msg">已超過一週未備份</span>
+                        </div>
+                        <button class="btn btn-warning btn-sm" onclick="App.doBackup()">
+                            立即備份
+                        </button>
+                    </div>
+                </section>
+
+                <!-- 追蹤頁 -->
+                <section class="page" id="page-tracking">
+                    <div class="page-header">
+                        <h1>追蹤清單</h1>
+                        <div class="tab-group tab-group-4x2">
+                            <button class="tab active" data-tab="active">治療中</button>
+                            <button class="tab" data-tab="paused">暫停中</button>
+                            <button class="tab tab-teal" data-tab="attention">需關注</button>
+                            <button class="tab tab-warning" data-tab="pending">需處理</button>
+                            <button class="tab tab-danger" data-tab="overdue">待輸體重</button>
+                            <button class="tab tab-purple" data-tab="incomplete">待補資料</button>
+                            <button class="tab tab-indigo" data-tab="upcoming">待上線</button>
+                            <button class="tab tab-green" data-tab="today">今日上線</button>
+                        </div>
+                    </div>
+                    <!-- 篩選排序工具列 -->
+                    <div class="tracking-toolbar">
+                        <div class="toolbar-filters">
+                            <select class="form-select form-select-sm" id="tracking-filter-cancer">
+                                <option value="">全部癌別</option>
+                            </select>
+                            <select class="form-select form-select-sm" id="tracking-filter-physician">
+                                <option value="">全部醫師</option>
+                            </select>
+                            <select class="form-select form-select-sm" id="tracking-sort">
+                                <option value="medical_id">病歷號</option>
+                                <option value="change_rate">體重變化</option>
+                                <option value="start_date">首療日期</option>
+                                <option value="name">姓氏</option>
+                            </select>
+                            <button class="btn-icon btn-icon-sm" id="tracking-sort-dir" title="排序方向">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 5v14M5 12l7 7 7-7"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="tracking-layout">
+                        <div class="tracking-list" id="tracking-list">
+                            <!-- 動態載入 -->
+                        </div>
+                        <div class="tracking-detail" id="tracking-detail">
+                            <div class="empty-state">
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                </svg>
+                                <p>點選左側病人查看詳情</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 病人頁 -->
+                <section class="page" id="page-patients">
+                    <div class="page-header">
+                        <h1>資料庫</h1>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn btn-outline" onclick="PatientDB.exportExcel()">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7 10 12 15 17 10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                                匯出 Excel
+                            </button>
+                            <button class="btn btn-primary" id="btn-add-patient">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                                新增病人
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 篩選工具列 -->
+                    <div class="db-toolbar">
+                        <!-- 第一列：收案區間 -->
+                        <div class="db-toolbar-row">
+                            <span class="db-toolbar-label">收案區間</span>
+                            <div class="db-period-btns">
+                                <button class="btn btn-outline btn-sm active" onclick="PatientDB.setPeriod('all')" data-period="all">全部</button>
+                                <button class="btn btn-outline btn-sm" onclick="PatientDB.setPeriod('week')" data-period="week">本週</button>
+                                <button class="btn btn-outline btn-sm" onclick="PatientDB.setPeriod('month')" data-period="month">本月</button>
+                                <button class="btn btn-outline btn-sm" onclick="PatientDB.setPeriod('quarter')" data-period="quarter">本季</button>
+                                <button class="btn btn-outline btn-sm" onclick="PatientDB.setPeriod('year')" data-period="year">本年</button>
+                                <button class="btn btn-outline btn-sm" onclick="PatientDB.setPeriod('specific_year')" data-period="specific_year">指定年</button>
+                                <button class="btn btn-outline btn-sm" onclick="PatientDB.setPeriod('custom')" data-period="custom">指定區間</button>
+                            </div>
+                            <!-- 日期選擇器 -->
+                            <div id="db-date-range" style="display: none;">
+                                <select class="form-select" id="db-year" style="width: 100px;" onchange="PatientDB.refresh()"></select>
+                                <input type="date" class="form-input" id="db-date-from" style="width: 140px;" onchange="PatientDB.refresh()">
+                                <span id="db-date-sep" style="color: var(--text-hint);">～</span>
+                                <input type="date" class="form-input" id="db-date-to" style="width: 140px;" onchange="PatientDB.refresh()">
+                            </div>
+                        </div>
+                        
+                        <!-- 第二列：篩選條件 -->
+                        <div class="db-toolbar-row">
+                            <span class="db-toolbar-label">篩選</span>
+                            <select class="form-select" id="patient-filter-status" style="width: 120px;" onchange="PatientDB.refresh()">
+                                <option value="all">全部狀態</option>
+                                <option value="has_active">治療中</option>
+                                <option value="has_paused">暫停中</option>
+                                <option value="no_active">無進行療程</option>
+                            </select>
+                            <select class="form-select" id="patient-filter-cancer" style="width: 120px;" onchange="PatientDB.refresh()">
+                                <option value="all">全部癌別</option>
+                            </select>
+                            <select class="form-select" id="patient-filter-physician" style="width: 120px;" onchange="PatientDB.refresh()">
+                                <option value="all">全部醫師</option>
+                            </select>
+                            <div class="db-search-box">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="11" cy="11" r="8"></circle>
+                                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                </svg>
+                                <input type="text" id="patient-search-input" placeholder="病歷號或姓名">
+                                <button class="btn btn-primary btn-sm" id="btn-patient-search">搜尋</button>
+                            </div>
+                        </div>
+                        
+                        <!-- 第三列：排序 -->
+                        <div class="db-toolbar-row">
+                            <span class="db-toolbar-label">排序</span>
+                            <select class="form-select" id="db-sort-1" style="width: 120px;" onchange="PatientDB.refresh()">
+                                <option value="">第一排序</option>
+                                <option value="medical_id">病歷號</option>
+                                <option value="treatment_start">首療日期</option>
+                                <option value="name">姓氏</option>
+                                <option value="cancer_type">癌別</option>
+                                <option value="physician">主治醫師</option>
+                            </select>
+                            <button class="btn btn-icon btn-sm" id="db-sort-1-dir" onclick="PatientDB.toggleSortDir(1)" title="降序">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 5v14M5 12l7 7 7-7"/>
+                                </svg>
+                            </button>
+                            <select class="form-select" id="db-sort-2" style="width: 120px;" onchange="PatientDB.refresh()">
+                                <option value="">第二排序</option>
+                                <option value="medical_id">病歷號</option>
+                                <option value="treatment_start">首療日期</option>
+                                <option value="name">姓氏</option>
+                                <option value="cancer_type">癌別</option>
+                                <option value="physician">主治醫師</option>
+                            </select>
+                            <button class="btn btn-icon btn-sm" id="db-sort-2-dir" onclick="PatientDB.toggleSortDir(2)" title="降序">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 5v14M5 12l7 7 7-7"/>
+                                </svg>
+                            </button>
+                            <span class="db-result-count" id="db-result-count"></span>
+                        </div>
+                    </div>
+                    
+                    <div class="patient-list" id="patient-list">
+                        <!-- 動態載入 -->
+                    </div>
+                </section>
+
+                <!-- 報表頁 -->
+                <section class="page" id="page-reports">
+                    <div class="page-header">
+                        <h1>統計報表</h1>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn btn-outline" id="btn-export-pdf">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                                    <polyline points="10 9 9 9 8 9"></polyline>
+                                </svg>
+                                匯出 PDF
+                            </button>
+                            <button class="btn btn-outline" id="btn-export-excel">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7 10 12 15 17 10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                                匯出 Excel
+                            </button>
+                        </div>
+                    </div>
+                    <!-- 篩選區 -->
+                    <div class="report-filters" style="margin-bottom: 20px;">
+                        <!-- 第一列：收案區間 -->
+                        <div class="db-toolbar-row" style="margin-bottom: 12px;">
+                            <span class="db-toolbar-label">收案區間</span>
+                            <div class="db-period-btns">
+                                <button class="btn btn-outline btn-sm active" onclick="Report.setPeriod('all')" data-period="all">全部</button>
+                                <button class="btn btn-outline btn-sm" onclick="Report.setPeriod('week')" data-period="week">本週</button>
+                                <button class="btn btn-outline btn-sm" onclick="Report.setPeriod('month')" data-period="month">本月</button>
+                                <button class="btn btn-outline btn-sm" onclick="Report.setPeriod('quarter')" data-period="quarter">本季</button>
+                                <button class="btn btn-outline btn-sm" onclick="Report.setPeriod('year')" data-period="year">本年</button>
+                                <button class="btn btn-outline btn-sm" onclick="Report.setPeriod('specific_year')" data-period="specific_year">指定年</button>
+                                <button class="btn btn-outline btn-sm" onclick="Report.setPeriod('custom')" data-period="custom">指定區間</button>
+                            </div>
+                            <!-- 日期選擇器 -->
+                            <div id="report-date-range" style="display: none;">
+                                <select class="form-select" id="report-year" style="width: 100px;" onchange="Report.onFilterChange()"></select>
+                                <input type="date" class="form-input" id="report-date-from" style="width: 140px;" onchange="Report.onFilterChange()">
+                                <span id="report-date-sep" style="color: var(--text-hint);">～</span>
+                                <input type="date" class="form-input" id="report-date-to" style="width: 140px;" onchange="Report.onFilterChange()">
+                            </div>
+                        </div>
+                        <!-- 第二列：癌別篩選 -->
+                        <div class="db-toolbar-row">
+                            <span class="db-toolbar-label">篩選</span>
+                            <select class="form-select" id="report-cancer-type" style="width: 120px;" onchange="Report.onFilterChange()">
+                                <option value="all">全部癌別</option>
+                            </select>
+                        </div>
+                    </div>
+                    <!-- 分項 Tab（多選） -->
+                    <div class="dashboard-tabs" style="display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;">
+                        <label class="dashboard-tab-check active">
+                            <input type="checkbox" value="all" checked onchange="Report.onTabChange(event)"> 全部
+                        </label>
+                        <label class="dashboard-tab-check">
+                            <input type="checkbox" value="treatment" onchange="Report.onTabChange(event)"> 療程統計
+                        </label>
+                        <label class="dashboard-tab-check">
+                            <input type="checkbox" value="cancer" onchange="Report.onTabChange(event)"> 癌別分布
+                        </label>
+                        <label class="dashboard-tab-check">
+                            <input type="checkbox" value="weight" onchange="Report.onTabChange(event)"> 體重統計
+                        </label>
+                        <label class="dashboard-tab-check">
+                            <input type="checkbox" value="intervention" onchange="Report.onTabChange(event)"> 介入統計
+                        </label>
+                        <label class="dashboard-tab-check">
+                            <input type="checkbox" value="physician" onchange="Report.onTabChange(event)"> 主治醫師
+                        </label>
+                        <label class="dashboard-tab-check">
+                            <input type="checkbox" value="demographic" onchange="Report.onTabChange(event)"> 人口統計
+                        </label>
+                        <label class="dashboard-tab-check">
+                            <input type="checkbox" value="sideeffect" onchange="Report.onTabChange(event)"> 副作用
+                        </label>
+                        <label class="dashboard-tab-check">
+                            <input type="checkbox" value="satisfaction" onchange="Report.onTabChange(event)"> 滿意度
+                        </label>
+                    </div>
+                    <div class="report-content" id="report-content">
+                        <!-- 動態載入 -->
+                    </div>
+                </section>
+
+                <!-- 成效儀表板 -->
+                <section class="page" id="page-dashboard">
+                    <div class="page-header">
+                        <h1>系統成效</h1>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn btn-primary" onclick="Dashboard.exportPDF()">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7 10 12 15 17 10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                                匯出 PDF 報告
+                            </button>
+                        </div>
+                    </div>
+                    <!-- 期間選擇 -->
+                    <div class="dashboard-filters" style="margin-bottom: 16px;">
+                        <div class="db-toolbar-row">
+                            <span class="db-toolbar-label">收案區間</span>
+                            <div class="db-period-btns">
+                                <button class="btn btn-outline btn-sm active" onclick="Dashboard.setPeriod('all')" data-period="all">全部</button>
+                                <button class="btn btn-outline btn-sm" onclick="Dashboard.setPeriod('week')" data-period="week">本週</button>
+                                <button class="btn btn-outline btn-sm" onclick="Dashboard.setPeriod('month')" data-period="month">本月</button>
+                                <button class="btn btn-outline btn-sm" onclick="Dashboard.setPeriod('quarter')" data-period="quarter">本季</button>
+                                <button class="btn btn-outline btn-sm" onclick="Dashboard.setPeriod('year')" data-period="year">本年</button>
+                                <button class="btn btn-outline btn-sm" onclick="Dashboard.setPeriod('specific_year')" data-period="specific_year">指定年</button>
+                                <button class="btn btn-outline btn-sm" onclick="Dashboard.setPeriod('custom')" data-period="custom">指定區間</button>
+                            </div>
+                            <!-- 日期選擇器 -->
+                            <div id="dashboard-date-range" style="display: none;">
+                                <select class="form-select" id="dashboard-year" style="width: 100px;" onchange="Dashboard.refresh()"></select>
+                                <input type="date" class="form-input" id="dashboard-date-from" style="width: 140px;" onchange="Dashboard.refresh()">
+                                <span id="dashboard-date-sep" style="color: var(--text-hint);">～</span>
+                                <input type="date" class="form-input" id="dashboard-date-to" style="width: 140px;" onchange="Dashboard.refresh()">
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 分項 Tab（多選） -->
+                    <div class="dashboard-tabs" style="display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;">
+                        <label class="dashboard-tab-check active">
+                            <input type="checkbox" value="all" checked onchange="Dashboard.onTabChange(event)"> 全部
+                        </label>
+                        <label class="dashboard-tab-check">
+                            <input type="checkbox" value="overview" onchange="Dashboard.onTabChange(event)"> 總覽
+                        </label>
+                        <label class="dashboard-tab-check">
+                            <input type="checkbox" value="weight" onchange="Dashboard.onTabChange(event)"> 體重追蹤
+                        </label>
+                        <label class="dashboard-tab-check">
+                            <input type="checkbox" value="intervention" onchange="Dashboard.onTabChange(event)"> 介入成效
+                        </label>
+                        <label class="dashboard-tab-check">
+                            <input type="checkbox" value="treatment" onchange="Dashboard.onTabChange(event)"> 療程統計
+                        </label>
+                        <label class="dashboard-tab-check">
+                            <input type="checkbox" value="satisfaction" onchange="Dashboard.onTabChange(event)"> 滿意度
+                        </label>
+                    </div>
+                    <!-- KPI 卡片 -->
+                    <div class="dashboard-kpi-grid" id="dashboard-kpi">
+                        <!-- 動態載入 -->
+                    </div>
+                    <!-- 圖表區 -->
+                    <div class="dashboard-charts" id="dashboard-charts">
+                        <!-- 動態載入 -->
+                    </div>
+                </section>
+
+                <!-- 系統設定 -->
+                <section class="page" id="page-settings">
+                    <div class="page-header">
+                        <h1>系統設定</h1>
+                    </div>
+                    
+                    <!-- 設定 Tab -->
+                    <div class="settings-page-tabs">
+                        <button class="settings-page-tab active" data-tab="cancer" onclick="SettingsPage.switchTab('cancer')">癌別管理</button>
+                        <button class="settings-page-tab" data-tab="staff" onclick="SettingsPage.switchTab('staff')">人員管理</button>
+                        <button class="settings-page-tab" data-tab="alert" onclick="SettingsPage.switchTab('alert')">警示規則</button>
+                        <button class="settings-page-tab" data-tab="reasons" onclick="SettingsPage.switchTab('reasons')">暫停/終止原因</button>
+                        <button class="settings-page-tab" data-tab="backup" onclick="SettingsPage.switchTab('backup')">備份還原</button>
+                        <button class="settings-page-tab" data-tab="other" onclick="SettingsPage.switchTab('other')">其他設定</button>
+                    </div>
+                    
+                    <!-- 設定內容區 -->
+                    <div class="settings-page-content" id="settings-page-content">
+                        <!-- 動態載入 -->
+                    </div>
+                </section>
+            </main>
+        </div>
+
+        <!-- 底部列 -->
+        <footer class="footer">
+            <span id="footer-stats">載入中...</span>
+            <span class="footer-divider">·</span>
+            <span>彰濱秀傳紀念醫院</span>
+        </footer>
+    </div>
+
+    <!-- 對話框容器 -->
+    <div class="modal-overlay" id="modal-overlay">
+        <div class="modal" id="modal">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modal-title">標題</h2>
+                <button class="btn-icon modal-close" id="modal-close">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body" id="modal-body">
+                <!-- 動態內容 -->
+            </div>
+            <div class="modal-footer" id="modal-footer">
+                <!-- 動態按鈕 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast 通知 -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- QR Code 掃描函式庫 -->
+    <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <!-- QR Code 生成函式庫 -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script></script>
+
+    <!-- JS 模組 -->
+    <script src="js/config.js?v=6.1123"></script>
+    <script src="js/db.js?v=6.1123"></script>
+    <script src="js/utils.js?v=6.1123"></script>
+    <script src="js/patient.js?v=6.1123"></script>
+    <script src="js/treatment.js?v=6.1123"></script>
+    <script src="js/weight.js?v=6.1123"></script>
+    <script src="js/sideeffect.js?v=6.1123"></script>
+    <script src="js/intervention.js?v=6.1123"></script>
+    <script src="js/report.js?v=6.1123"></script>
+    <script src="js/settings.js?v=6.1123"></script>
+    <script src="js/sync.js?v=6.1123"></script>
+    <script src="js/version-sync.js?v=6.1123"></script>
+    <script src="js/satisfaction.js?v=6.1123"></script>
+    <script src="js/dashboard.js?v=6.1123"></script>
+    <script src="js/patient-db.js?v=6.1123"></script>
+    <script src="js/demo.js?v=6.1123"></script>
+    <script src="js/app.js?v=6.1123"></script>
+    
+    <!-- 登入驗證 -->
+    <script>
+    function handleLogin(e) {
+        e.preventDefault();
+        const pwd = document.getElementById('login-password').value;
+        const errorEl = document.getElementById('login-error');
+        
+        if (pwd === CONFIG.PASSWORD) {
+            // 密碼正確，儲存登入狀態
+            if (CONFIG.REMEMBER_DAYS > 0) {
+                const expires = Date.now() + (CONFIG.REMEMBER_DAYS * 24 * 60 * 60 * 1000);
+                localStorage.setItem('login_expires', expires);
+            }
+            showMainApp();
+        } else {
+            errorEl.textContent = '密碼錯誤，請重試';
+            document.getElementById('login-password').value = '';
+            document.getElementById('login-password').focus();
+        }
+        return false;
+    }
+    
+    function showMainApp() {
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('main-app').style.display = 'flex';
+        App.init();
+    }
+    
+    function checkLogin() {
+        const expires = localStorage.getItem('login_expires');
+        if (expires && Date.now() < parseInt(expires)) {
+            showMainApp();
+        }
+    }
+    
+    // 頁面載入時檢查登入狀態
+    checkLogin();
+    </script>
+</body>
+</html>
