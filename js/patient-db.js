@@ -281,9 +281,15 @@ const PatientDB = {
         }
         
         // 篩選：收案日期範圍
+        // 註：「收案日期」來自療程的開始日期。尚無療程的病人沒有收案日期，
+        //     不可套用此篩選 —— 否則只建了基本資料的病人會從資料庫頁消失，
+        //     連用姓名/病歷號搜尋都找不回來，導致永遠無法補建療程。
         if (dateRange.from || dateRange.to) {
             patients = patients.filter(p => {
-                if (!p._treatment_start) return false;
+                // 尚無療程 → 一律顯示（正是需要補建療程的對象）
+                if (p.treatments.length === 0) return true;
+                // 有療程但缺開始日期（待補資料）→ 也不隱藏
+                if (!p._treatment_start) return true;
                 const startDate = p._treatment_start;
                 if (dateRange.from && startDate < dateRange.from) return false;
                 if (dateRange.to && startDate > dateRange.to) return false;

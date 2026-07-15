@@ -1,19 +1,16 @@
 {
+  "id": "rto-qcc-medical",
   "name": "彰濱放腫體重監控預防系統",
   "short_name": "RTO-QCC",
-  "icons": [
-    {
-      "src": "android-chrome-192x192.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "android-chrome-512x512.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    }
-  ],
+  "description": "放射線治療病人體重監控與營養介入管理（醫護端）",
+  "start_url": "../index.html",
+  "scope": "../",
+  "display": "standalone",
+  "orientation": "any",
   "theme_color": "#5B8FB9",
   "background_color": "#F7F9FB",
-  "display": "standalone"
+  "icons": [
+    { "src": "android-chrome-192x192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "android-chrome-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
 }

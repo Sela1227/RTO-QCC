@@ -406,21 +406,12 @@ async function importPatientData(data) {
 }
 
 /**
- * 初始化預設設定
+ * 預設設定值（單一真相）
+ * ⚠ 在此新增項目時不必再擔心舊資料庫拿不到 —— initDefaultSettings 會自動補齊缺少的鍵。
  */
-async function initDefaultSettings() {
-    const existing = await Settings.get('initialized');
-    
-    // 確保病人端網址有預設值（新舊用戶都適用）
-    const patientAppUrl = await Settings.get('patient_app_url');
-    if (!patientAppUrl) {
-        await Settings.set('patient_app_url', 'https://sela1227.github.io/RTO-QCC/patient.html');
-    }
-    
-    if (existing) return;
-    
+const DEFAULT_SETTINGS = {
     // 癌別
-    await Settings.set('cancer_types', [
+    cancer_types: [
         { code: 'head_neck', label: '頭頸癌' },
         { code: 'lung', label: '肺癌' },
         { code: 'breast', label: '乳癌' },
@@ -430,48 +421,73 @@ async function initDefaultSettings() {
         { code: 'prostate', label: '攝護腺癌' },
         { code: 'cervical', label: '子宮頸癌' },
         { code: 'other', label: '其他' }
-    ]);
-    
+    ],
     // 人員
-    await Settings.set('staff_list', ['王孝宇', '陳詩韻', '廖芝穎', '熊敬業', '劉育昌', '林伯儒']);
-    
+    staff_list: ['王孝宇', '陳詩韻', '廖芝穎', '熊敬業', '劉育昌', '林伯儒'],
+    // 主治醫師
+    physicians: [
+        { code: 'hsiung', name: '熊敬業' },
+        { code: 'liu', name: '劉育昌' },
+        { code: 'lin', name: '林伯儒' }
+    ],
     // 警示規則
-    await Settings.set('alert_rules', [
+    alert_rules: [
         { cancer_type: 'default', sdm_threshold: -3, nutrition_threshold: -5 },
         { cancer_type: 'head_neck', sdm_threshold: -3, nutrition_threshold: -5 }
-    ]);
-    
+    ],
     // 治療目的
-    await Settings.set('treatment_intents', [
+    treatment_intents: [
         { code: 'curative', label: '根治性' },
         { code: 'palliative', label: '緩和性' },
         { code: 'adjuvant', label: '輔助性' }
-    ]);
-    
+    ],
     // 無法測量原因
-    await Settings.set('unable_reasons', [
+    unable_reasons: [
         { code: 'bedridden', label: '臥床' },
         { code: 'wheelchair', label: '輪椅' },
         { code: 'refused', label: '拒測' },
         { code: 'other', label: '其他' }
-    ]);
-    
+    ],
     // 暫停療程原因
-    await Settings.set('pause_reasons', [
+    pause_reasons: [
         { code: 'side_effect', label: '副作用' },
         { code: 'infection', label: '感染' },
         { code: 'hospitalized', label: '住院中' },
         { code: 'patient_request', label: '病人要求' },
         { code: 'other', label: '其他（手填）' }
-    ]);
-    
+    ],
     // 病人端網址
-    await Settings.set('patient_app_url', 'https://sela1227.github.io/RTO-QCC/patient.html');
-    
+    patient_app_url: 'https://sela1227.github.io/RTO-QCC/patient.html'
+};
+
+/**
+ * 初始化預設設定
+ *
+ * ⚠ 舊資料庫（initialized 已為 true）也必須補齊「後來才新增」的設定鍵，
+ *   否則該設定永遠是空的。例如 treatment_intents 若缺少，「治療目的」下拉會是空的，
+ *   而它是新增療程的必填欄位 → 使用者永遠無法新增療程，且系統設定頁沒有地方可補。
+ *
+ * 只補「完全不存在」的鍵；使用者刻意清空成 [] 的設定會保留，不會被還原。
+ */
+async function initDefaultSettings() {
+    const wasInitialized = await Settings.get('initialized');
+
+    // 補齊缺少的設定（新舊資料庫都適用）
+    for (const [key, value] of Object.entries(DEFAULT_SETTINGS)) {
+        const current = await Settings.get(key); // 不存在時回傳 null
+        if (current === null) {
+            await Settings.set(key, value);
+            if (wasInitialized) console.log(`補齊缺少的設定：${key}`);
+        }
+    }
+
+    // 舊資料庫到此為止 —— 不可往下走，否則清除資料後演示資料會自己跑回來
+    if (wasInitialized) return;
+
     await Settings.set('initialized', true);
     console.log('預設設定已初始化');
-    
-    // 初始化演示數據
+
+    // 初始化演示數據（僅首次）
     await initDemoData();
 }
 

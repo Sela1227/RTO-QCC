@@ -276,8 +276,8 @@ const Patient = {
                                    }
                                    this.value = v;
                                ">
-                        <small style="color: var(--text-hint); font-size: 11px; margin-top: 4px; display: block;">輸入 8 位數字，如 19900312</small>
-                    `, true)}
+                        <small style="color: var(--text-hint); font-size: 11px; margin-top: 4px; display: block;">輸入 8 位數字，如 19900312（可不填）</small>
+                    `)}
                 </div>
             </form>
         `;

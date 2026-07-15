@@ -517,5 +517,13 @@
     
     <!-- 應用程式 -->
     <script src="js/patient-app.js?v=3.0"></script>
+    <!-- PWA：註冊 Service Worker（相對路徑，相容 GitHub Pages 子路徑）-->
+    <script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+            navigator.serviceWorker.register('sw.js').catch(function () {});
+        });
+    }
+    </script>
 </body>
 </html>

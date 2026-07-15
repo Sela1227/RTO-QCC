@@ -507,12 +507,15 @@ const Treatment = {
         // 轉換醫師列表為選項格式
         const physicianOptions = physicians.map(p => ({ code: p.code, label: p.name }));
         
+        // 生日為可選欄位（v6.11.23），沒填時不顯示「null歲」
+        const patientAge = calculateAge(patient.birth_date);
+        
         const html = `
             <form id="treatment-form">
                 <div style="background: var(--bg); padding: 12px; border-radius: 8px; margin-bottom: 16px;">
                     <strong>${patient.medical_id}</strong> ${patient.name}
                     <span style="color: var(--text-secondary); margin-left: 8px;">
-                        ${formatGender(patient.gender)} · ${calculateAge(patient.birth_date)}歲
+                        ${formatGender(patient.gender)}${patientAge !== null ? ' · ' + patientAge + '歲' : ''}
                     </span>
                 </div>
                 
