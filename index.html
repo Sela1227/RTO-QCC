@@ -4,14 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>彰濱放腫體重監控預防系統</title>
-    <!-- SELA favicon（相對路徑，相容 GitHub Pages 子路徑）-->
-    <link rel="icon" type="image/svg+xml" href="favicon/sela.svg">
+    <!-- App logo favicon（V1.13.0 雙軌系統：app logo 主視覺；SELA logo 僅作歸屬印記，不在此處）
+         相對路徑，相容 GitHub Pages 子路徑 -->
     <link rel="icon" type="image/png" sizes="32x32" href="favicon/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="favicon/favicon-16x16.png">
+    <link rel="shortcut icon" href="favicon/favicon.ico">
     <link rel="apple-touch-icon" sizes="180x180" href="favicon/apple-touch-icon.png">
     <link rel="manifest" href="favicon/site.webmanifest">
     <meta name="theme-color" content="#5B8FB9">
-    <link rel="stylesheet" href="css/style.css?v=7.3.0">
+    <link rel="stylesheet" href="css/style.css?v=7.4.0">
     <!-- 外部套件 -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -22,7 +23,7 @@
     <!-- 登入畫面 -->
     <div class="login-screen" id="login-screen">
         <div class="login-box">
-            <img src="logo.png" alt="SELA" width="64" height="64" style="width:64px;height:64px;border-radius:12px;margin-bottom:16px;">
+            <img src="logo.png" alt="RTO-QCC" width="64" height="64" style="width:64px;height:64px;border-radius:14px;margin-bottom:16px;">
             <h1>彰濱放腫體重監控預防系統</h1>
             <p>請輸入密碼進入系統</p>
             <form id="login-form" onsubmit="return handleLogin(event)">
@@ -30,6 +31,12 @@
                 <button type="submit" class="btn btn-primary login-btn">進入系統</button>
             </form>
             <p class="login-error" id="login-error"></p>
+            <!-- SELA 品牌歸屬印記（V1.13.0 雙軌系統）：與 app logo 有段落距離、不並排同尺寸
+                 引用獨立的 sela.svg，不重用 favicon（V1.19.0 坑：否則微標會跟著變成 app logo） -->
+            <div class="sela-credit">
+                <img src="favicon/sela.svg" alt="" width="14" height="14" aria-hidden="true">
+                <span>by SELA</span>
+            </div>
         </div>
     </div>
 
@@ -38,9 +45,9 @@
         <header class="header">
             <div class="header-left">
                 <div class="logo">
-                    <img src="logo.png" alt="SELA" class="logo-img" width="28" height="28" style="width:28px;height:28px;max-width:28px;max-height:28px;">
+                    <img src="logo.png" alt="RTO-QCC" class="logo-img" width="28" height="28" style="width:28px;height:28px;max-width:28px;max-height:28px;border-radius:6px;">
                     <span class="logo-text">彰濱放腫體重監控預防系統</span>
-                    <span class="header-version">V7.3.0</span>
+                    <span class="header-version">V7.4.0</span>
                 </div>
             </div>
             <div class="header-right">
@@ -697,23 +704,23 @@
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script></script>
 
     <!-- JS 模組 -->
-    <script src="js/config.js?v=7.3.0"></script>
-    <script src="js/db.js?v=7.3.0"></script>
-    <script src="js/utils.js?v=7.3.0"></script>
-    <script src="js/patient.js?v=7.3.0"></script>
-    <script src="js/treatment.js?v=7.3.0"></script>
-    <script src="js/weight.js?v=7.3.0"></script>
-    <script src="js/sideeffect.js?v=7.3.0"></script>
-    <script src="js/intervention.js?v=7.3.0"></script>
-    <script src="js/report.js?v=7.3.0"></script>
-    <script src="js/settings.js?v=7.3.0"></script>
-    <script src="js/sync.js?v=7.3.0"></script>
-    <script src="js/version-sync.js?v=7.3.0"></script>
-    <script src="js/satisfaction.js?v=7.3.0"></script>
-    <script src="js/dashboard.js?v=7.3.0"></script>
-    <script src="js/patient-db.js?v=7.3.0"></script>
-    <script src="js/demo.js?v=7.3.0"></script>
-    <script src="js/app.js?v=7.3.0"></script>
+    <script src="js/config.js?v=7.4.0"></script>
+    <script src="js/db.js?v=7.4.0"></script>
+    <script src="js/utils.js?v=7.4.0"></script>
+    <script src="js/patient.js?v=7.4.0"></script>
+    <script src="js/treatment.js?v=7.4.0"></script>
+    <script src="js/weight.js?v=7.4.0"></script>
+    <script src="js/sideeffect.js?v=7.4.0"></script>
+    <script src="js/intervention.js?v=7.4.0"></script>
+    <script src="js/report.js?v=7.4.0"></script>
+    <script src="js/settings.js?v=7.4.0"></script>
+    <script src="js/sync.js?v=7.4.0"></script>
+    <script src="js/version-sync.js?v=7.4.0"></script>
+    <script src="js/satisfaction.js?v=7.4.0"></script>
+    <script src="js/dashboard.js?v=7.4.0"></script>
+    <script src="js/patient-db.js?v=7.4.0"></script>
+    <script src="js/demo.js?v=7.4.0"></script>
+    <script src="js/app.js?v=7.4.0"></script>
     
     <!-- 登入驗證 -->
     <script>

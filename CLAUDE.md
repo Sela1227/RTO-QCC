@@ -10,9 +10,13 @@
 > 3. **品牌歸屬：仍是 SELA 個人專案**（即使 UI 掛機構名「彰濱秀傳」、授權寫醫院）。UI 文字維持機構名。哪天醫院 IT 正式接管才換。
 > 4. **交付單一 ZIP**（`RTO-QCC V7.3.0.zip`，空格分隔）。依 SPEC §12.1「純靜態 HTML（無 build）→ 一份夠」：本專案無 build step、**部署版本身就是完整原始碼**，不存在「備份版才改得動」的問題，故 V7.3.0 起不再產 `-source`。
 >    （V7.0.0–V7.2.1 曾交雙 ZIP，差別僅 `test-*.html` + `SELA-handoff.md`，與 §12 的救命目的無關 —— 已於 V7.3.0 收斂。）
-> 5. **App logo（V1.13.0 雙軌系統）：進行中。** SELA 已選工作流 B —— `SELA-logo-prompt.md` 已產出，SELA 拿去生圖中。
->    拿到原圖後走 `logo/CLAUDE.md` §10.2 四步轉檔，app logo 接管 favicon / apple-touch-icon / android icon / 兩份 manifest 的 `icons`；**SELA 橘壁虎屆時降為歸屬印記**（README footer / 登入畫面「by SELA」），兩者不並排同尺寸。
->    **在 app logo 到位前，現狀仍是 SELA logo 當主視覺 —— 這是過渡狀態，不是最終決定。**
+> 5. **App logo（V1.13.0 雙軌系統）：已完成（V7.4.0）。**
+>    - **App logo = 霧藍圓角方形 + 白色體重計 / 向下箭頭 / 驚嘆號**（呼應「體重下降警示」的核心語意）
+>    - **設計來源 = SELA 委託 Gemini 生成 + Claude 依 `logo/CLAUDE.md` §10.2 四步優化轉檔**（取底色 → 四角 floodfill 去白底 → 色彩正規化 → 滿版方形母圖）。prompt 紀錄見 `SELA-logo-prompt.md`
+>    - **色彩已校正**：Gemini 產出的底色是 `#5A85A8`，已正規化回專案標準色 `#5B8FB9`（與 UI、`theme_color` 一致）。**母圖不烘圓角**，圓角交給顯示端（各平台半徑不同）
+>    - **SELA 橘壁虎已降為品牌歸屬印記**：只出現在 README footer 與登入畫面底部的「by SELA」小標。**不可放回 favicon / header / manifest icons**，否則雙軌破功
+>    - 微標引用**獨立的 `favicon/sela.svg`**，不重用 favicon 的引用（V1.19.0 坑）
+>    - 兩者**不並排同尺寸**：登入畫面 app logo 64px 在上、SELA 微標 14px 在分隔線下方
 > 6. **下次完成版本時記得評估 SELA-handoff.md**（鐵律 #0 — 完整見 Kit master CLAUDE.md）
 
 ---
@@ -26,7 +30,7 @@
 
 ## 〇、當前狀態
 
-- **版本**：V7.3.0（2026-07-15，對齊 Kit V1.23.1）
+- **版本**：V7.4.0（2026-07-15，專屬 app logo 上線）
 - **技術棧**：純 JavaScript（無框架無 build）+ IndexedDB + **Service Worker（PWA）** + Chart.js + jsPDF + SheetJS（全 CDN）
 - **部署**：GitHub Pages 或直接開 `index.html`；**部署檔 = 原始檔**（無 dist 概念）
 - **PWA**：醫護端、病人端各自可安裝（`favicon/site.webmanifest` / 根目錄 `manifest.json`，不同主題）；離線靠 `sw.js`
@@ -164,6 +168,17 @@
     - 原因：`modal-overlay.onclick` 綁了 `if (e.target === e.currentTarget) closeModal()`
     - 做法：**全系統一律不綁背景關閉**，只靠右上 X 與「取消」按鈕。V7.3.0 已移除（含強制備份對話框那段「恢復背景點擊」的程式碼）。**不要好心加回來** —— 本系統是 PWA、modal 內幾乎都有輸入欄
 
+20. **雙軌 logo：SELA 壁虎不可回到 favicon / header / manifest**（V7.4.0，Kit V1.13.0 + 坑 V1.19.0）
+    - 症狀：做完 app logo 後，某次改動又把 `favicon/sela.svg` 放回 `<link rel="icon">` 或 manifest 的 `icons` → 分頁/桌面圖示變回橘壁虎，雙軌等於沒做
+    - 原因：專案裡同時存在兩個 logo 檔，容易搞混誰是主視覺
+    - 做法：**分工是固定的** ——
+      - `logo.png`（app logo 256）→ header、登入畫面主視覺
+      - `favicon/*.png` + `favicon.ico`（app logo）→ 兩端 favicon、apple-touch-icon、兩份 manifest 的 `icons`
+      - `favicon/sela.svg` / 根目錄 `sela.svg`（SELA 橘壁虎）→ **只准**出現在登入畫面底部 `.sela-credit` 與 README footer
+    - **微標必須引用獨立的 `sela.svg`**，不可重用 favicon 的引用（否則微標會跟著變成 app logo）
+    - 兩者**不並排同尺寸**（登入畫面：app logo 64px 在上，SELA 微標 14px 在分隔線下方）
+    - 換 app logo 時：從母圖走 `logo/CLAUDE.md` §10.2 四步重生全套，**母圖不烘圓角**（各平台圓角半徑不同）
+
 ---
 
 ## 三、業務對映表（單一真相）
@@ -282,6 +297,8 @@ await DemoData.init()        // 應載入 100 位病人，無 error
 
 ## 六、版本歷程（近期；完整看 README）
 
+- **V7.4.0**（2026-07-15）專屬 app logo 上線（V1.13.0 雙軌系統）：Gemini 生圖 + §10.2 四步轉檔（含色偏校正 `#5A85A8` → `#5B8FB9`）、接管兩端 favicon 與 manifest icons、SELA 壁虎降為歸屬印記（坑 #20）
+
 - **V7.3.0**（2026-07-15）補評估 Kit V1.11.1 → V1.23.1 的規範落差：加 `escapeHtml()` 全面套用（坑 #18）、拿掉對話框背景關閉（坑 #19）、產出 `SELA-logo-prompt.md`（V1.13.0 雙軌系統，app logo 進行中）、改單一 ZIP（SPEC §12.1）、測試檔加移除標記、驗證迴圈寫進煙霧測試（Kit OPT-4）
 - **V7.2.1**（2026-07-15）修正三個 inline onclick 死引用：資料庫點列無反應（`App.selectPatient` 不存在，使用者回報）、「從網芳同步」失效（`Sync.selectAndSync` 未實作）、儲存 SDM 後不刷新（`App.renderContent` 不存在）；資料庫頁加明確「查看」鈕；標註 `renderPatientList` 死碼（坑 #17）
 - **V7.2.0**（2026-07-15）舊病人回診流程：輸完病歷號即時提醒舊資料 + 沿用開新療程（坑 #16）；資料庫搜尋不再被期間篩選擋住（坑 #15）
@@ -301,7 +318,7 @@ await DemoData.init()        // 應載入 100 位病人，無 error
 
 1. **實測共享資料夾同步**（`version-sync.js` / `sync.js`）在真實醫院環境 — 多人協作上線前必驗：衝突檢測與雙寫機制還沒在醫院實際共享資料夾跑過，這是病人安全相關的資料正確性風險。**注意：設定頁「從網芳同步」按鈕在 V7.2.1 才補上實作（`Sync.selectAndSync`），這條路從未被實際使用過，實測時要特別留意**
 2. **PWA 離線實機驗證** — sw.js 的離線快取、「加入主畫面」在醫院 iPad/Android 實機跑過一輪；確認 CDN 封鎖時 best-effort 降級行為正常
-3. **套用 app logo**（進行中）：SELA 正用 `SELA-logo-prompt.md` 生圖。拿到原圖 → 走 `logo/CLAUDE.md` §10.2 四步（取底色 → 四角 floodfill → 滿版方形 → 圓角交顯示端）→ 換掉 `favicon/` 全套 + 兩份 manifest 的 `icons` → SELA 壁虎降為歸屬印記（README footer / 登入畫面 by SELA），兩者不並排同尺寸
+3. **App logo 小尺寸辨識度**（低優先）：現圖細節較多，16px favicon 偏糊（體重計刻度與箭頭內驚嘆號會糊在一起），32px 以上清楚。若在意可請 Gemini 生一版簡化的（減少刻度、加粗箭頭），走同樣的 §10.2 四步替換即可
 4. **清理死碼**（待 SELA 決定）：`js/patient.js` 的 `renderPatientList()`（134 行）+ `App.searchPatients/clearPatientSearch/filterPatients`（js/app.js）確認無任何引用，V7.2.1 只加了停用標註沒刪。它們曾害人誤判功能存在（坑 #17）
 5. Capacitor 手機版轉換（IndexedDB→SQLite、CDN library 本地打包、離線字型、原生分享、App Store/Play 帳號）
 6. 體重預測演算法優化（目前線性迴歸 14 天）
@@ -325,7 +342,7 @@ await DemoData.init()        // 應載入 100 位病人，無 error
 
 ## 九、一句話總結
 
-V7.3.0 把專案從 Kit V1.11.1 補評估到 V1.23.1：全面加上 `escapeHtml()`（坑 #18 —— 重點不是防駭客，是姓名/備註含特殊字元會直接壞版）、拿掉對話框背景關閉（坑 #19 —— 醫護在 iPad 誤觸就丟掉整份表單）、依 V1.13.0 雙軌系統產出 `SELA-logo-prompt.md`（app logo 生圖中，到位後 SELA 壁虎降為歸屬印記）、依 SPEC §12.1 收斂成單一 ZIP、並把「死引用掃描 + 真實 UI 點擊」的驗證紀律寫進煙霧測試（Kit OPT-4，源自 V7.2.1 那次誤報的教訓）。**下版重點仍是把共享資料夾同步和 PWA 離線拉到醫院實機驗證** —— 那是唯一還沒被真實環境驗證過的病人安全相關路徑。
+V7.4.0 讓這個系統終於有了自己的臉：Gemini 生的霧藍體重計 + 向下箭頭 + 驚嘆號（正好就是這系統在幹的事 —— 盯著體重往下掉並示警），經 §10.2 四步轉檔（去白底 → 色偏 `#5A85A8` 校正回標準色 `#5B8FB9` → 滿版母圖不烘圓角）接管兩端 favicon 與 manifest，SELA 橘壁虎依 V1.13.0 雙軌降為 README footer 與登入畫面的「by SELA」歸屬印記（坑 #20 記了維護紀律，別讓它跑回 favicon）。前一版 V7.3.0 補完 Kit V1.23.1 的規範落差（escapeHtml、拿掉背景關閉）。**下版重點仍是把共享資料夾同步和 PWA 離線拉到醫院實機驗證** —— 那是唯一還沒被真實環境驗證過的病人安全相關路徑。
 
 ---
 

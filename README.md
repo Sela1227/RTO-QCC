@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="favicon/sela.svg" width="120" alt="SELA"/>
+  <img src="favicon/app-logo-512.png" width="120" alt="RTO-QCC" style="border-radius:22px"/>
   <h1>RTO-QCC 彰濱放腫體重監控預防系統</h1>
   <p>放射線治療病人體重監控與營養介入管理系統</p>
 </div>
@@ -137,6 +137,11 @@ RTO-QCC/
 ```
 
 ## 版本歷史
+
+### V7.4.0 (2026-07-15) — 專屬 App Logo
+- 新增系統專屬視覺識別（體重計 + 向下箭頭 + 警示），解決分頁 / 桌面捷徑認不出是哪個系統的問題
+- 醫護端與病人端的瀏覽器圖示、「加入主畫面」圖示全面更新
+- SELA 品牌標記移至 README 頁尾與登入畫面下方
 
 ### V7.3.0 (2026-07-15) — 對齊 SELA Starter Kit V1.23.1
 - **安全性：新增 `escapeHtml()` 並全面套用**於使用者輸入的顯示（病人姓名、備註、暫停/終止原因、滿意度回饋）——避免姓名或備註含特殊字元導致版面損壞
@@ -392,3 +397,11 @@ RTO-QCC/
 ## 授權
 
 MIT License - 彰濱秀傳紀念醫院 放射腫瘤科
+
+---
+
+<div align="center">
+  <img src="sela.svg" width="28" alt="SELA"/>
+  <br>
+  <sub>by <b>SELA</b></sub>
+</div>

@@ -151,6 +151,29 @@ body {
     min-height: 20px;
 }
 
+/* SELA 品牌歸屬印記（V1.13.0 雙軌系統）
+   app logo 是主視覺，這個只是角落的「by SELA」。刻意做小、做淡、
+   並與上方 app logo 保持一個段落以上的距離 —— 不可與 app logo 並排同尺寸。 */
+.sela-credit {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    margin-top: 28px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    color: var(--text-hint);
+    opacity: 0.75;
+}
+
+.sela-credit img {
+    width: 14px;
+    height: 14px;
+    display: block;
+}
+
 /* === 主佈局 === */
 .app {
     display: flex;
