@@ -1182,6 +1182,20 @@ body {
     flex-shrink: 0;
 }
 
+/* footer 的 SELA 歸屬印記（雙 logo 制）*/
+.footer-sela {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    opacity: 0.8;
+}
+
+.footer-sela img {
+    width: 14px;
+    height: 14px;
+    display: block;
+}
+
 .footer-divider {
     color: var(--border);
 }
