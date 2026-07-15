@@ -7,7 +7,7 @@
  * ⚠ 非 GET 一律放行（坑 #13）：Cache API 只支援 GET
  */
 
-const CACHE_VERSION = 'rto-qcc-v7.2.0';
+const CACHE_VERSION = 'rto-qcc-v7.2.1';
 
 // 本地 App Shell（必快取，任一失敗則 install 失敗 → 確保核心完整）
 const APP_SHELL = [

@@ -530,6 +530,22 @@ const Patient = {
 /**
  * 渲染病人列表頁面
  */
+/**
+ * ⚠️ 已停用（DEAD CODE）—— 不要改這裡，也不要照這裡的行為推論系統功能
+ *
+ * 資料庫頁實際使用的是 `PatientDB.renderList()`（js/patient-db.js）。
+ * 本函式只被 App.searchPatients / clearPatientSearch / filterPatients 呼叫，
+ * 而那三個函式沒有任何 UI 綁定（index.html 的搜尋鈕綁的是 PatientDB.refresh），
+ * 且它們引用的 `btn-patient-search-clear` 在 index.html 根本不存在。
+ *
+ * 危險點：本函式寫入的容器 `#patient-list` 與 PatientDB.renderList 相同 ——
+ * 若有人誤呼叫，會把資料庫頁換成另一張表。
+ *
+ * V7.2.1 記：曾有人（含 Claude）看到本函式裡的「查看」按鈕，
+ * 誤以為資料庫頁已能開啟病人詳情，實際上當時的 PatientDB.renderList
+ * 用的是 `App.selectPatient()`（不存在的函式），點列毫無反應。
+ * 保留而不刪除是為了降低風險；要清理請先確認無動態引用。
+ */
 async function renderPatientList(filters = {}) {
     const container = document.getElementById('patient-list');
     let patients = await Patient.getAll();

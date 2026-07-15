@@ -22,7 +22,7 @@
 
 ## 〇、當前狀態
 
-- **版本**：V7.2.0（2026-07-15，舊病人回診流程）
+- **版本**：V7.2.1（2026-07-15，修正三個失效按鈕）
 - **技術棧**：純 JavaScript（無框架無 build）+ IndexedDB + **Service Worker（PWA）** + Chart.js + jsPDF + SheetJS（全 CDN）
 - **部署**：GitHub Pages 或直接開 `index.html`；**部署檔 = 原始檔**（無 dist 概念）
 - **PWA**：醫護端、病人端各自可安裝（`favicon/site.webmanifest` / 根目錄 `manifest.json`，不同主題）；離線靠 `sw.js`
@@ -140,6 +140,15 @@
     - 注意：比對前必須先 `padMedicalId()` 補零（輸 `12345` 要命中 `0012345`），否則永遠查不到
     - 送出時的 `showExistingPatientDialog` 保留為最後防線（使用者可能略過提示直接按新增）
 
+17. **inline onclick 的死引用不會被發現，且死碼會誤導判斷**（V7.2.1，使用者回報）
+    - 症狀：資料庫頁點病人列毫無反應（`onclick="App.selectPatient(id)"` 但 `App` 沒有這個方法 → TypeError 只進 console）。同類還有兩個：設定頁「從網芳同步」（`Sync.selectAndSync` 未實作）、儲存 SDM 後不刷新（`App.renderContent` 不存在）
+    - 原因：純 JS 無 build、無型別檢查，HTML 字串裡的 `onclick="Obj.method()"` **拼錯或函式被刪都不會有任何警告**，只有使用者實際點下去才炸
+    - **踩過的具體教訓**：`js/patient.js` 的 `renderPatientList()`（134 行）是死碼但寫入**同一個容器 `#patient-list`**，裡面有一顆「查看」按鈕會呼叫 `showPatientDetail`。Claude 看到它就回報「資料庫頁已能開啟病人詳情」—— **完全錯誤**，實際頁面用的是 `PatientDB.renderList`，點列是壞的。該函式已加停用標註
+    - 做法：
+      1. **改動或驗證 UI 功能時，一定要走「渲染出 HTML → 從 HTML 找按鈕 → 點它」的真實路徑**，不可直接呼叫 `showPatientDetail()` 這種底層函式就宣稱功能正常（會跳過死引用）
+      2. 定期掃描死引用：把 `(App|Patient|Treatment|Sync|PatientDB|...)\.(\w+)\(` 的所有呼叫抓出來，比對物件實際定義的方法。V7.2.1 用這招一次抓出 3 個
+      3. 看到疑似重複的渲染函式，先確認**哪一個真的被 UI 綁定**，不要照死碼推論功能
+
 ---
 
 ## 三、業務對映表（單一真相）
@@ -215,6 +224,7 @@ await DemoData.init()        // 應載入 100 位病人，無 error
 
 ## 六、版本歷程（近期；完整看 README）
 
+- **V7.2.1**（2026-07-15）修正三個 inline onclick 死引用：資料庫點列無反應（`App.selectPatient` 不存在，使用者回報）、「從網芳同步」失效（`Sync.selectAndSync` 未實作）、儲存 SDM 後不刷新（`App.renderContent` 不存在）；資料庫頁加明確「查看」鈕；標註 `renderPatientList` 死碼（坑 #17）
 - **V7.2.0**（2026-07-15）舊病人回診流程：輸完病歷號即時提醒舊資料 + 沿用開新療程（坑 #16）；資料庫搜尋不再被期間篩選擋住（坑 #15）
 - **V7.1.1**（2026-07-15）Bug 修正：資料庫頁日期篩選會讓「只有基本資料的病人」消失導致無法補建療程（坑 #13）；`initDefaultSettings` 對舊資料庫早退致設定永遠空白（坑 #14）；無生日顯示 `null歲`、生日欄位誤標必填（v6.11.23 遺留）
 - **V7.1.0**（2026-06-04）PWA 升級：加 `sw.js`（離線快取 App Shell + CDN best-effort）、醫護/病人各自可安裝、補病人端 manifest.json（修坑 #9）
@@ -230,14 +240,15 @@ await DemoData.init()        // 應載入 100 位病人，無 error
 
 ## 七、下版候選工作（按優先序）
 
-1. **實測共享資料夾同步**（`version-sync.js`）在真實醫院環境 — 多人協作上線前必驗：衝突檢測與雙寫機制還沒在醫院實際共享資料夾跑過，這是病人安全相關的資料正確性風險
+1. **實測共享資料夾同步**（`version-sync.js` / `sync.js`）在真實醫院環境 — 多人協作上線前必驗：衝突檢測與雙寫機制還沒在醫院實際共享資料夾跑過，這是病人安全相關的資料正確性風險。**注意：設定頁「從網芳同步」按鈕在 V7.2.1 才補上實作（`Sync.selectAndSync`），這條路從未被實際使用過，實測時要特別留意**
 2. **PWA 離線實機驗證** — sw.js 的離線快取、「加入主畫面」在醫院 iPad/Android 實機跑過一輪；確認 CDN 封鎖時 best-effort 降級行為正常
-3. Capacitor 手機版轉換（IndexedDB→SQLite、CDN library 本地打包、離線字型、原生分享、App Store/Play 帳號）
-4. 體重預測演算法優化（目前線性迴歸 14 天）
-5. 多院區支援
+3. **清理死碼**（待 SELA 決定）：`js/patient.js` 的 `renderPatientList()`（134 行）+ `App.searchPatients/clearPatientSearch/filterPatients`（js/app.js）確認無任何引用，V7.2.1 只加了停用標註沒刪。它們曾害人誤判功能存在（坑 #17）
+4. Capacitor 手機版轉換（IndexedDB→SQLite、CDN library 本地打包、離線字型、原生分享、App Store/Play 帳號）
+5. 體重預測演算法優化（目前線性迴歸 14 天）
+6. 多院區支援
 
 ---
 
 ## 八、一句話總結
 
-V7.2.0 補完「舊病人回診」這條路：輸完病歷號當下就提醒有舊資料並可直接沿用開新療程（不必白填一輪才發現重複），資料庫搜尋也不再被期間篩選擋住（往年收案的舊病人現在搜得到）。連同 V7.1.1 修掉的兩個死路（無療程病人被日期篩選藏死、舊資料庫設定永遠空白擋住新增療程），坑 #13/#15 是同一個教訓的兩面：**資料存在卻讓使用者找不到，就是死路**。下版重點仍是把共享資料夾同步和 PWA 離線拉到醫院實機驗證。
+V7.2.1 修掉三個「按了沒反應」的 inline onclick 死引用 —— 其中資料庫頁點病人列（`App.selectPatient` 根本不存在）正是使用者回報的問題，另外兩個（「從網芳同步」按鈕失效、儲存 SDM 後不刷新）是順手掃出來的。教訓寫在坑 #17：**純 JS 沒有型別檢查，HTML 字串裡的 onclick 死引用只有使用者點下去才會發現**，而且死碼（`renderPatientList`）會讓人誤判功能存在。驗證 UI 一定要走真實點擊路徑。下版重點仍是把共享資料夾同步和 PWA 離線拉到醫院實機驗證 —— 注意「從網芳同步」這條路 V7.2.1 才剛接上，尚未實機驗證過。

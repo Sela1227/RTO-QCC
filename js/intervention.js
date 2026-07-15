@@ -1083,9 +1083,9 @@ const Intervention = {
                     await this.saveSDMChoice(treatmentId, selected.value);
                     closeModal();
                     showToast('已儲存 SDM 選擇', 'success');
-                    // 刷新頁面
+                    // 刷新頁面（App.renderContent 不存在，正確的是 App.refresh）
                     if (typeof App !== 'undefined') {
-                        App.renderContent();
+                        App.refresh();
                     }
                 }
             });

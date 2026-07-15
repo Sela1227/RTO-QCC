@@ -442,16 +442,20 @@ const PatientDB = {
             }
             
             html += `
-                <tr onclick="App.selectPatient(${p.id})" style="cursor: pointer;">
+                <tr onclick="showPatientDetail(${p.id})" style="cursor: pointer;">
                     <td><strong>${p.medical_id}</strong></td>
                     <td>${p.name}</td>
                     <td>${formatGender(p.gender)}</td>
-                    <td>${age}歲</td>
+                    <td>${age !== null ? age + '歲' : '-'}</td>
                     <td>${lastTx?.physician_name || '-'}</td>
                     <td>${lastTx?.cancer_type_label || '-'}</td>
                     <td>${startMonth}</td>
                     <td>${statusTag}</td>
-                    <td>
+                    <td style="white-space: nowrap;">
+                        <button class="btn btn-outline" style="padding: 4px 8px; font-size: 12px;"
+                                onclick="event.stopPropagation(); showPatientDetail(${p.id})" title="查看詳情／開新療程">
+                            查看
+                        </button>
                         <button class="btn-icon" onclick="event.stopPropagation(); Patient.showForm(${p.id})" title="編輯">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>

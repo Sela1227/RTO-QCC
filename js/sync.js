@@ -415,6 +415,56 @@ const Sync = {
     },
     
     /**
+     * 從網芳（共享資料夾）同步 —— 設定頁「從網芳同步」按鈕的進入點
+     *
+     * ⚠ 這個方法原本不存在（settings.js 呼叫 Sync.selectAndSync() 但 sync.js 沒定義），
+     *   按鈕按了只會丟 TypeError、毫無反應。V7.2.1 補上。
+     *
+     * 涉及病人資料覆寫，一律重用既有的安全路徑，不自行發明匯入邏輯：
+     *   - 有版本衝突 → showVersionConflictDialog 讓使用者選
+     *   - 本機無版本資訊 → showLoadSharedPrompt 先問過再載入
+     *   - 版本相同 → 不重複匯入（避免無謂覆寫本機資料）
+     */
+    async selectAndSync() {
+        // 1. 確保已連接共享資料夾
+        const handle = await this.loadDirectoryHandle();
+        if (!handle) {
+            const connected = await this.connectSharedFolder();
+            if (!connected) return; // 使用者取消 / 瀏覽器不支援
+        }
+
+        // 2. 讀取共享檔案
+        const sharedFile = await this.readSharedFile();
+        if (!sharedFile) {
+            showToast('共享資料夾中找不到資料檔', 'error');
+            return;
+        }
+
+        // 3. 比對版本
+        const localVersion = await this.getLocalVersion();
+        const conflict = this.detectConflict(sharedFile, localVersion);
+
+        if (conflict) {
+            const choice = await this.showVersionConflictDialog(conflict);
+            if (choice === 'shared') {
+                await this.loadFromShared(sharedFile);
+            } else {
+                await this.save();
+            }
+            return;
+        }
+
+        // 4. 本機沒有版本資訊（第一次同步）→ 先問過再載入，不直接覆寫
+        if (!localVersion) {
+            this.showLoadSharedPrompt(sharedFile);
+            return;
+        }
+
+        // 5. 版本相同 → 已是最新
+        showToast('已是最新版本', 'info');
+    },
+
+    /**
      * 從共享資料載入
      */
     async loadFromShared(sharedFile) {
