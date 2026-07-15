@@ -281,10 +281,12 @@ const PatientDB = {
         }
         
         // 篩選：收案日期範圍
-        // 註：「收案日期」來自療程的開始日期。尚無療程的病人沒有收案日期，
-        //     不可套用此篩選 —— 否則只建了基本資料的病人會從資料庫頁消失，
-        //     連用姓名/病歷號搜尋都找不回來，導致永遠無法補建療程。
-        if (dateRange.from || dateRange.to) {
+        // 註1：「收案日期」來自療程的開始日期。尚無療程的病人沒有收案日期，
+        //      不可套用此篩選 —— 否則只建了基本資料的病人會從資料庫頁消失，
+        //      連用姓名/病歷號搜尋都找不回來，導致永遠無法補建療程。
+        // 註2：使用者明確輸入搜尋字串時 = 指名要找「那個人」，一律忽略期間篩選，
+        //      否則舊病人（療程在往年）永遠搜不到，無法回頭開新療程。
+        if ((dateRange.from || dateRange.to) && !searchInput) {
             patients = patients.filter(p => {
                 // 尚無療程 → 一律顯示（正是需要補建療程的對象）
                 if (p.treatments.length === 0) return true;
@@ -311,8 +313,10 @@ const PatientDB = {
         // 儲存篩選後的結果（供匯出使用）
         this.filteredPatients = patients;
         
-        // 更新結果數量
-        document.getElementById('db-result-count').textContent = `共 ${patients.length} 筆`;
+        // 更新結果數量（搜尋中會忽略期間篩選，明講出來避免使用者困惑）
+        const bypassed = !!searchInput && !!(dateRange.from || dateRange.to);
+        document.getElementById('db-result-count').textContent =
+            `共 ${patients.length} 筆` + (bypassed ? '（搜尋中，已忽略期間篩選）' : '');
         
         // 渲染列表
         this.renderList(patients);

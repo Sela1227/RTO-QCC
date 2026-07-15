@@ -243,12 +243,14 @@ const Patient = {
         
         const html = `
             <form id="patient-form">
+                <div id="existing-patient-notice"></div>
                 <div class="form-row">
                     ${createFormGroup('病歷號', `
                         <input type="text" class="form-input" id="medical_id" 
                                value="${patient?.medical_id || ''}" 
                                ${isEdit ? 'readonly' : ''} 
-                               placeholder="輸入病歷號">
+                               placeholder="輸入病歷號"
+                               ${isEdit ? '' : 'onblur="Patient.checkExisting(this.value)" onchange="Patient.checkExisting(this.value)"'}>
                     `, true)}
                     ${createFormGroup('姓名', `
                         <input type="text" class="form-input" id="name" 
@@ -359,6 +361,81 @@ const Patient = {
     },
     
     /**
+     * 輸完病歷號當下即時檢查是否為舊病人（V7.2.0）
+     *
+     * 為什麼要即時：舊做法要把姓名、性別全部填完並按「新增」才會發現病歷號重複，
+     * 白填一輪。病歷號是唯一鍵，一輸完就該告訴使用者「這個人已經在系統裡了，要沿用嗎」。
+     */
+    async checkExisting(value) {
+        const notice = document.getElementById('existing-patient-notice');
+        if (!notice) return;
+
+        const raw = (value || '').trim();
+        if (!raw) { notice.innerHTML = ''; return; }
+
+        const medicalId = padMedicalId(raw);
+        const existing = await this.getByMedicalId(medicalId);
+        if (!existing) { notice.innerHTML = ''; return; }
+
+        const withTreatments = await this.getWithTreatments(existing.id);
+        const age = calculateAge(existing.birth_date);
+        const ongoing = withTreatments.ongoing_treatment;
+        const count = withTreatments.treatments.length;
+
+        // 狀態說明
+        let statusText;
+        if (ongoing) {
+            statusText = `<span class="tag tag-blue">${ongoing.status === 'active' ? '治療中' : '暫停中'}</span>`;
+        } else if (count > 0) {
+            statusText = '<span class="tag tag-green">已結案</span>';
+        } else {
+            statusText = '<span class="tag">尚無療程</span>';
+        }
+
+        // 有進行中療程 → 不能開新療程，只能去看詳情
+        const actionHtml = ongoing
+            ? `<div style="color: var(--text-secondary); font-size: 13px; margin-bottom: 8px;">
+                   此病人目前有進行中的療程，需先結案或終止才能開新療程。
+               </div>
+               <button type="button" class="btn btn-outline btn-sm" onclick="Patient.viewExisting(${existing.id})">查看詳情</button>`
+            : `<button type="button" class="btn btn-primary btn-sm" onclick="Patient.reuseExisting(${existing.id})">沿用舊資料，開新療程</button>
+               <button type="button" class="btn btn-outline btn-sm" onclick="Patient.viewExisting(${existing.id})">查看詳情</button>`;
+
+        notice.innerHTML = `
+            <div style="background: var(--bg); border-left: 3px solid var(--warning); border-radius: 6px; padding: 12px; margin-bottom: 16px;">
+                <div style="font-weight: 600; margin-bottom: 6px;">此病歷號已有舊資料，是否沿用？</div>
+                <div style="margin-bottom: 8px;">
+                    <strong>${existing.medical_id}</strong> ${existing.name}
+                    <span style="color: var(--text-secondary); margin-left: 6px;">
+                        ${formatGender(existing.gender)}${age !== null ? ' · ' + age + '歲' : ''}
+                    </span>
+                    <span style="margin-left: 8px;">${statusText}</span>
+                    <span style="color: var(--text-hint); margin-left: 6px;">${count} 筆療程</span>
+                </div>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">${actionHtml}</div>
+            </div>
+        `;
+    },
+
+    /**
+     * 沿用既有病人資料，直接開新療程（V7.2.0）
+     */
+    async reuseExisting(patientId) {
+        const patient = await this.getById(patientId);
+        if (!patient) { showToast('找不到病人', 'error'); return; }
+        closeModal();
+        setTimeout(() => Treatment.showForm(patient), 100);
+    },
+
+    /**
+     * 從新增病人表單跳去看既有病人詳情（V7.2.0）
+     */
+    viewExisting(patientId) {
+        closeModal();
+        setTimeout(() => showPatientDetail(patientId), 100);
+    },
+
+    /**
      * 顯示已存在病人的對話框
      */
     async showExistingPatientDialog(patient) {
@@ -413,7 +490,7 @@ const Patient = {
         // 如果沒有進行中療程，可以開新療程
         if (!hasOngoing) {
             buttons.push({
-                text: '開新療程',
+                text: '沿用舊資料，開新療程',
                 class: 'btn-primary',
                 closeOnClick: false,
                 onClick: () => {
