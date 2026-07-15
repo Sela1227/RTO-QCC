@@ -212,7 +212,7 @@ const Treatment = {
         
         const html = `
             <div style="margin-bottom: 16px;">
-                <strong>${patient.medical_id}</strong> ${patient.name}
+                <strong>${escapeHtml(patient.medical_id)}</strong> ${escapeHtml(patient.name)}
             </div>
             ${createFormGroup('暫停原因', `
                 <select class="form-select" id="pause_reason_select" onchange="Treatment.onPauseReasonChange()">
@@ -285,7 +285,7 @@ const Treatment = {
         
         let pauseInfo = '';
         if (treatment.pause_reason) {
-            pauseInfo = `<p style="color: var(--text-secondary); margin-top: 8px;">暫停原因：${treatment.pause_reason}</p>`;
+            pauseInfo = `<p style="color: var(--text-secondary); margin-top: 8px;">暫停原因：${escapeHtml(treatment.pause_reason)}</p>`;
         }
         if (treatment.paused_at) {
             pauseInfo += `<p style="color: var(--text-hint); font-size: 12px;">暫停時間：${formatDate(treatment.paused_at)}</p>`;
@@ -293,7 +293,7 @@ const Treatment = {
         
         const html = `
             <div style="margin-bottom: 16px;">
-                <strong>${patient.medical_id}</strong> ${patient.name}
+                <strong>${escapeHtml(patient.medical_id)}</strong> ${escapeHtml(patient.name)}
                 ${pauseInfo}
             </div>
             <p>確定要恢復此療程嗎？</p>
@@ -358,7 +358,7 @@ const Treatment = {
         
         const html = `
             <div style="margin-bottom: 16px;">
-                <strong>${patient.medical_id}</strong> ${patient.name}
+                <strong>${escapeHtml(patient.medical_id)}</strong> ${escapeHtml(patient.name)}
             </div>
             <p>確定要結案此療程嗎？</p>
             <p style="color: var(--text-hint); font-size: 12px; margin-top: 8px;">
@@ -415,7 +415,7 @@ const Treatment = {
         
         const html = `
             <div style="margin-bottom: 16px;">
-                <strong>${patient.medical_id}</strong> ${patient.name}
+                <strong>${escapeHtml(patient.medical_id)}</strong> ${escapeHtml(patient.name)}
             </div>
             ${createFormGroup('終止原因', `
                 <select class="form-select" id="terminate_reason_select" onchange="Treatment.onTerminateReasonChange()">
@@ -513,7 +513,7 @@ const Treatment = {
         const html = `
             <form id="treatment-form">
                 <div style="background: var(--bg); padding: 12px; border-radius: 8px; margin-bottom: 16px;">
-                    <strong>${patient.medical_id}</strong> ${patient.name}
+                    <strong>${escapeHtml(patient.medical_id)}</strong> ${escapeHtml(patient.name)}
                     <span style="color: var(--text-secondary); margin-left: 8px;">
                         ${formatGender(patient.gender)}${patientAge !== null ? ' · ' + patientAge + '歲' : ''}
                     </span>
@@ -704,7 +704,7 @@ const Treatment = {
         
         const html = `
             <div style="text-align: center; margin-bottom: 16px;">
-                <strong>${patient.medical_id}</strong> ${patient.name}<br>
+                <strong>${escapeHtml(patient.medical_id)}</strong> ${escapeHtml(patient.name)}<br>
                 <span class="tag ${getStatusTagClass(treatment.status)}">${formatTreatmentStatus(treatment.status)}</span>
             </div>
             ${actionsHtml}

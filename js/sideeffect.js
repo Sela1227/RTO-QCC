@@ -264,7 +264,7 @@ const SideEffect = {
         
         const html = `
             <div class="se-list-header">
-                <strong>${patient.medical_id}</strong> ${patient.name}
+                <strong>${escapeHtml(patient.medical_id)}</strong> ${escapeHtml(patient.name)}
             </div>
             <div class="side-effect-list">
                 ${listHtml}

@@ -187,7 +187,7 @@ const Weight = {
         const html = `
             <form id="weight-form">
                 <div style="background: var(--bg); padding: 12px; border-radius: 8px; margin-bottom: 16px;">
-                    <strong>${patient.medical_id}</strong> ${patient.name}
+                    <strong>${escapeHtml(patient.medical_id)}</strong> ${escapeHtml(patient.name)}
                     ${baselineInfo}
                 </div>
                 ${lastWeightInfo}
@@ -346,7 +346,7 @@ const Weight = {
         const html = `
             <div class="weight-list-header">
                 <div class="weight-list-patient">
-                    <strong>${patient.medical_id}</strong> ${patient.name}
+                    <strong>${escapeHtml(patient.medical_id)}</strong> ${escapeHtml(patient.name)}
                 </div>
                 ${treatment.baseline_weight ? 
                     `<div class="weight-list-baseline">基準體重: ${parseFloat(treatment.baseline_weight).toFixed(1)} kg</div>` 

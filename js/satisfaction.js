@@ -96,7 +96,7 @@ const Satisfaction = {
             <div class="satisfaction-form">
                 <div class="satisfaction-header">
                     <div class="patient-info">
-                        <strong>${patient.medical_id}</strong> ${patient.name}
+                        <strong>${escapeHtml(patient.medical_id)}</strong> ${escapeHtml(patient.name)}
                     </div>
                     <div class="treatment-info">
                         ${treatment.cancer_type_label} | ${formatDate(treatment.treatment_start)}
@@ -111,7 +111,7 @@ const Satisfaction = {
                 
                 <div class="satisfaction-feedback">
                     <div class="feedback-label">其他建議（選填）</div>
-                    <textarea id="satisfaction-feedback" placeholder="請輸入您的建議..." rows="3">${existing?.feedback || ''}</textarea>
+                    <textarea id="satisfaction-feedback" placeholder="請輸入您的建議..." rows="3">${escapeHtml(existing?.feedback || '')}</textarea>
                 </div>
             </div>
             

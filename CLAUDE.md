@@ -1,5 +1,5 @@
 > **⚠ 給同時拿到 SELA-Starter-Kit 的 Claude：**
-> 這是**已對齊 Kit V1.11.1 的成熟專案**（從 v6.11.23 對齊升上來），不是新專案。
+> 這是**已對齊 Kit V1.23.1 的成熟專案**（V7.0.0 首次對齊 V1.11.1，V7.3.0 補評估到 V1.23.1），不是新專案。
 >
 > 衝突仲裁規則：
 > 1. **以本專案 CLAUDE.md 為主、Kit 為輔**
@@ -7,9 +7,13 @@
 >    - **配色用 `#5B8FB9`（霧藍），非 Kit 預設 `#5A7A8B`** — 已長期使用者驗證，是事實標準
 >    - **業務命名、十個癌別、三位醫師預設（熊敬業/劉育昌/林伯儒）、排序順序、追蹤 8 Tab 定義** — 保留 V6 累積結構，已成熟
 >    - **版號歷史 v1.x–v6.11.x 不重訂** — 過去就是過去，從 V7.0.0 起嚴格三位制
-> 3. **品牌歸屬：仍是 SELA 個人專案**（即使 UI 掛機構名「彰濱秀傳」、授權寫醫院）。logo/favicon 用 SELA 橘壁虎；UI 文字維持機構名。哪天醫院 IT 正式接管才換。
-> 4. 版號規則照 Kit：**部署版無後綴、備份版 `-source`**，ZIP 命名空格分隔（`RTO-QCC V7.0.0.zip`）
-> 5. **下次完成版本時記得評估 SELA-handoff.md**（鐵律 #0 — 完整見 Kit master CLAUDE.md）
+> 3. **品牌歸屬：仍是 SELA 個人專案**（即使 UI 掛機構名「彰濱秀傳」、授權寫醫院）。UI 文字維持機構名。哪天醫院 IT 正式接管才換。
+> 4. **交付單一 ZIP**（`RTO-QCC V7.3.0.zip`，空格分隔）。依 SPEC §12.1「純靜態 HTML（無 build）→ 一份夠」：本專案無 build step、**部署版本身就是完整原始碼**，不存在「備份版才改得動」的問題，故 V7.3.0 起不再產 `-source`。
+>    （V7.0.0–V7.2.1 曾交雙 ZIP，差別僅 `test-*.html` + `SELA-handoff.md`，與 §12 的救命目的無關 —— 已於 V7.3.0 收斂。）
+> 5. **App logo（V1.13.0 雙軌系統）：進行中。** SELA 已選工作流 B —— `SELA-logo-prompt.md` 已產出，SELA 拿去生圖中。
+>    拿到原圖後走 `logo/CLAUDE.md` §10.2 四步轉檔，app logo 接管 favicon / apple-touch-icon / android icon / 兩份 manifest 的 `icons`；**SELA 橘壁虎屆時降為歸屬印記**（README footer / 登入畫面「by SELA」），兩者不並排同尺寸。
+>    **在 app logo 到位前，現狀仍是 SELA logo 當主視覺 —— 這是過渡狀態，不是最終決定。**
+> 6. **下次完成版本時記得評估 SELA-handoff.md**（鐵律 #0 — 完整見 Kit master CLAUDE.md）
 
 ---
 
@@ -22,7 +26,7 @@
 
 ## 〇、當前狀態
 
-- **版本**：V7.2.1（2026-07-15，修正三個失效按鈕）
+- **版本**：V7.3.0（2026-07-15，對齊 Kit V1.23.1）
 - **技術棧**：純 JavaScript（無框架無 build）+ IndexedDB + **Service Worker（PWA）** + Chart.js + jsPDF + SheetJS（全 CDN）
 - **部署**：GitHub Pages 或直接開 `index.html`；**部署檔 = 原始檔**（無 dist 概念）
 - **PWA**：醫護端、病人端各自可安裝（`favicon/site.webmanifest` / 根目錄 `manifest.json`，不同主題）；離線靠 `sw.js`
@@ -149,6 +153,17 @@
       2. 定期掃描死引用：把 `(App|Patient|Treatment|Sync|PatientDB|...)\.(\w+)\(` 的所有呼叫抓出來，比對物件實際定義的方法。V7.2.1 用這招一次抓出 3 個
       3. 看到疑似重複的渲染函式，先確認**哪一個真的被 UI 綁定**，不要照死碼推論功能
 
+18. **使用者輸入進 innerHTML 前一律 `escapeHtml()`**（V7.3.0，Kit 坑 #18）
+    - 症狀：病人姓名或備註含 `<` `>` `&` → 版面直接壞掉；`<textarea>${notes}</textarea>` 若 notes 含 `</textarea>` 會整個跳出容器
+    - 原因：全專案用樣板字串組 HTML 再塞 `innerHTML`（57 處），V7.3.0 前**沒有任何 escape 工具**
+    - 做法：`utils.js` 的 `escapeHtml()`。**要過**：病人姓名、病歷號、備註、暫停/終止原因（含手填）、滿意度回饋。**不要過**：QR 資料字串（`let data = \`I|...\``）、`pdf.text()`、`showToast()`（走 textContent）—— 跳脫了反而弄壞資料
+    - 為什麼內網醫療系統也要做：重點不是防駭客，是**資料正確性**（姓名含特殊字元會壞版，比惡意攻擊常見得多），且病人端資料經 QR 跨裝置流入
+
+19. **不要綁「點對話框背景關閉」**（V7.3.0，Kit 坑 #45）
+    - 症狀：醫護在 iPad 上填新增療程表單，手指誤觸背景 → 整份表單消失、重填
+    - 原因：`modal-overlay.onclick` 綁了 `if (e.target === e.currentTarget) closeModal()`
+    - 做法：**全系統一律不綁背景關閉**，只靠右上 X 與「取消」按鈕。V7.3.0 已移除（含強制備份對話框那段「恢復背景點擊」的程式碼）。**不要好心加回來** —— 本系統是 PWA、modal 內幾乎都有輸入欄
+
 ---
 
 ## 三、業務對映表（單一真相）
@@ -207,6 +222,36 @@
 
 ## 五、煙霧測試（升版必跑）
 
+### 5.1 死引用掃描（改任何 UI 前後都跑 —— 坑 #17）
+
+純 JS 沒有型別檢查，HTML 字串裡的 `onclick="Obj.method()"` 拼錯或函式被刪**不會有任何警告**。
+V7.2.1 用這招一次抓出 3 個死引用（其中「從網芳同步」按鈕從未能用過）。
+
+```bash
+cd RTO-QCC && node - << 'EOF'
+const fs=require('fs');
+const files=['index.html','patient.html',...fs.readdirSync('js').map(f=>'js/'+f)];
+const objs={};
+for(const f of files.filter(f=>f.endsWith('.js'))){
+  const src=fs.readFileSync(f,'utf8');
+  const m=src.match(/^const (\w+) = \{/m); if(!m) continue;
+  objs[m[1]]=objs[m[1]]||new Set();
+  for(const mm of src.matchAll(/^\s{4}(?:async\s+)?(\w+)\s*\(/gm)) objs[m[1]].add(mm[1]);
+}
+let bad=0;
+for(const f of files){
+  const src=fs.readFileSync(f,'utf8');
+  for(const m of src.matchAll(/\b(App|Patient|Treatment|Weight|Intervention|SettingsPage|SettingsUI|PatientDB|Dashboard|Report|SideEffect|Satisfaction|Sync|DemoData)\.(\w+)\s*\(/g)){
+    if(objs[m[1]] && !objs[m[1]].has(m[2])){ console.log(`✗ ${m[1]}.${m[2]}  ← ${f}`); bad++; }
+  }
+}
+console.log(bad?`\n${bad} 個死引用`:'✓ 無死引用');
+EOF
+```
+> 註解裡提到的方法名會被誤報（假陽性），逐一確認即可。
+
+### 5.2 手動煙霧測試
+
 ```bash
 cd RTO-QCC && python3 -m http.server 8000
 # 開 http://localhost:8000 → 密碼 QCC → console 不應有紅字
@@ -218,12 +263,26 @@ await DemoData.init()        // 應載入 100 位病人，無 error
 手動點檢：
 - 「系統成效」→「指定年」下拉應有 2024 / 2025 / 2026（坑 #6）
 - 追蹤清單「待輸體重」tab 應有人（demo 裡最後量測 ≥8 天前，坑 #8）
-- 瀏覽器分頁 icon 應是 SELA 橘壁虎（favicon 生效）
+- 資料庫 → 查看 → 病人詳情 → 開新療程（坑 #17 的回歸）
+- 對話框：**點背景不應關閉**，只有 X / 取消才關（坑 #19）
+- 瀏覽器分頁 icon 應正常顯示（app logo 到位前仍是 SELA 橘壁虎）
+
+### 5.3 驗證紀律（Kit OPT-4「生成後配自我驗證迴圈」）
+
+> **「寫程式是輕鬆的 80%、證明它沒寫錯才是真正的 20%」。**
+> V7.2.1 的教訓：Claude 直接呼叫 `showPatientDetail()` 就宣稱「查看功能正常」，
+> 但真實 UI 的 `onclick` 指向不存在的 `App.selectPatient` —— 驗證跳過了那一層，等於沒驗。
+
+- **驗 UI 功能一律走真實路徑**：渲染 → 從產出的 HTML 找按鈕 → `.click()` 它。不可直接呼叫底層函式就當通過
+- **批次改碼後必跑 5.1 + 語法檢查**（`for f in js/*.js; do node --check $f; done`）
+- **不要拿死碼當功能證據**（`renderPatientList()` 是停用死碼，見坑 #17）
+- jsdom 測試若要讓 inline `onclick` 生效，必須用 `runScripts:'dangerously'`（`outside-only` 不執行 HTML 屬性上的 handler，會假失敗）
 
 ---
 
 ## 六、版本歷程（近期；完整看 README）
 
+- **V7.3.0**（2026-07-15）補評估 Kit V1.11.1 → V1.23.1 的規範落差：加 `escapeHtml()` 全面套用（坑 #18）、拿掉對話框背景關閉（坑 #19）、產出 `SELA-logo-prompt.md`（V1.13.0 雙軌系統，app logo 進行中）、改單一 ZIP（SPEC §12.1）、測試檔加移除標記、驗證迴圈寫進煙霧測試（Kit OPT-4）
 - **V7.2.1**（2026-07-15）修正三個 inline onclick 死引用：資料庫點列無反應（`App.selectPatient` 不存在，使用者回報）、「從網芳同步」失效（`Sync.selectAndSync` 未實作）、儲存 SDM 後不刷新（`App.renderContent` 不存在）；資料庫頁加明確「查看」鈕；標註 `renderPatientList` 死碼（坑 #17）
 - **V7.2.0**（2026-07-15）舊病人回診流程：輸完病歷號即時提醒舊資料 + 沿用開新療程（坑 #16）；資料庫搜尋不再被期間篩選擋住（坑 #15）
 - **V7.1.1**（2026-07-15）Bug 修正：資料庫頁日期篩選會讓「只有基本資料的病人」消失導致無法補建療程（坑 #13）；`initDefaultSettings` 對舊資料庫早退致設定永遠空白（坑 #14）；無生日顯示 `null歲`、生日欄位誤標必填（v6.11.23 遺留）
@@ -242,13 +301,34 @@ await DemoData.init()        // 應載入 100 位病人，無 error
 
 1. **實測共享資料夾同步**（`version-sync.js` / `sync.js`）在真實醫院環境 — 多人協作上線前必驗：衝突檢測與雙寫機制還沒在醫院實際共享資料夾跑過，這是病人安全相關的資料正確性風險。**注意：設定頁「從網芳同步」按鈕在 V7.2.1 才補上實作（`Sync.selectAndSync`），這條路從未被實際使用過，實測時要特別留意**
 2. **PWA 離線實機驗證** — sw.js 的離線快取、「加入主畫面」在醫院 iPad/Android 實機跑過一輪；確認 CDN 封鎖時 best-effort 降級行為正常
-3. **清理死碼**（待 SELA 決定）：`js/patient.js` 的 `renderPatientList()`（134 行）+ `App.searchPatients/clearPatientSearch/filterPatients`（js/app.js）確認無任何引用，V7.2.1 只加了停用標註沒刪。它們曾害人誤判功能存在（坑 #17）
-4. Capacitor 手機版轉換（IndexedDB→SQLite、CDN library 本地打包、離線字型、原生分享、App Store/Play 帳號）
-5. 體重預測演算法優化（目前線性迴歸 14 天）
-6. 多院區支援
+3. **套用 app logo**（進行中）：SELA 正用 `SELA-logo-prompt.md` 生圖。拿到原圖 → 走 `logo/CLAUDE.md` §10.2 四步（取底色 → 四角 floodfill → 滿版方形 → 圓角交顯示端）→ 換掉 `favicon/` 全套 + 兩份 manifest 的 `icons` → SELA 壁虎降為歸屬印記（README footer / 登入畫面 by SELA），兩者不並排同尺寸
+4. **清理死碼**（待 SELA 決定）：`js/patient.js` 的 `renderPatientList()`（134 行）+ `App.searchPatients/clearPatientSearch/filterPatients`（js/app.js）確認無任何引用，V7.2.1 只加了停用標註沒刪。它們曾害人誤判功能存在（坑 #17）
+5. Capacitor 手機版轉換（IndexedDB→SQLite、CDN library 本地打包、離線字型、原生分享、App Store/Play 帳號）
+6. 體重預測演算法優化（目前線性迴歸 14 天）
+7. 多院區支援
 
 ---
 
-## 八、一句話總結
+## 八、轉正式版移除清單（Kit 坑 #58）
+
+臨時 / 開發用的東西集中列在這，轉正式版時一次拆乾淨。
+
+| 標記 | 位置 | 說明 |
+|---|---|---|
+| `TESTMODE_V730_REMOVE_BEFORE_PROD` | `test-weather.html` | 醫院網路天氣 API 連線測試頁。非產品頁、無人引用。部署 ZIP 已排除，但 repo 內仍在 |
+
+拆除時：`grep -rn "TESTMODE_V730_REMOVE_BEFORE_PROD"` 一次抓出全部。
+
+> 註：`SELA-handoff.md` / `SELA-logo-prompt.md` 是 Kit 流程文件、不是臨時碼，**不列入移除清單**（依 Kit 規範放專案根目錄）。
+
+---
+
+## 九、一句話總結
+
+V7.3.0 把專案從 Kit V1.11.1 補評估到 V1.23.1：全面加上 `escapeHtml()`（坑 #18 —— 重點不是防駭客，是姓名/備註含特殊字元會直接壞版）、拿掉對話框背景關閉（坑 #19 —— 醫護在 iPad 誤觸就丟掉整份表單）、依 V1.13.0 雙軌系統產出 `SELA-logo-prompt.md`（app logo 生圖中，到位後 SELA 壁虎降為歸屬印記）、依 SPEC §12.1 收斂成單一 ZIP、並把「死引用掃描 + 真實 UI 點擊」的驗證紀律寫進煙霧測試（Kit OPT-4，源自 V7.2.1 那次誤報的教訓）。**下版重點仍是把共享資料夾同步和 PWA 離線拉到醫院實機驗證** —— 那是唯一還沒被真實環境驗證過的病人安全相關路徑。
+
+---
+
+## 附：V7.2.1 以前的總結
 
 V7.2.1 修掉三個「按了沒反應」的 inline onclick 死引用 —— 其中資料庫頁點病人列（`App.selectPatient` 根本不存在）正是使用者回報的問題，另外兩個（「從網芳同步」按鈕失效、儲存 SDM 後不刷新）是順手掃出來的。教訓寫在坑 #17：**純 JS 沒有型別檢查，HTML 字串裡的 onclick 死引用只有使用者點下去才會發現**，而且死碼（`renderPatientList`）會讓人誤判功能存在。驗證 UI 一定要走真實點擊路徑。下版重點仍是把共享資料夾同步和 PWA 離線拉到醫院實機驗證 —— 注意「從網芳同步」這條路 V7.2.1 才剛接上，尚未實機驗證過。

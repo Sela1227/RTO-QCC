@@ -216,7 +216,7 @@ const Intervention = {
         pdf.text('彰濱秀傳紀念醫院癌症資源中心製  連絡電話：04-7813888 分機 70211', marginLeft, 280);
         
         // 下載
-        const filename = `轉介單_${patient.medical_id}_${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}.pdf`;
+        const filename = `轉介單_${escapeHtml(patient.medical_id)}_${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}.pdf`;
         pdf.save(filename);
         
         return filename;
@@ -236,7 +236,7 @@ const Intervention = {
         const html = `
             <form id="referral-form">
                 <div style="background: var(--bg); padding: 12px; border-radius: 8px; margin-bottom: 16px;">
-                    <strong>${patient.medical_id}</strong> ${patient.name}
+                    <strong>${escapeHtml(patient.medical_id)}</strong> ${escapeHtml(patient.name)}
                 </div>
                 
                 <div class="form-row">
@@ -477,7 +477,7 @@ const Intervention = {
         const html = `
             <form id="execute-form">
                 <div style="background: var(--bg); padding: 12px; border-radius: 8px; margin-bottom: 16px;">
-                    <strong>${patient.medical_id}</strong> ${patient.name}<br>
+                    <strong>${escapeHtml(patient.medical_id)}</strong> ${escapeHtml(patient.name)}<br>
                     <span class="tag tag-amber">${formatInterventionType(intervention.type)}</span>
                     <span style="color: var(--text-secondary); margin-left: 8px;">
                         觸發變化率: ${formatChangeRate(intervention.trigger_rate)}
@@ -635,7 +635,7 @@ const Intervention = {
                                 ${r.contacted_by ? ` · 聯繫: ${r.contacted_by}` : ''}
                                 ${r.executor ? ` · 執行: ${r.executor}` : ''}
                             </span>
-                            ${r.notes ? `<br><span style="color: var(--text-secondary); font-size: 12px;">${r.notes}</span>` : ''}
+                            ${r.notes ? `<br><span style="color: var(--text-secondary); font-size: 12px;">${escapeHtml(r.notes)}</span>` : ''}
                         </div>
                         <div style="display: flex; gap: 4px; align-items: center; flex-wrap: wrap;">
                             ${actionButtons}
@@ -647,7 +647,7 @@ const Intervention = {
         
         const html = `
             <div style="margin-bottom: 16px;">
-                <strong>${patient.medical_id}</strong> ${patient.name}
+                <strong>${escapeHtml(patient.medical_id)}</strong> ${escapeHtml(patient.name)}
             </div>
             <div class="detail-section">
                 ${listHtml}
@@ -689,7 +689,7 @@ const Intervention = {
         const html = `
             <form id="contact-form">
                 <div style="background: var(--bg); padding: 12px; border-radius: 8px; margin-bottom: 16px;">
-                    <strong>${patient.medical_id}</strong> ${patient.name}
+                    <strong>${escapeHtml(patient.medical_id)}</strong> ${escapeHtml(patient.name)}
                     <br>
                     <span style="color: var(--text-hint); font-size: 12px;">
                         ${formatInterventionType(intervention.type)} · 建立於 ${formatDate(intervention.created_at)}
@@ -752,7 +752,7 @@ const Intervention = {
         const html = `
             <form id="manual-intervention-form">
                 <div style="background: var(--bg); padding: 12px; border-radius: 8px; margin-bottom: 16px;">
-                    <strong>${patient.medical_id}</strong> ${patient.name}
+                    <strong>${escapeHtml(patient.medical_id)}</strong> ${escapeHtml(patient.name)}
                 </div>
                 
                 ${createFormGroup('介入類型', createSelect('manual_type', interventionTypes), true)}
@@ -850,7 +850,7 @@ const Intervention = {
                     ${createFormGroup('執行人員', createSelect('edit_executor', staffList, intervention.executor))}
                 </div>
                 ${createFormGroup('備註', `
-                    <textarea class="form-input" id="edit_notes" rows="3">${intervention.notes || ''}</textarea>
+                    <textarea class="form-input" id="edit_notes" rows="3">${escapeHtml(intervention.notes || '')}</textarea>
                 `)}
             </form>
         `;

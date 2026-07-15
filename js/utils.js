@@ -100,6 +100,29 @@ function formatGender(gender) {
 }
 
 /**
+ * HTML 跳脫（Kit 坑 #18）
+ *
+ * 本系統大量用樣板字串組 HTML 再塞進 innerHTML。任何「使用者打進去的字」
+ * 插進 HTML 前都要過這個函式：病人姓名、備註、手填原因等。
+ *
+ * 為什麼即使是內網醫療系統也要做：
+ *   1. 資料正確性 —— 姓名或備註含 < > & 會直接把版面弄壞（比惡意攻擊更常發生）
+ *   2. 跳脫容器 —— `<textarea>${notes}</textarea>` 若 notes 含 </textarea> 會整個跳出來
+ *   3. 病人端資料經 QR 跨裝置流入，來源不完全可控
+ *
+ * 不需要過的：系統自己產生的值（狀態標籤、日期、數字、程式碼常數）。
+ */
+function escapeHtml(value) {
+    if (value === null || value === undefined) return '';
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+/**
  * 療程狀態顯示
  */
 function formatTreatmentStatus(status) {

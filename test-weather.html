@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<!--
+    TESTMODE_V730_REMOVE_BEFORE_PROD
+
+    開發用測試頁 —— 用來在醫院網路實地測試天氣 API（7Timer! / Open-Meteo）能不能通。
+    不是產品的一部分，不會被 index.html 或 patient.html 引用。
+
+    要拆除時：grep -rn "TESTMODE_V730_REMOVE_BEFORE_PROD" 一次抓出全部標記位置。
+    移除清單見 CLAUDE.md §九「轉正式版移除清單」。
+-->
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>天氣 API 連線測試（開發用，非產品頁）</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f5f7fa;
+            padding: 24px;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 8px;
+        }
+        .subtitle {
+            color: #7f8c8d;
+            margin-bottom: 24px;
+        }
+        .test-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 16px;
+            max-width: 1200px;
+        }
+        .test-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .test-card h3 {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            color: #34495e;
+        }
+        .test-card .url {
+            font-size: 11px;
+            color: #95a5a6;
+            word-break: break-all;
+            margin-bottom: 12px;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        .status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        .status.pending { background: #ffeaa7; color: #d68910; }
+        .status.success { background: #d5f4e6; color: #27ae60; }
+        .status.error { background: #fadbd8; color: #c0392b; }
+        .status.timeout { background: #fdebd0; color: #e67e22; }
+        .result {
+            margin-top: 12px;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            font-size: 12px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .result.hidden { display: none; }
+        .time-info {
+            margin-top: 8px;
+            font-size: 12px;
+            color: #7f8c8d;
+        }
+        .actions {
+            margin-top: 24px;
+            display: flex;
+            gap: 12px;
+        }
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+        .btn-primary:hover { background: #2980b9; }
+        .btn-outline {
+            background: white;
+            color: #34495e;
+            border: 1px solid #bdc3c7;
+        }
+        .btn-outline:hover { background: #f8f9fa; }
+        .summary {
+            margin-top: 24px;
+            padding: 16px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .summary h3 { margin-bottom: 12px; color: #2c3e50; }
+        .summary-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .summary-table th, .summary-table td {
+            padding: 8px 12px;
+            text-align: left;
+            border-bottom: 1px solid #ecf0f1;
+        }
+        .summary-table th { color: #7f8c8d; font-weight: 500; }
+        .dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+        .dot.success { background: #27ae60; }
+        .dot.error { background: #c0392b; }
+        .dot.timeout { background: #e67e22; }
+        .dot.pending { background: #f1c40f; }
+    </style>
+</head>
+<body>
+    <h1>天氣 API 連線測試</h1>
+    <p class="subtitle">測試醫院網路環境下哪些天氣 API 可以正常存取（彰化縣 24.0518, 120.5161）</p>
+    
+    <div class="actions">
+        <button class="btn-primary" onclick="runAllTests()">開始測試全部</button>
+        <button class="btn-outline" onclick="location.reload()">重置</button>
+    </div>
+    
+    <div class="test-grid" id="test-grid"></div>
+    
+    <div class="summary" id="summary" style="display: none;">
+        <h3>測試結果摘要</h3>
+        <table class="summary-table">
+            <thead>
+                <tr>
+                    <th>API 名稱</th>
+                    <th>狀態</th>
+                    <th>回應時間</th>
+                    <th>建議</th>
+                </tr>
+            </thead>
+            <tbody id="summary-body"></tbody>
+        </table>
+    </div>
+
+    <script>
+    // 測試的天氣 API 列表
+    const weatherAPIs = [
+        {
+            id: 'open-meteo',
+            name: 'Open-Meteo',
+            description: '免費開源天氣 API，無需 API Key',
+            url: 'https://api.open-meteo.com/v1/forecast?latitude=24.0518&longitude=120.5161&current=temperature_2m,weather_code&timezone=Asia/Taipei',
+            parseResult: (data) => {
+                const temp = data.current?.temperature_2m;
+                const code = data.current?.weather_code;
+                return `溫度: ${temp}°C, 天氣代碼: ${code}`;
+            }
+        },
+        {
+            id: 'wttr-in',
+            name: 'wttr.in',
+            description: '簡易天氣服務，支援多種格式',
+            url: 'https://wttr.in/Changhua,Taiwan?format=j1',
+            parseResult: (data) => {
+                const current = data.current_condition?.[0];
+                if (current) {
+                    return `溫度: ${current.temp_C}°C, ${current.weatherDesc?.[0]?.value || ''}`;
+                }
+                return JSON.stringify(data).slice(0, 100);
+            }
+        },
+        {
+            id: 'timeapi',
+            name: 'TimeAPI.io（時間）',
+            description: '取得網路時間，用於版本同步',
+            url: 'https://timeapi.io/api/time/current/zone?timeZone=Asia/Taipei',
+            parseResult: (data) => {
+                return `日期: ${data.date}, 時間: ${data.time}`;
+            }
+        },
+        {
+            id: 'cloudflare-trace',
+            name: 'Cloudflare Trace（時間）',
+            description: 'Cloudflare CDN 時間戳記',
+            url: 'https://cloudflare.com/cdn-cgi/trace',
+            isText: true,
+            parseResult: (text) => {
+                const ts = text.match(/ts=([0-9.]+)/)?.[1];
+                if (ts) {
+                    const date = new Date(parseFloat(ts) * 1000);
+                    return `時間戳: ${ts}\n轉換: ${date.toISOString()}`;
+                }
+                return text.slice(0, 150);
+            }
+        },
+        {
+            id: 'openweather-free',
+            name: 'OpenWeatherMap（需 API Key）',
+            description: '需註冊取得免費 API Key',
+            url: 'https://api.openweathermap.org/data/2.5/weather?lat=24.0518&lon=120.5161&appid=DEMO_KEY&units=metric',
+            parseResult: (data) => {
+                if (data.main) {
+                    return `溫度: ${data.main.temp}°C, ${data.weather?.[0]?.description || ''}`;
+                }
+                return data.message || JSON.stringify(data).slice(0, 100);
+            }
+        },
+        {
+            id: 'weatherapi',
+            name: 'WeatherAPI.com（需 API Key）',
+            description: '需註冊取得免費 API Key',
+            url: 'https://api.weatherapi.com/v1/current.json?key=DEMO_KEY&q=Changhua,Taiwan',
+            parseResult: (data) => {
+                if (data.current) {
+                    return `溫度: ${data.current.temp_c}°C, ${data.current.condition?.text || ''}`;
+                }
+                return data.error?.message || JSON.stringify(data).slice(0, 100);
+            }
+        },
+        {
+            id: 'cwa-opendata',
+            name: '中央氣象署 Open Data',
+            description: '台灣官方氣象資料（需申請授權碼）',
+            url: 'https://opendata.cwa.gov.tw/api/v1/rest/datastore/O-A0003-001?Authorization=CWA-DEMO&StationId=C0G640',
+            parseResult: (data) => {
+                if (data.success === 'true' && data.records?.Station?.[0]) {
+                    const station = data.records.Station[0];
+                    return `測站: ${station.StationName}, 溫度: ${station.WeatherElement?.AirTemperature}°C`;
+                }
+                return data.message || JSON.stringify(data).slice(0, 100);
+            }
+        },
+        {
+            id: '7timer',
+            name: '7Timer!',
+            description: '免費氣象預報 API',
+            url: 'https://www.7timer.info/bin/astro.php?lon=120.5161&lat=24.0518&ac=0&unit=metric&output=json',
+            parseResult: (data) => {
+                if (data.dataseries?.[0]) {
+                    const d = data.dataseries[0];
+                    return `溫度: ${d.temp2m}°C, 雲量: ${d.cloudcover}`;
+                }
+                return JSON.stringify(data).slice(0, 100);
+            }
+        },
+        {
+            id: 'meteo-gc-ca',
+            name: 'MeteoBlue（需 API Key）',
+            description: '瑞士氣象服務',
+            url: 'https://my.meteoblue.com/packages/basic-1h_basic-day?apikey=DEMO&lat=24.0518&lon=120.5161&format=json',
+            parseResult: (data) => {
+                if (data.error_message) return data.error_message;
+                return JSON.stringify(data).slice(0, 100);
+            }
+        },
+        {
+            id: 'visualcrossing',
+            name: 'Visual Crossing（需 API Key）',
+            description: '美國天氣資料服務',
+            url: 'https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/Changhua,Taiwan/today?unitGroup=metric&key=DEMO&contentType=json',
+            parseResult: (data) => {
+                if (data.currentConditions) {
+                    return `溫度: ${data.currentConditions.temp}°C`;
+                }
+                return data.message || JSON.stringify(data).slice(0, 100);
+            }
+        }
+    ];
+
+    // 渲染測試卡片
+    function renderCards() {
+        const grid = document.getElementById('test-grid');
+        grid.innerHTML = weatherAPIs.map(api => `
+            <div class="test-card" id="card-${api.id}">
+                <h3>
+                    <span class="dot pending"></span>
+                    ${api.name}
+                </h3>
+                <p style="font-size: 13px; color: #7f8c8d; margin-bottom: 8px;">${api.description}</p>
+                <div class="url">${api.url}</div>
+                <div class="status pending" id="status-${api.id}">待測試</div>
+                <div class="time-info" id="time-${api.id}"></div>
+                <div class="result hidden" id="result-${api.id}"></div>
+            </div>
+        `).join('');
+    }
+
+    // 測試單一 API
+    async function testAPI(api) {
+        const statusEl = document.getElementById(`status-${api.id}`);
+        const resultEl = document.getElementById(`result-${api.id}`);
+        const timeEl = document.getElementById(`time-${api.id}`);
+        const dotEl = document.querySelector(`#card-${api.id} .dot`);
+        
+        statusEl.className = 'status pending';
+        statusEl.textContent = '測試中...';
+        dotEl.className = 'dot pending';
+        
+        const startTime = performance.now();
+        
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000);
+            
+            const response = await fetch(api.url, {
+                signal: controller.signal,
+                headers: { 'Accept': 'application/json' }
+            });
+            
+            clearTimeout(timeoutId);
+            const elapsed = Math.round(performance.now() - startTime);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            let data;
+            if (api.isText) {
+                data = await response.text();
+            } else {
+                data = await response.json();
+            }
+            
+            const parsed = api.parseResult(data);
+            
+            statusEl.className = 'status success';
+            statusEl.textContent = '成功';
+            dotEl.className = 'dot success';
+            timeEl.textContent = `回應時間: ${elapsed}ms`;
+            resultEl.textContent = parsed;
+            resultEl.classList.remove('hidden');
+            
+            return { id: api.id, name: api.name, status: 'success', time: elapsed, result: parsed };
+            
+        } catch (e) {
+            const elapsed = Math.round(performance.now() - startTime);
+            
+            if (e.name === 'AbortError') {
+                statusEl.className = 'status timeout';
+                statusEl.textContent = '逾時 (>10s)';
+                dotEl.className = 'dot timeout';
+                timeEl.textContent = `回應時間: >10000ms`;
+                resultEl.textContent = '請求逾時，可能被防火牆阻擋或網路緩慢';
+                resultEl.classList.remove('hidden');
+                return { id: api.id, name: api.name, status: 'timeout', time: '>10s', result: '逾時' };
+            }
+            
+            statusEl.className = 'status error';
+            statusEl.textContent = '失敗';
+            dotEl.className = 'dot error';
+            timeEl.textContent = `回應時間: ${elapsed}ms`;
+            resultEl.textContent = e.message;
+            resultEl.classList.remove('hidden');
+            
+            return { id: api.id, name: api.name, status: 'error', time: elapsed, result: e.message };
+        }
+    }
+
+    // 執行全部測試
+    async function runAllTests() {
+        const results = [];
+        
+        for (const api of weatherAPIs) {
+            const result = await testAPI(api);
+            results.push(result);
+        }
+        
+        // 顯示摘要
+        showSummary(results);
+    }
+
+    // 顯示測試摘要
+    function showSummary(results) {
+        const summaryEl = document.getElementById('summary');
+        const bodyEl = document.getElementById('summary-body');
+        
+        const successful = results.filter(r => r.status === 'success');
+        
+        bodyEl.innerHTML = results.map(r => {
+            let statusHtml = '';
+            let suggestion = '';
+            
+            if (r.status === 'success') {
+                statusHtml = '<span class="dot success"></span>成功';
+                if (r.name.includes('需 API Key')) {
+                    suggestion = '可用（需申請 API Key）';
+                } else {
+                    suggestion = '推薦使用';
+                }
+            } else if (r.status === 'timeout') {
+                statusHtml = '<span class="dot timeout"></span>逾時';
+                suggestion = '可能被阻擋';
+            } else {
+                statusHtml = '<span class="dot error"></span>失敗';
+                suggestion = '無法使用或需要 API Key';
+            }
+            
+            return `
+                <tr>
+                    <td>${r.name}</td>
+                    <td>${statusHtml}</td>
+                    <td>${typeof r.time === 'number' ? r.time + 'ms' : r.time}</td>
+                    <td>${suggestion}</td>
+                </tr>
+            `;
+        }).join('');
+        
+        summaryEl.style.display = 'block';
+        
+        // 如果有成功的免費 API，顯示推薦
+        const freeSuccess = successful.filter(r => !r.name.includes('需 API Key'));
+        if (freeSuccess.length > 0) {
+            const best = freeSuccess.reduce((a, b) => 
+                (typeof a.time === 'number' && typeof b.time === 'number' && a.time < b.time) ? a : b
+            );
+            alert(`測試完成！\n\n推薦使用: ${best.name}\n回應時間: ${best.time}ms\n\n共 ${successful.length} 個 API 可用`);
+        } else {
+            alert('測試完成！\n\n沒有免費 API 可用，可能需要使用本機時間或申請 API Key');
+        }
+    }
+
+    // 初始化
+    renderCards();
+    </script>
+</body>
+</html>

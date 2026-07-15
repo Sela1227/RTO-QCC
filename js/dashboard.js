@@ -805,7 +805,7 @@ const Dashboard = {
                                 const pct = (count / paused.total) * 100;
                                 return `
                                     <div class="stats-item">
-                                        <span class="stats-label" style="color: var(--warning);">暫停：${reason}</span>
+                                        <span class="stats-label" style="color: var(--warning);">暫停：${escapeHtml(reason)}</span>
                                         <div class="stats-bar-container">
                                             <div class="stats-bar amber" style="width: ${pct}%"></div>
                                         </div>
@@ -823,7 +823,7 @@ const Dashboard = {
                                 const pct = (count / terminated.total) * 100;
                                 return `
                                     <div class="stats-item">
-                                        <span class="stats-label" style="color: var(--danger);">終止：${reason}</span>
+                                        <span class="stats-label" style="color: var(--danger);">終止：${escapeHtml(reason)}</span>
                                         <div class="stats-bar-container">
                                             <div class="stats-bar red" style="width: ${pct}%"></div>
                                         </div>

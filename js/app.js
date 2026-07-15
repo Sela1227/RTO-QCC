@@ -376,11 +376,8 @@ const App = {
                     onClick: async () => {
                         await SettingsUI.exportData();
                         
-                        // 恢復關閉按鈕
+                        // 恢復關閉按鈕（不恢復背景點擊 —— 坑 #45，本系統一律不用背景關閉）
                         document.getElementById('modal-close').style.display = '';
-                        document.getElementById('modal-overlay').onclick = (e) => {
-                            if (e.target === e.currentTarget) closeModal();
-                        };
                         
                         closeModal();
                         showToast('感謝您的備份！資料已安全保存。');
@@ -389,7 +386,8 @@ const App = {
                 }
             ]);
             
-            // 禁止關閉對話框（移除關閉按鈕和點擊外部關閉）
+            // 禁止關閉對話框：藏起關閉按鈕即可
+            // （背景點擊本來就沒綁 —— 坑 #45，全系統一律不用背景關閉；這裡保留 null 純為保險）
             document.getElementById('modal-close').style.display = 'none';
             document.getElementById('modal-overlay').onclick = null;
         });
@@ -422,10 +420,10 @@ const App = {
         });
         
         // 對話框關閉
+        // ⚠ 刻意不綁「點背景關閉」（Kit 坑 #45）：本系統是 PWA、醫護在 iPad 上填
+        //   新增病人 / 新增療程 / 體重輸入等表單，手指誤觸背景會整份表單消失。
+        //   一律靠明確的關閉按鈕（右上 X / 取消）。不要「好心」加回來。
         document.getElementById('modal-close').onclick = closeModal;
-        document.getElementById('modal-overlay').onclick = (e) => {
-            if (e.target === e.currentTarget) closeModal();
-        };
         
         // 新增病人按鈕
         document.getElementById('btn-new-patient').onclick = () => Patient.showForm();
@@ -515,7 +513,7 @@ const App = {
             { code: 'lin', name: '林伯儒' }
         ]);
         physicianSelect.innerHTML = '<option value="">全部醫師</option>' + 
-            physicians.map(p => `<option value="${p.code}">${p.name}</option>`).join('');
+            physicians.map(p => `<option value="${p.code}">${escapeHtml(p.name)}</option>`).join('');
     },
     
     /**
@@ -1037,10 +1035,10 @@ const App = {
             cardsHtml += `
                 <div class="${cardClass}" onclick="App.selectTreatment(${t.id})">
                     <div class="patient-card-header">
-                        <span class="patient-card-id">${t.patient.medical_id}</span>
+                        <span class="patient-card-id">${escapeHtml(t.patient.medical_id)}</span>
                         <span class="status-dot ${t.tracking_status?.class || 'green'}"></span>
                     </div>
-                    <div class="patient-card-name">${t.patient.name}</div>
+                    <div class="patient-card-name">${escapeHtml(t.patient.name)}</div>
                     <div class="patient-card-info">
                         ${t.cancer_type_label}
                         ${t.change_rate !== null ? 
@@ -1171,7 +1169,7 @@ const App = {
             statusReasonHtml = `
                 <div style="background: rgba(228, 185, 90, 0.1); padding: 8px 10px; border-radius: 6px; margin-bottom: 10px;">
                     <strong style="color: var(--warning); font-size: 12px;">暫停原因</strong>
-                    <p style="margin: 4px 0 0; font-size: 12px;">${treatment.pause_reason}</p>
+                    <p style="margin: 4px 0 0; font-size: 12px;">${escapeHtml(treatment.pause_reason)}</p>
                     <p style="margin: 2px 0 0; font-size: 11px; color: var(--text-hint);">
                         ${formatDate(treatment.paused_at, 'YYYY-MM-DD HH:mm')}
                     </p>
@@ -1181,7 +1179,7 @@ const App = {
             statusReasonHtml = `
                 <div style="background: rgba(217, 123, 123, 0.1); padding: 8px 10px; border-radius: 6px; margin-bottom: 10px;">
                     <strong style="color: var(--danger); font-size: 12px;">終止原因</strong>
-                    <p style="margin: 4px 0 0; font-size: 12px;">${treatment.terminate_reason}</p>
+                    <p style="margin: 4px 0 0; font-size: 12px;">${escapeHtml(treatment.terminate_reason)}</p>
                     <p style="margin: 2px 0 0; font-size: 11px; color: var(--text-hint);">
                         ${formatDate(treatment.terminated_at, 'YYYY-MM-DD HH:mm')}
                     </p>
@@ -1242,7 +1240,7 @@ const App = {
         container.innerHTML = `
             <div class="detail-header">
                 <div>
-                    <div class="detail-title">${patient.medical_id} ${patient.name}</div>
+                    <div class="detail-title">${escapeHtml(patient.medical_id)} ${escapeHtml(patient.name)}</div>
                     <div class="detail-subtitle">
                         ${formatGender(patient.gender)}${age ? ` · ${age}歲` : ''} · ${treatment.cancer_type_label}
                         <span class="tag ${getStatusTagClass(treatment.status)}" style="margin-left: 6px; font-size: 11px;">
@@ -1678,7 +1676,7 @@ const App = {
         
         const html = `
             <div style="margin-bottom: 16px;">
-                <strong>${patient.medical_id}</strong> ${patient.name}
+                <strong>${escapeHtml(patient.medical_id)}</strong> ${escapeHtml(patient.name)}
             </div>
             <div style="height: 350px; background: var(--bg); border-radius: 8px; padding: 12px;">
                 <canvas id="enlarged-trend-chart"></canvas>
@@ -1919,7 +1917,7 @@ const App = {
         const html = `
             <div style="text-align: center;">
                 <div style="background: var(--bg); padding: 12px; border-radius: 8px; margin-bottom: 20px;">
-                    <strong>${patient.medical_id}</strong> ${patient.name}
+                    <strong>${escapeHtml(patient.medical_id)}</strong> ${escapeHtml(patient.name)}
                 </div>
                 
                 <div style="display: flex; flex-direction: column; gap: 12px;">
@@ -1993,7 +1991,7 @@ const App = {
         const html = `
             <div style="text-align: center;">
                 <div style="background: var(--bg); padding: 12px; border-radius: 8px; margin-bottom: 16px;">
-                    <strong>${patient.medical_id}</strong> ${patient.name}
+                    <strong>${escapeHtml(patient.medical_id)}</strong> ${escapeHtml(patient.name)}
                     ${recordInfo}
                 </div>
                 <div id="patient-qr-container" style="background: white; padding: 16px; border-radius: 8px; display: inline-block; min-width: 200px; min-height: 200px;">
@@ -2073,7 +2071,7 @@ const App = {
             <!DOCTYPE html>
             <html>
             <head>
-                <title>體重追蹤 QR Code - ${patient.name}</title>
+                <title>體重追蹤 QR Code - ${escapeHtml(patient.name)}</title>
                 <style>
                     body { 
                         font-family: sans-serif; 
@@ -2102,7 +2100,7 @@ const App = {
             <body>
                 <div class="title">體重追蹤</div>
                 <div class="patient-info">
-                    <strong>${patient.medical_id}</strong> ${patient.name}
+                    <strong>${escapeHtml(patient.medical_id)}</strong> ${escapeHtml(patient.name)}
                 </div>
                 <div class="qr-code">
                     <canvas id="print-qr-canvas"></canvas>
@@ -2142,7 +2140,7 @@ const App = {
         
         const html = `
             <div style="margin-bottom: 16px;">
-                <strong>${patient.medical_id}</strong> ${patient.name}
+                <strong>${escapeHtml(patient.medical_id)}</strong> ${escapeHtml(patient.name)}
             </div>
             
             <div style="margin-bottom: 20px;">
@@ -2403,7 +2401,7 @@ const App = {
                     <div style="background: var(--bg); padding: 16px; border-radius: 8px;">
                         <div class="detail-row">
                             <span>病人</span>
-                            <span><strong>${patient.name}</strong></span>
+                            <span><strong>${escapeHtml(patient.name)}</strong></span>
                         </div>
                         <div class="detail-row">
                             <span>體重新增</span>

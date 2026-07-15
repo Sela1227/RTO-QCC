@@ -405,7 +405,7 @@ const Patient = {
             <div style="background: var(--bg); border-left: 3px solid var(--warning); border-radius: 6px; padding: 12px; margin-bottom: 16px;">
                 <div style="font-weight: 600; margin-bottom: 6px;">此病歷號已有舊資料，是否沿用？</div>
                 <div style="margin-bottom: 8px;">
-                    <strong>${existing.medical_id}</strong> ${existing.name}
+                    <strong>${escapeHtml(existing.medical_id)}</strong> ${escapeHtml(existing.name)}
                     <span style="color: var(--text-secondary); margin-left: 6px;">
                         ${formatGender(existing.gender)}${age !== null ? ' · ' + age + '歲' : ''}
                     </span>
@@ -459,7 +459,7 @@ const Patient = {
                 <p style="margin-bottom: 16px;">此病歷號已有資料：</p>
                 <div style="background: var(--bg); padding: 16px; border-radius: 8px; text-align: left;">
                     <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">
-                        ${patient.medical_id} ${patient.name}
+                        ${escapeHtml(patient.medical_id)} ${escapeHtml(patient.name)}
                     </div>
                     <div style="color: var(--text-secondary);">
                         ${formatGender(patient.gender)} · ${age ? age + '歲' : '-'}
@@ -509,7 +509,7 @@ const Patient = {
     async askCreateTreatment(patient) {
         openModal('建立療程', `
             <p style="margin-bottom: 16px;">
-                已新增病人 <strong>${patient.medical_id} ${patient.name}</strong>
+                已新增病人 <strong>${escapeHtml(patient.medical_id)} ${escapeHtml(patient.name)}</strong>
             </p>
             <p>是否要立即建立療程？</p>
         `, [
@@ -661,8 +661,8 @@ async function renderPatientList(filters = {}) {
         
         html += `
             <tr>
-                <td><strong>${p.medical_id}</strong></td>
-                <td>${p.name}</td>
+                <td><strong>${escapeHtml(p.medical_id)}</strong></td>
+                <td>${escapeHtml(p.name)}</td>
                 <td>${formatGender(p.gender)}</td>
                 <td>${age ? age + '歲' : '-'}</td>
                 <td>${p.treatments.length}</td>
@@ -713,7 +713,7 @@ async function showPatientDetail(patientId) {
     const html = `
         <div class="detail-header">
             <div>
-                <div class="detail-title">${patient.medical_id} ${patient.name}</div>
+                <div class="detail-title">${escapeHtml(patient.medical_id)} ${escapeHtml(patient.name)}</div>
                 <div class="detail-subtitle">${formatGender(patient.gender)} · ${age ? age + '歲' : '-'}</div>
             </div>
         </div>
@@ -723,7 +723,7 @@ async function showPatientDetail(patientId) {
         </div>
         <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border);">
             <button class="btn btn-outline" style="color: var(--danger); border-color: var(--danger);" 
-                    onclick="Patient.confirmDelete(${patient.id}, '${patient.medical_id}', '${patient.name}')">
+                    onclick="Patient.confirmDelete(${patient.id}, '${escapeHtml(patient.medical_id)}', '${escapeHtml(patient.name)}')">
                 刪除病人
             </button>
         </div>
@@ -781,7 +781,7 @@ async function showTreatmentDetail(treatmentId) {
     const html = `
         <div class="detail-header">
             <div>
-                <div class="detail-title">${patient.medical_id} ${patient.name}</div>
+                <div class="detail-title">${escapeHtml(patient.medical_id)} ${escapeHtml(patient.name)}</div>
                 <div class="detail-subtitle">
                     ${treatment.cancer_type_label || treatment.cancer_type}
                     <span class="tag ${getStatusTagClass(treatment.status)}" style="margin-left: 8px;">

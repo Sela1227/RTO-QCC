@@ -40,7 +40,7 @@ const PatientDB = {
         const physicianSelect = document.getElementById('patient-filter-physician');
         if (physicianSelect) {
             physicianSelect.innerHTML = '<option value="all">全部醫師</option>' +
-                physicians.map(p => `<option value="${p.code}">${p.name}</option>`).join('');
+                physicians.map(p => `<option value="${p.code}">${escapeHtml(p.name)}</option>`).join('');
         }
         
         // 載入年份選項
@@ -443,8 +443,8 @@ const PatientDB = {
             
             html += `
                 <tr onclick="showPatientDetail(${p.id})" style="cursor: pointer;">
-                    <td><strong>${p.medical_id}</strong></td>
-                    <td>${p.name}</td>
+                    <td><strong>${escapeHtml(p.medical_id)}</strong></td>
+                    <td>${escapeHtml(p.name)}</td>
                     <td>${formatGender(p.gender)}</td>
                     <td>${age !== null ? age + '歲' : '-'}</td>
                     <td>${lastTx?.physician_name || '-'}</td>
